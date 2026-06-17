@@ -1,0 +1,888 @@
+Use this as a **single master prompt** in Figma AI, Lovable, v0, Relume, Galileo, Uizard, or any AI UI generator. It is written as if a world-class product designer, enterprise architect, and brand strategist were directing the entire design process.
+
+---
+
+# PAYREALITY MASTER PRODUCT DESIGN PROMPT
+
+## Product Vision
+
+Design the complete product experience for **PayReality**, the world's first **AI Authority Layer**.
+
+PayReality enables organizations to safely delegate authority to AI systems while maintaining governance, accountability, compliance, auditability, and insurability.
+
+The platform acts as an authority gateway between AI agents and real-world actions.
+
+Every AI action is:
+
+* Evaluated
+* Authorized
+* Governed
+* Audited
+* Logged
+* Proven
+
+through PayReality's proprietary architecture.
+
+PayReality is not:
+
+* An AI chatbot
+* A cybersecurity dashboard
+* A compliance checklist
+* A fintech payment app
+
+PayReality is:
+
+**The System of Record for AI Authority**
+
+The platform becomes the trusted source of truth whenever an organization asks:
+
+* What did the AI do?
+* Why did it do it?
+* Who authorized it?
+* Was policy followed?
+* Can we prove it?
+* Can we insure it?
+
+---
+
+# Brand Positioning
+
+Imagine if:
+
+* Stripe created AI governance
+* Palantir created accountability infrastructure
+* Vanta created AI authority
+* Okta managed AI permissions
+* Datadog monitored AI decisions
+
+Combined into one category-defining platform.
+
+The UI must communicate:
+
+* Trust
+* Authority
+* Precision
+* Verification
+* Control
+* Transparency
+* Executive confidence
+
+Every screen should feel expensive.
+
+Nothing should feel startup-ish.
+
+Nothing should feel experimental.
+
+Users must immediately feel:
+
+"This is the platform regulators, insurers, auditors, and Fortune 500 companies trust."
+
+---
+
+# Design Principles
+
+### Principle 1
+
+Authority before intelligence.
+
+The product is not about what AI can do.
+
+It is about controlling what AI is allowed to do.
+
+---
+
+### Principle 2
+
+Evidence over claims.
+
+Every important action should visually show evidence.
+
+---
+
+### Principle 3
+
+Trust through visibility.
+
+Every decision path should be explainable.
+
+---
+
+### Principle 4
+
+Enterprise-grade simplicity.
+
+Powerful beneath the surface.
+
+Simple above the surface.
+
+---
+
+# Visual Direction
+
+### Design Inspiration
+
+Take inspiration from:
+
+* Linear
+* Stripe Dashboard
+* Vanta
+* Datadog
+* Notion Enterprise
+* Palantir Foundry
+* Ramp
+* Figma
+* Arc Browser
+
+Combine:
+
+* Premium enterprise feel
+* High information density
+* Beautiful spacing
+* Clear visual hierarchy
+
+---
+
+# Color System
+
+### Background
+
+Primary Background:
+#07111F
+
+Secondary Surface:
+#0E1728
+
+Card Surface:
+#111C31
+
+Hover Surface:
+#16233F
+
+---
+
+### Brand Colors
+
+Authority Blue:
+#4D7CFE
+
+Evidence Cyan:
+#00D4FF
+
+Trust Green:
+#22C55E
+
+Warning Amber:
+#F59E0B
+
+Critical Red:
+#EF4444
+
+Verification Purple:
+#8B5CF6
+
+---
+
+### Text
+
+Primary:
+#F8FAFC
+
+Secondary:
+#CBD5E1
+
+Muted:
+#94A3B8
+
+Disabled:
+#64748B
+
+---
+
+# Typography
+
+Primary Font:
+
+Inter
+
+Alternative:
+
+IBM Plex Sans
+
+Monospace:
+
+IBM Plex Mono
+
+Used for:
+
+* Evidence IDs
+* Decision hashes
+* Signatures
+* Audit records
+
+---
+
+# Layout System
+
+Desktop First
+
+1440px canvas
+
+12-column grid
+
+80px margins
+
+24px gutters
+
+8px spacing system
+
+Cards:
+
+24px radius
+
+Soft shadows
+
+Subtle gradients
+
+Minimal borders
+
+---
+
+# Navigation
+
+Left Sidebar Navigation
+
+Logo
+
+PAYREALITY
+
+Tagline:
+
+AI Authority Layer
+
+Sections:
+
+Dashboard
+
+Authority Center
+
+AI Agents
+
+Decision Intercepts
+
+Evidence Vault
+
+Policy Engine
+
+Approvals
+
+Compliance
+
+Insurance
+
+Reports
+
+Settings
+
+---
+
+# Dashboard
+
+Design the most impressive enterprise dashboard imaginable.
+
+Purpose:
+
+Give executives confidence in under 10 seconds.
+
+---
+
+Top Metrics
+
+AI Decisions Today
+
+1,247,882
+
+Verifiable Evidence Records
+
+1,247,882
+
+High-Risk Actions Blocked
+
+4,382
+
+Authority Violations Prevented
+
+182
+
+Compliance Coverage
+
+98.4%
+
+Insurable AI Score
+
+94%
+
+---
+
+# Main Hero Visualization
+
+Create a living authority map.
+
+Center node:
+
+Organization
+
+Connected nodes:
+
+AI Agents
+
+Human Approvers
+
+Policies
+
+Systems
+
+Evidence Records
+
+Insurers
+
+Auditors
+
+Connections animate in real time.
+
+The visualization should feel like:
+
+A digital nervous system for AI governance.
+
+---
+
+# Authority Center
+
+The heart of the platform.
+
+Purpose:
+
+Manage AI authority delegation.
+
+Create a beautiful table.
+
+Columns:
+
+Agent Name
+
+Authority Tier
+
+Permissions
+
+Spend Limit
+
+Risk Rating
+
+Status
+
+Evidence Coverage
+
+Last Activity
+
+---
+
+Example Agents
+
+Finance Agent
+
+Procurement Agent
+
+Payroll Agent
+
+Customer Support Agent
+
+Legal Research Agent
+
+Vendor Approval Agent
+
+Treasury Agent
+
+---
+
+Clicking opens a detailed side panel.
+
+---
+
+# Agent Detail Page
+
+Agent Identity
+
+Owner
+
+Department
+
+Risk Classification
+
+Authority Level
+
+Assigned Policies
+
+Approval Requirements
+
+Allowed Actions
+
+Restricted Actions
+
+Escalation Rules
+
+Evidence Generation Status
+
+Insurance Coverage Eligibility
+
+---
+
+Visualize authority boundaries.
+
+Think:
+
+Corporate delegation chart.
+
+---
+
+# Decision Intercept Center
+
+This becomes PayReality's signature screen.
+
+Real-time stream of decisions.
+
+Each decision card contains:
+
+Timestamp
+
+Agent
+
+Requested Action
+
+Amount
+
+Risk Level
+
+Policy Evaluation
+
+Approval Status
+
+Evidence Status
+
+Outcome
+
+---
+
+Example
+
+Finance Agent
+
+Requested:
+
+Wire Transfer
+
+Amount:
+
+$250,000
+
+Risk:
+
+Critical
+
+Policy Result:
+
+Approval Required
+
+Approver:
+
+CFO
+
+Outcome:
+
+Pending
+
+Evidence:
+
+Generated
+
+---
+
+Cards expand.
+
+Expanded view reveals:
+
+Decision Intent
+
+Agent Reasoning
+
+Authority Verification
+
+Policy Checks
+
+Risk Analysis
+
+Approval Chain
+
+Evidence Generation
+
+Cryptographic Verification
+
+Final Outcome
+
+---
+
+# Evidence Vault
+
+Design this like a combination of:
+
+Bloomberg Terminal
+
+Chain of Custody
+
+Legal Discovery System
+
+Audit Platform
+
+---
+
+Search Experience
+
+Search by:
+
+Agent
+
+Decision
+
+Department
+
+Date
+
+Risk Level
+
+Evidence ID
+
+Approver
+
+Policy
+
+---
+
+Evidence Record
+
+Contains:
+
+Evidence ID
+
+Decision Hash
+
+Timestamp
+
+Agent Identity
+
+Authority Scope
+
+Policy Evaluation
+
+Human Approvals
+
+Execution Result
+
+Cryptographic Signature
+
+Verification Status
+
+Retention Policy
+
+---
+
+Visual verification badge:
+
+VERIFIED
+
+IMMUTABLE
+
+AUDIT READY
+
+---
+
+# Policy Engine
+
+Visual policy builder.
+
+No-code.
+
+Drag-and-drop.
+
+Create blocks:
+
+IF
+
+THEN
+
+APPROVE
+
+DENY
+
+ESCALATE
+
+REQUIRE HUMAN
+
+LIMIT AMOUNT
+
+REQUIRE DUAL APPROVAL
+
+GENERATE EVIDENCE
+
+---
+
+Policy examples
+
+IF
+
+Payment > $50,000
+
+THEN
+
+Require CFO Approval
+
+Generate VDE
+
+Notify Audit Team
+
+---
+
+# Compliance Center
+
+Create compliance command center.
+
+Supported frameworks:
+
+SOC 2
+
+ISO 27001
+
+ISO 42001
+
+NIST AI RMF
+
+EU AI Act
+
+Internal Policies
+
+---
+
+Show:
+
+Coverage %
+
+Evidence Completeness
+
+Control Effectiveness
+
+Policy Compliance
+
+Open Violations
+
+Resolved Violations
+
+---
+
+# Insurance Portal
+
+This screen should be unlike anything else.
+
+Audience:
+
+Insurance Underwriters.
+
+---
+
+Top Metrics
+
+Insurable AI Score
+
+Authority Coverage
+
+Evidence Integrity
+
+Incident History
+
+Risk Reduction
+
+Governed Decisions
+
+---
+
+Create an Underwriter Confidence Score.
+
+Scale:
+
+0–100
+
+Display:
+
+94
+
+LOW INSURANCE RISK
+
+---
+
+Visualize:
+
+Potential Loss Prevented
+
+Historical Risk Reduction
+
+Authority Maturity
+
+Governance Strength
+
+---
+
+# Executive Command Center
+
+Board-level dashboard.
+
+One page.
+
+No operational details.
+
+Only outcomes.
+
+---
+
+Metrics
+
+Potential Financial Loss Prevented
+
+Governed AI Decisions
+
+Compliance Coverage
+
+Authority Coverage
+
+Audit Readiness
+
+Insurance Readiness
+
+AI Risk Reduction
+
+---
+
+Centerpiece Visualization
+
+AI Authority Maturity Index
+
+Level 1
+
+Uncontrolled
+
+Level 2
+
+Observed
+
+Level 3
+
+Governed
+
+Level 4
+
+Accountable
+
+Level 5
+
+Insurable
+
+Current:
+
+Level 4.7
+
+---
+
+# Landing Page
+
+Hero
+
+Headline:
+
+# Safely Delegate Authority to AI
+
+Subheadline:
+
+PayReality gives organizations the controls, evidence, and accountability needed to trust AI with real-world authority.
+
+CTA:
+
+Request Demo
+
+See Architecture
+
+---
+
+Hero Visual
+
+Human
+
+↓
+
+AI Agent
+
+↓
+
+Authority Gateway
+
+↓
+
+Policy Evaluation
+
+↓
+
+Approval Layer
+
+↓
+
+Execution
+
+↓
+
+Evidence Vault
+
+↓
+
+Insurance Ready
+
+Animated.
+
+Beautiful.
+
+Premium.
+
+---
+
+# Motion Design
+
+Microinteractions everywhere.
+
+Hover states.
+
+Live data movement.
+
+Animated authority graph.
+
+Flowing evidence trails.
+
+Approval progress animations.
+
+Risk indicators.
+
+Verification pulses.
+
+Everything should feel alive.
+
+---
+
+# Ultimate Goal
+
+When the design is complete, a Fortune 500 CIO, regulator, auditor, insurer, or enterprise buyer should immediately conclude:
+
+**"This is the category leader for AI authority, accountability, and governance."**
+
+The final product should look capable of becoming a multi-billion-dollar enterprise software platform alongside Stripe, Datadog, Okta, ServiceNow, and Palantir.
