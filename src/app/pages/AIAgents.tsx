@@ -5,15 +5,8 @@ import {
   Lock, Eye, Lightbulb, Play, UserCheck, Star,
 } from "lucide-react";
 import { motion } from "motion/react";
-
-const agents = [
-  { name: "Finance Agent", status: "Active", decisions: "2,847", accuracy: "99.2%", risk: "High", framework: "LangGraph", department: "Finance", lastActivity: "Just now" },
-  { name: "Procurement Agent", status: "Active", decisions: "1,923", accuracy: "98.8%", risk: "Medium", framework: "OpenAI Agents", department: "Procurement", lastActivity: "3 min ago" },
-  { name: "Payroll Agent", status: "Active", decisions: "987", accuracy: "99.9%", risk: "High", framework: "Claude", department: "HR", lastActivity: "12 min ago" },
-  { name: "Customer Support Agent", status: "Active", decisions: "5,234", accuracy: "97.5%", risk: "Low", framework: "CrewAI", department: "Support", lastActivity: "1 min ago" },
-  { name: "Treasury Agent", status: "Active", decisions: "432", accuracy: "99.7%", risk: "Critical", framework: "Custom", department: "Treasury", lastActivity: "Just now" },
-  { name: "Vendor Approval Agent", status: "Active", decisions: "218", accuracy: "98.1%", risk: "Medium", framework: "LangGraph", department: "Procurement", lastActivity: "8 min ago" },
-];
+import { useDemo } from "../demo/DemoContext";
+import type { Agent } from "../demo/demoTypes";
 
 const riskColors: Record<string, string> = {
   Critical: "var(--pr-critical-red)",
@@ -71,12 +64,15 @@ const defaultForm: AgentForm = {
 };
 
 export function AIAgents() {
+  const { state } = useDemo();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState<WizardStep>(1);
   const [form, setForm] = useState<AgentForm>(defaultForm);
-  const [selectedAgent, setSelectedAgent] = useState<(typeof agents)[0] | null>(null);
-  const [agentList, setAgentList] = useState(agents);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [extraAgents, setExtraAgents] = useState<Agent[]>([]);
   const [search, setSearch] = useState("");
+
+  const agentList = [...extraAgents, ...state.agents];
 
   const openWizard = () => {
     setForm(defaultForm);
@@ -91,16 +87,22 @@ export function AIAgents() {
 
   const handleDelegate = () => {
     if (!form.name) return;
-    setAgentList((prev) => [
+    setExtraAgents((prev) => [
       {
+        id: `agent-${Date.now()}`,
         name: form.name,
         status: "Active",
-        decisions: "0",
+        decisions: 0,
         accuracy: "—",
         risk: form.authorityTier >= 5 ? "Critical" : form.authorityTier >= 4 ? "High" : form.authorityTier >= 3 ? "Medium" : "Low",
         framework: form.framework,
         department: form.department,
         lastActivity: "Just now",
+        authorityTier: form.authorityTier >= 4 ? "Executive" : form.authorityTier >= 3 ? "Manager" : "Operational",
+        permissions: form.businessFunction || "General",
+        spendLimit: form.transactionLimit || "$0",
+        coverage: "100%",
+        complianceStatus: "Compliant",
       },
       ...prev,
     ]);
@@ -111,6 +113,8 @@ export function AIAgents() {
     a.name.toLowerCase().includes(search.toLowerCase()) ||
     a.department.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalDecisions = agentList.reduce((sum, a) => sum + a.decisions, 0);
 
   const stepLabels: Record<WizardStep, string> = {
     1: "Identity",
@@ -156,7 +160,7 @@ export function AIAgents() {
         <div className="flex items-center gap-8">
           {[
             { label: "Active Agents", value: agentList.filter((a) => a.status === "Active").length, color: "var(--pr-trust-green)" },
-            { label: "Decisions Today", value: "11,641", color: "var(--pr-authority-blue)" },
+            { label: "Decisions Today", value: totalDecisions.toLocaleString(), color: "var(--pr-authority-blue)" },
             { label: "Avg Accuracy", value: "99.0%", color: "var(--pr-evidence-cyan)" },
             { label: "Critical Risk", value: agentList.filter((a) => a.risk === "Critical").length, color: "var(--pr-critical-red)" },
           ].map((s) => (
@@ -197,7 +201,7 @@ export function AIAgents() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAgents.map((agent, index) => (
             <motion.div
-              key={agent.name}
+              key={agent.id}
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.04 }}
@@ -244,9 +248,15 @@ export function AIAgents() {
                   <span className="text-xs font-mono font-medium" style={{ color: "var(--pr-trust-green)" }}>{agent.accuracy}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs" style={{ color: "var(--pr-text-muted)" }}>Framework</span>
-                  <span className="text-xs font-mono" style={{ color: "var(--pr-text-secondary)" }}>{agent.framework}</span>
+                  <span className="text-xs" style={{ color: "var(--pr-text-muted)" }}>Compliance</span>
+                  <span className="text-xs font-medium" style={{ color: "var(--pr-evidence-cyan)" }}>{agent.complianceStatus}</span>
                 </div>
+                {agent.recentAction && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs" style={{ color: "var(--pr-text-muted)" }}>Recent Activity</span>
+                    <span className="text-xs truncate max-w-[140px]" style={{ color: "var(--pr-text-secondary)" }}>{agent.recentAction}</span>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}

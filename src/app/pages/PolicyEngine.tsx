@@ -5,6 +5,11 @@ import {
   Search, Filter, AlertTriangle, Clock, Layers, Code2, GitBranch,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useDemo } from "../demo/DemoContext";
+import { useNotify } from "../components/NotificationProvider";
+import { evaluateAction } from "../demo/DemoEngine";
+import type { Policy } from "../demo/demoTypes";
+import { PROCESSING_STAGES, getExtractedControlSummary } from "../demo/documentExtraction";
 
 const TABS = [
   "Policy Library",
@@ -13,76 +18,6 @@ const TABS = [
   "Approval Workflows",
   "Policy Simulator",
   "Coverage Analysis",
-];
-
-type Policy = {
-  id: string;
-  name: string;
-  rule: string;
-  active: boolean;
-  triggered: number;
-  agents: string[];
-  category: string;
-  lastModified: string;
-  confidence?: number;
-};
-
-const initialPolicies: Policy[] = [
-  {
-    id: "p1",
-    name: "High-Value Payment Control",
-    rule: "IF Payment > $50,000 THEN Require CFO Approval + Generate VDE + Notify Audit Team",
-    active: true,
-    triggered: 247,
-    agents: ["Finance Agent", "Treasury Agent"],
-    category: "Financial Controls",
-    lastModified: "2 hours ago",
-    confidence: 98,
-  },
-  {
-    id: "p2",
-    name: "Cross-Border Dual Approval",
-    rule: "IF Cross-Border Transfer THEN Require CFO + CEO Approval",
-    active: true,
-    triggered: 89,
-    agents: ["Treasury Agent"],
-    category: "Compliance",
-    lastModified: "1 day ago",
-    confidence: 96,
-  },
-  {
-    id: "p3",
-    name: "Vendor Whitelist Enforcement",
-    rule: "IF Vendor NOT IN Approved List THEN Block + Escalate to Procurement",
-    active: true,
-    triggered: 12,
-    agents: ["Procurement Agent", "Finance Agent"],
-    category: "Vendor Controls",
-    lastModified: "3 days ago",
-    confidence: 99,
-  },
-  {
-    id: "p4",
-    name: "Weekend Transaction Freeze",
-    rule: "IF Weekend OR After Hours THEN Require Manual Override",
-    active: false,
-    triggered: 0,
-    agents: ["Finance Agent"],
-    category: "Risk Controls",
-    lastModified: "1 week ago",
-    confidence: 94,
-  },
-  {
-    id: "p5",
-    name: "Payroll Disbursement Limit",
-    rule: "IF Payroll Batch > $500,000 THEN Dual Approval Required + CFO Sign-Off",
-    active: true,
-    triggered: 34,
-    agents: ["Payroll Agent"],
-    category: "Financial Controls",
-    lastModified: "5 hours ago",
-    confidence: 97,
-  },
 ];
 
 type ModalView = null | "methods" | "manual" | "upload" | "import";
@@ -95,9 +30,11 @@ const categoryColors: Record<string, string> = {
 };
 
 export function PolicyEngine() {
+  const { state, togglePolicy, addManualPolicy, processDocuments } = useDemo();
+  const notify = useNotify();
+  const policies = state.policies;
   const [activeTab, setActiveTab] = useState("Policy Library");
   const [modalView, setModalView] = useState<ModalView>(null);
-  const [policies, setPolicies] = useState<Policy[]>(initialPolicies);
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -122,15 +59,12 @@ export function PolicyEngine() {
   );
 
   const handleTogglePolicy = (id: string) => {
-    setPolicies((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p))
-    );
+    togglePolicy(id);
   };
 
   const handleCreateManual = () => {
     if (!formData.name || !formData.condition || !formData.action) return;
-    const newPolicy: Policy = {
-      id: `p${Date.now()}`,
+    addManualPolicy({
       name: formData.name,
       rule: `IF ${formData.condition} THEN ${formData.action}`,
       active: true,
@@ -139,8 +73,9 @@ export function PolicyEngine() {
       category: formData.category,
       lastModified: "Just now",
       confidence: 100,
-    };
-    setPolicies((prev) => [newPolicy, ...prev]);
+      source: "manual",
+    });
+    notify.success(`Policy "${formData.name}" created`);
     setFormData({ name: "", category: "Financial Controls", condition: "", action: "", agents: "" });
     setModalView(null);
   };
@@ -213,8 +148,8 @@ export function PolicyEngine() {
           {[
             { label: "Active Policies", value: activePolicies, color: "var(--pr-trust-green)" },
             { label: "Total Triggers Today", value: totalTriggers.toLocaleString(), color: "var(--pr-authority-blue)" },
-            { label: "Coverage Score", value: "94%", color: "var(--pr-evidence-cyan)" },
-            { label: "Awaiting Review", value: "3", color: "var(--pr-warning-amber)" },
+            { label: "Coverage Score", value: `${Math.round(state.insurance.governanceCoverage)}%`, color: "var(--pr-evidence-cyan)" },
+            { label: "Awaiting Review", value: String(state.approvals.filter((a) => a.status === "pending").length), color: "var(--pr-warning-amber)" },
           ].map((stat) => (
             <div key={stat.label} className="flex items-center gap-2">
               <span className="text-lg font-semibold font-mono" style={{ color: stat.color }}>
@@ -422,7 +357,7 @@ export function PolicyEngine() {
                           color: "var(--pr-authority-blue)",
                           backgroundColor: "rgba(77,124,254,0.1)",
                         }}
-                        onClick={() => alert(`Edit policy: ${policy.name}`)}
+                        onClick={() => notify.info(`Edit policy: ${policy.name}`)}
                       >
                         Edit
                       </button>
@@ -435,7 +370,7 @@ export function PolicyEngine() {
         )}
 
         {activeTab === "Document Intelligence" && (
-          <DocumentIntelligenceTab />
+          <DocumentIntelligenceTab onUpload={() => setModalView("upload")} />
         )}
 
         {activeTab === "Policy Simulator" && (
@@ -444,11 +379,12 @@ export function PolicyEngine() {
             setInputs={setSimulatorInputs}
             simulated={simulated}
             setSimulated={setSimulated}
+            demoState={state}
           />
         )}
 
         {activeTab === "Coverage Analysis" && (
-          <CoverageAnalysisTab />
+          <CoverageAnalysisTab state={state} />
         )}
 
         {(activeTab === "Authority Models" || activeTab === "Approval Workflows") && (
@@ -851,7 +787,14 @@ export function PolicyEngine() {
 
               {/* Upload Documents */}
               {modalView === "upload" && (
-                <UploadDocumentsView onClose={() => setModalView(null)} />
+                <UploadDocumentsView
+                  onClose={() => setModalView(null)}
+                  onComplete={(fileNames) => {
+                    processDocuments(fileNames);
+                    notify.success(`${fileNames.length} document(s) processed — policies added to engine`);
+                    setModalView(null);
+                  }}
+                />
               )}
 
               {/* Import Framework */}
@@ -866,23 +809,19 @@ export function PolicyEngine() {
   );
 }
 
-function UploadDocumentsView({ onClose }: { onClose: () => void }) {
+function UploadDocumentsView({
+  onClose,
+  onComplete,
+}: {
+  onClose: () => void;
+  onComplete: (fileNames: string[]) => void;
+}) {
   const [dragging, setDragging] = useState(false);
-  const [uploaded, setUploaded] = useState([
-    "Delegation of Authority.pdf",
-    "Finance Policy.pdf",
-  ]);
+  const [uploaded, setUploaded] = useState<string[]>([]);
   const [processing, setProcessing] = useState(false);
   const [stage, setStage] = useState(0);
 
-  const stages = [
-    { label: "Document Processing", sub: "Extracting content" },
-    { label: "Control Discovery", sub: "Identifying governance controls" },
-    { label: "Authority Detection", sub: "Finding delegated authority structures" },
-    { label: "Policy Translation", sub: "Converting controls into policies" },
-    { label: "Evidence Mapping", sub: "Determining required evidence" },
-    { label: "Validation", sub: "Detecting ambiguities and conflicts" },
-  ];
+  const stages = PROCESSING_STAGES;
 
   const startProcessing = () => {
     setProcessing(true);
@@ -1019,14 +958,14 @@ function UploadDocumentsView({ onClose }: { onClose: () => void }) {
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle2 className="w-5 h-5" style={{ color: "var(--pr-trust-green)" }} />
                 <p className="text-sm font-semibold" style={{ color: "var(--pr-trust-green)" }}>
-                  18 Enforceable Controls Discovered
+                  {getExtractedControlSummary(uploaded).policiesFound} Enforceable Controls Discovered
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Policies Found", value: "18" },
-                  { label: "Authority Rules", value: "7" },
-                  { label: "Approval Chains", value: "12" },
+                  { label: "Policies Found", value: String(getExtractedControlSummary(uploaded).policiesFound) },
+                  { label: "Authority Rules", value: String(getExtractedControlSummary(uploaded).authorityRules) },
+                  { label: "Approval Chains", value: String(getExtractedControlSummary(uploaded).approvalChains) },
                 ].map((item) => (
                   <div key={item.label} className="text-center">
                     <p className="text-xl font-semibold font-mono" style={{ color: "var(--pr-text-primary)" }}>{item.value}</p>
@@ -1035,7 +974,7 @@ function UploadDocumentsView({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
               <button
-                onClick={onClose}
+                onClick={() => onComplete(uploaded)}
                 className="w-full mt-4 py-2 rounded-lg text-sm font-medium transition-all"
                 style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
               >
@@ -1050,6 +989,7 @@ function UploadDocumentsView({ onClose }: { onClose: () => void }) {
 }
 
 function ImportFrameworkView({ onClose }: { onClose: () => void }) {
+  const notify = useNotify();
   const [selected, setSelected] = useState<string | null>(null);
 
   const frameworks = [
@@ -1105,7 +1045,7 @@ function ImportFrameworkView({ onClose }: { onClose: () => void }) {
           Cancel
         </button>
         <button
-          onClick={() => { alert(`Importing ${selected}`); onClose(); }}
+          onClick={() => { notify.success(`Importing ${selected} framework controls`); onClose(); }}
           disabled={!selected}
           className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all"
           style={{
@@ -1121,14 +1061,24 @@ function ImportFrameworkView({ onClose }: { onClose: () => void }) {
 }
 
 function PolicySimulatorTab({
-  inputs, setInputs, simulated, setSimulated,
+  inputs, setInputs, simulated, setSimulated, demoState,
 }: {
   inputs: Record<string, string>;
   setInputs: (v: Record<string, string>) => void;
   simulated: boolean;
   setSimulated: (v: boolean) => void;
+  demoState: import("../demo/demoTypes").DemoState;
 }) {
   const handleSimulate = () => setSimulated(true);
+  const evaluation = simulated
+    ? evaluateAction(demoState, {
+        agent: inputs.agent,
+        action: inputs.action,
+        amount: inputs.amount,
+        department: inputs.department,
+        riskLevel: inputs.riskLevel as import("../demo/demoTypes").RiskLevel,
+      })
+    : null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -1194,35 +1144,81 @@ function PolicySimulatorTab({
                 Run a simulation to see results
               </p>
             </div>
-          ) : (
+          ) : evaluation ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
               {[
-                { label: "Triggered Policies", value: "2 policies", color: "var(--pr-warning-amber)" },
-                { label: "Required Approvals", value: "CFO + CEO", color: "var(--pr-authority-blue)" },
-                { label: "Authority Verified", value: "Yes", color: "var(--pr-trust-green)" },
-                { label: "Risk Score", value: "Critical (9.2/10)", color: "var(--pr-critical-red)" },
-                { label: "Evidence Generated", value: "VDE + Audit Log", color: "var(--pr-evidence-cyan)" },
-                { label: "Insurance Impact", value: "Coverage Active", color: "var(--pr-trust-green)" },
+                {
+                  label: "Triggered Policies",
+                  value: evaluation.matchedPolicies.length
+                    ? evaluation.matchedPolicies.map((p) => p.name).join(", ")
+                    : "None",
+                  color: "var(--pr-warning-amber)",
+                },
+                {
+                  label: "Required Approvals",
+                  value: evaluation.requiredApprovals.length
+                    ? evaluation.requiredApprovals.join(", ")
+                    : "None",
+                  color: "var(--pr-authority-blue)",
+                },
+                {
+                  label: "Authority Result",
+                  value: evaluation.authorityResult,
+                  color: "var(--pr-trust-green)",
+                },
+                {
+                  label: "Risk Classification",
+                  value: evaluation.risk,
+                  color: "var(--pr-critical-red)",
+                },
+                {
+                  label: "Evaluation Outcome",
+                  value: evaluation.outcome,
+                  color: "var(--pr-evidence-cyan)",
+                },
               ].map((r) => (
                 <div key={r.label} className="flex items-center justify-between py-2 border-b" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
                   <span className="text-sm" style={{ color: "var(--pr-text-muted)" }}>{r.label}</span>
-                  <span className="text-sm font-medium" style={{ color: r.color }}>{r.value}</span>
+                  <span className="text-sm font-medium text-right max-w-[60%]" style={{ color: r.color }}>{r.value}</span>
                 </div>
               ))}
-              <div className="pt-3 p-3 rounded-lg" style={{ backgroundColor: "rgba(239,68,68,0.08)" }}>
-                <p className="text-xs font-semibold mb-1" style={{ color: "var(--pr-critical-red)" }}>Outcome: BLOCKED</p>
+              <div
+                className="pt-3 p-3 rounded-lg"
+                style={{
+                  backgroundColor:
+                    evaluation.outcome === "Auto-Approved"
+                      ? "rgba(34,197,94,0.08)"
+                      : "rgba(239,68,68,0.08)",
+                }}
+              >
+                <p
+                  className="text-xs font-semibold mb-1"
+                  style={{
+                    color:
+                      evaluation.outcome === "Auto-Approved"
+                        ? "var(--pr-trust-green)"
+                        : "var(--pr-critical-red)",
+                  }}
+                >
+                  Outcome: {evaluation.outcome.toUpperCase()}
+                </p>
                 <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>
-                  This action requires dual executive approval before execution. Two approvers must confirm within 4 hours.
+                  {evaluation.outcome === "Auto-Approved"
+                    ? "Action is within delegated authority limits."
+                    : "This action requires human approval before execution."}
                 </p>
               </div>
             </motion.div>
-          )}
+          ) : null}
         </div>
       </div>
     </motion.div>
   );
 }
-function DocumentIntelligenceTab() {
+function DocumentIntelligenceTab({ onUpload }: { onUpload: () => void }) {
+  const { state } = useDemo();
+  const docPolicies = state.policies.filter((p) => p.source === "document").length;
+
   return (
     <div className="space-y-6">
       <div>
@@ -1267,6 +1263,8 @@ function DocumentIntelligenceTab() {
         </p>
 
         <button
+          type="button"
+          onClick={onUpload}
           className="px-4 py-2 rounded-lg"
           style={{
             background: "var(--pr-authority-blue)",
@@ -1277,12 +1275,31 @@ function DocumentIntelligenceTab() {
         </button>
       </div>
 
+      {state.documents.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>
+            Processed Documents
+          </p>
+          {state.documents.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
+              style={{ backgroundColor: "var(--pr-bg-card)" }}
+            >
+              <FileText className="w-4 h-4" style={{ color: "var(--pr-evidence-cyan)" }} />
+              <span className="text-sm flex-1" style={{ color: "var(--pr-text-secondary)" }}>{doc.name}</span>
+              <CheckCircle2 className="w-4 h-4" style={{ color: "var(--pr-trust-green)" }} />
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-4 gap-4">
         {[
-          { value: "18", label: "Policies Found" },
-          { value: "7", label: "Authority Rules" },
-          { value: "12", label: "Approval Chains" },
-          { value: "14", label: "Evidence Requirements" },
+          { value: String(state.policies.length), label: "Policies Found" },
+          { value: String(state.policies.filter((p) => p.requiredApprover).length), label: "Authority Rules" },
+          { value: String(state.approvals.length), label: "Approval Chains" },
+          { value: String(docPolicies || state.evidence.length), label: "Evidence Requirements" },
         ].map((item) => (
           <div
             key={item.label}
@@ -1311,22 +1328,26 @@ function DocumentIntelligenceTab() {
     </div>
   );
 }
-function CoverageAnalysisTab() {
+function CoverageAnalysisTab({ state }: { state: import("../demo/demoTypes").DemoState }) {
+  const activeCount = state.policies.filter((p) => p.active).length;
+  const docCount = state.policies.filter((p) => p.source === "document").length;
   const gaps = [
-    { area: "Cross-Border Payments", gap: "Missing dual-approval for amounts > $100k", severity: "High" },
-    { area: "Vendor Onboarding", gap: "No evidence requirement for new vendors", severity: "Medium" },
-    { area: "Payroll Adjustments", gap: "Escalation threshold not defined", severity: "Low" },
+    ...(docCount === 0
+      ? [{ area: "Document Intelligence", gap: "Upload governance documents to increase coverage", severity: "High" as const }]
+      : []),
+    { area: "Cross-Border Payments", gap: "Dual-approval enforced for amounts > $100k", severity: "Low" as const },
+    { area: "Vendor Onboarding", gap: "KYC verification policy active", severity: "Low" as const },
   ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <div className="grid grid-cols-5 gap-4 mb-6">
         {[
-          { label: "Detected Controls", value: "18", color: "var(--pr-text-primary)" },
-          { label: "Enforceable", value: "15", color: "var(--pr-trust-green)" },
-          { label: "Requires Review", value: "3", color: "var(--pr-warning-amber)" },
-          { label: "Coverage", value: "83%", color: "var(--pr-authority-blue)" },
-          { label: "Conflicts", value: "1", color: "var(--pr-critical-red)" },
+          { label: "Detected Controls", value: String(state.policies.length), color: "var(--pr-text-primary)" },
+          { label: "Enforceable", value: String(activeCount), color: "var(--pr-trust-green)" },
+          { label: "From Documents", value: String(docCount), color: "var(--pr-warning-amber)" },
+          { label: "Coverage", value: `${Math.round(state.insurance.governanceCoverage)}%`, color: "var(--pr-authority-blue)" },
+          { label: "Pending Approvals", value: String(state.approvals.filter((a) => a.status === "pending").length), color: "var(--pr-critical-red)" },
         ].map((s) => (
           <div key={s.label} className="p-4 rounded-xl border" style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}>
             <p className="text-2xl font-semibold font-mono mb-1" style={{ color: s.color }}>{s.value}</p>

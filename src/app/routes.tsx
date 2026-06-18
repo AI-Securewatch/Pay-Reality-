@@ -1,5 +1,6 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { Layout } from "./components/Layout";
+import { PlatformOverview } from "./pages/PlatformOverview";
 import { Dashboard } from "./pages/Dashboard";
 import { AuthorityCenter } from "./pages/AuthorityCenter";
 import { AIAgents } from "./pages/AIAgents";
@@ -16,7 +17,9 @@ export const router = createBrowserRouter([
     path: "/",
     Component: Layout,
     children: [
-      { index: true, Component: Dashboard },
+      { index: true, Component: PlatformOverview },
+      { path: "platform-overview", element: <Navigate to="/" replace /> },
+      { path: "dashboard", Component: Dashboard },
       { path: "authority-center", Component: AuthorityCenter },
       { path: "ai-agents", Component: AIAgents },
       { path: "decision-intercepts", Component: DecisionIntercepts },

@@ -1,79 +1,9 @@
 import { useState } from "react";
 import { Search, Filter, MoreVertical, Shield, AlertCircle, Plus, X, ChevronRight, CheckCircle2, Eye, Lightbulb, Play, UserCheck, Star } from "lucide-react";
 import { motion } from "motion/react";
-
-const agents = [
-  { 
-    name: "Finance Agent", 
-    tier: "Critical", 
-    permissions: "Full Treasury", 
-    spendLimit: "$500,000", 
-    risk: "High", 
-    status: "Active", 
-    coverage: "100%", 
-    lastActivity: "2 min ago" 
-  },
-  { 
-    name: "Procurement Agent", 
-    tier: "High", 
-    permissions: "Purchase Orders", 
-    spendLimit: "$250,000", 
-    risk: "Medium", 
-    status: "Active", 
-    coverage: "100%", 
-    lastActivity: "5 min ago" 
-  },
-  { 
-    name: "Payroll Agent", 
-    tier: "Critical", 
-    permissions: "Disbursements", 
-    spendLimit: "$1,000,000", 
-    risk: "High", 
-    status: "Active", 
-    coverage: "100%", 
-    lastActivity: "12 min ago" 
-  },
-  { 
-    name: "Customer Support Agent", 
-    tier: "Standard", 
-    permissions: "Refunds", 
-    spendLimit: "$10,000", 
-    risk: "Low", 
-    status: "Active", 
-    coverage: "98%", 
-    lastActivity: "1 min ago" 
-  },
-  { 
-    name: "Legal Research Agent", 
-    tier: "Standard", 
-    permissions: "Read-Only", 
-    spendLimit: "$0", 
-    risk: "Low", 
-    status: "Active", 
-    coverage: "100%", 
-    lastActivity: "30 min ago" 
-  },
-  { 
-    name: "Vendor Approval Agent", 
-    tier: "High", 
-    permissions: "Vendor Management", 
-    spendLimit: "$100,000", 
-    risk: "Medium", 
-    status: "Active", 
-    coverage: "100%", 
-    lastActivity: "8 min ago" 
-  },
-  { 
-    name: "Treasury Agent", 
-    tier: "Critical", 
-    permissions: "Cross-Border", 
-    spendLimit: "$2,000,000", 
-    risk: "Critical", 
-    status: "Active", 
-    coverage: "100%", 
-    lastActivity: "Just now" 
-  },
-];
+import type { AuthorityTier } from "../demo/demoTypes";
+import { useDemo } from "../demo/DemoContext";
+import { useNotify } from "../components/NotificationProvider";
 
 const getRiskColor = (risk: string) => {
   switch (risk.toLowerCase()) {
@@ -87,6 +17,9 @@ const getRiskColor = (risk: string) => {
 
 const getTierColor = (tier: string) => {
   switch (tier.toLowerCase()) {
+    case 'executive': return 'var(--pr-critical-red)';
+    case 'manager': return 'var(--pr-authority-blue)';
+    case 'operational': return 'var(--pr-evidence-cyan)';
     case 'critical': return 'var(--pr-critical-red)';
     case 'high': return 'var(--pr-authority-blue)';
     case 'standard': return 'var(--pr-text-muted)';
@@ -105,6 +38,10 @@ const authorityTiers = [
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 export function AuthorityCenter() {
+  const { state } = useDemo();
+  const notify = useNotify();
+  const agents = state.agents;
+  const authorityTiersFromState = state.authorityTiers;
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStep>(1);
@@ -163,7 +100,7 @@ export function AuthorityCenter() {
         </div>
       </div>
 
-      {activeTab === "Authority Models" && <AuthorityModelsTab />}
+      {activeTab === "Authority Models" && <AuthorityModelsTab tiers={authorityTiersFromState} />}
 
       {activeTab === "Agents" && <div className="p-8">
       {/* Search and Filter */}
@@ -188,7 +125,7 @@ export function AuthorityCenter() {
           />
         </div>
         <button
-          onClick={() => alert('Filter')}
+          onClick={() => notify.info("Filter options coming soon")}
           className="px-4 py-3 rounded-xl border flex items-center gap-2 transition-all"
           style={{ 
             backgroundColor: 'var(--pr-bg-card)', 
@@ -233,7 +170,7 @@ export function AuthorityCenter() {
             <tbody>
               {agents.map((agent, index) => (
                 <motion.tr
-                  key={agent.name}
+                  key={agent.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -259,11 +196,11 @@ export function AuthorityCenter() {
                     <span 
                       className="px-3 py-1 rounded-full text-xs font-medium"
                       style={{ 
-                        backgroundColor: `${getTierColor(agent.tier)}15`,
-                        color: getTierColor(agent.tier),
+                        backgroundColor: `${getTierColor(agent.authorityTier)}15`,
+                        color: getTierColor(agent.authorityTier),
                       }}
                     >
-                      {agent.tier}
+                      {agent.authorityTier}
                     </span>
                   </td>
                   <td className="p-4" style={{ color: 'var(--pr-text-secondary)' }}>{agent.permissions}</td>
@@ -301,7 +238,7 @@ export function AuthorityCenter() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        alert(`More options for ${agent.name}`);
+                        notify.info(`Authority options for ${agent.name}`);
                       }}
                       className="p-2 rounded-lg transition-all"
                       style={{ color: 'var(--pr-text-muted)' }}
@@ -562,7 +499,7 @@ const edges = [
   ["fd", "fa"], ["pm", "pa"], ["cto", "ta"],
 ];
 
-function AuthorityModelsTab() {
+function AuthorityModelsTab({ tiers }: { tiers: AuthorityTier[] }) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const selected = hierarchyNodes.find((n) => n.id === selectedNode);
 
@@ -574,6 +511,26 @@ function AuthorityModelsTab() {
       animate={{ opacity: 1, y: 0 }}
       className="p-8"
     >
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {tiers.map((tier) => (
+          <div
+            key={tier.id}
+            className="p-4 rounded-xl border"
+            style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}
+          >
+            <p className="text-sm font-semibold mb-1" style={{ color: getTierColor(tier.name) }}>
+              {tier.name}
+            </p>
+            <p className="text-xs mb-2" style={{ color: "var(--pr-text-muted)" }}>
+              {tier.description}
+            </p>
+            <p className="text-xs font-mono" style={{ color: "var(--pr-text-secondary)" }}>
+              Limit: ${tier.approvalLimit.toLocaleString()}
+              {tier.escalationTo ? ` · Escalates to ${tier.escalationTo}` : ""}
+            </p>
+          </div>
+        ))}
+      </div>
       <div className="mb-6 flex items-start justify-between">
         <div>
           <p className="text-sm font-medium mb-1" style={{ color: "var(--pr-text-primary)" }}>

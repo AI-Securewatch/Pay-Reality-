@@ -1,25 +1,30 @@
-import { TrendingUp, Shield, AlertTriangle, Ban, CheckCircle2, Building2 } from "lucide-react";
+import { Bot, Shield, GitBranch, Clock, CheckCircle2, Building2, FileCode } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-
-const metrics = [
-  { label: "AI Decisions Today", value: "1,247,882", icon: TrendingUp, color: 'var(--pr-authority-blue)' },
-  { label: "Verifiable Evidence Records", value: "1,247,882", icon: CheckCircle2, color: 'var(--pr-evidence-cyan)' },
-  { label: "High-Risk Actions Blocked", value: "4,382", icon: Ban, color: 'var(--pr-warning-amber)' },
-  { label: "Authority Violations Prevented", value: "182", icon: AlertTriangle, color: 'var(--pr-critical-red)' },
-  { label: "Compliance Coverage", value: "98.4%", icon: Shield, color: 'var(--pr-trust-green)' },
-  { label: "Insurable AI Score", value: "94%", icon: Building2, color: 'var(--pr-verification-purple)' },
-];
+import { useDemo, getDashboardMetrics } from "../demo/DemoContext";
+import { DemoControlCenter } from "../components/DemoControlCenter";
+import { ActivityTimeline } from "../components/ActivityTimeline";
 
 export function Dashboard() {
+  const { state } = useDemo();
+  const metrics = getDashboardMetrics(state);
   const [nodes, setNodes] = useState<Array<{ x: number; y: number; type: string; connections: number[] }>>([]);
 
+  const liveMetrics = [
+    { label: "Active Agents", value: String(metrics.activeAgents), icon: Bot, color: "var(--pr-authority-blue)" },
+    { label: "Active Policies", value: String(metrics.policies), icon: FileCode, color: "var(--pr-evidence-cyan)" },
+    { label: "Decision Intercepts", value: String(metrics.intercepts), icon: GitBranch, color: "var(--pr-warning-amber)" },
+    { label: "Pending Approvals", value: String(metrics.pendingApprovals), icon: Clock, color: "var(--pr-critical-red)" },
+    { label: "Evidence Records", value: String(metrics.evidenceRecords), icon: CheckCircle2, color: "var(--pr-trust-green)" },
+    { label: "Governance Coverage", value: metrics.governanceCoverage, icon: Shield, color: "var(--pr-trust-green)" },
+    { label: "Insurance Readiness Score", value: `${metrics.insuranceScore}/100`, icon: Building2, color: "var(--pr-verification-purple)" },
+  ];
+
   useEffect(() => {
-    // Generate authority map nodes
     const centerX = 400;
     const centerY = 300;
     const radius = 180;
-    
+
     const nodeTypes = [
       "Organization",
       "AI Agents",
@@ -28,36 +33,41 @@ export function Dashboard() {
       "Systems",
       "Evidence",
       "Insurers",
-      "Auditors"
+      "Auditors",
     ];
 
     const generatedNodes = nodeTypes.map((type, i) => {
       if (i === 0) {
         return { x: centerX, y: centerY, type, connections: [1, 2, 3, 4, 5, 6, 7] };
       }
-      const angle = (i - 1) * (Math.PI * 2 / (nodeTypes.length - 1));
+      const angle = (i - 1) * ((Math.PI * 2) / (nodeTypes.length - 1));
       return {
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * radius,
         type,
-        connections: [0]
+        connections: [0],
       };
     });
 
     setNodes(generatedNodes);
   }, []);
 
+  const maturityLevel = metrics.insuranceScore >= 85 ? 4 : metrics.insuranceScore >= 70 ? 3 : 2;
+  const maturityScore = (metrics.insuranceScore / 100 * 5).toFixed(1);
+
   return (
-    <div className="p-8" style={{ backgroundColor: 'var(--pr-bg-primary)', minHeight: '100vh' }}>
-      {/* Header */}
+    <div className="p-8" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-8">
-        <h1 className="mb-2" style={{ color: 'var(--pr-text-primary)' }}>Executive Dashboard</h1>
-        <p style={{ color: 'var(--pr-text-muted)' }}>Real-time AI authority governance and compliance monitoring</p>
+        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>
+          Executive Dashboard
+        </h1>
+        <p style={{ color: "var(--pr-text-muted)" }}>
+          Real-time AI authority governance and compliance monitoring
+        </p>
       </div>
 
-      {/* Top Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {metrics.map((metric, index) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+        {liveMetrics.map((metric, index) => {
           const Icon = metric.icon;
           return (
             <motion.div
@@ -66,13 +76,13 @@ export function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               className="p-6 rounded-3xl border"
-              style={{ 
-                backgroundColor: 'var(--pr-bg-card)', 
-                borderColor: 'rgba(255,255,255,0.05)' 
+              style={{
+                backgroundColor: "var(--pr-bg-card)",
+                borderColor: "rgba(255,255,255,0.05)",
               }}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(77, 124, 254, 0.1)' }}>
+                <div className="p-3 rounded-xl" style={{ backgroundColor: "rgba(77, 124, 254, 0.1)" }}>
                   <Icon className="w-6 h-6" style={{ color: metric.color }} />
                 </div>
               </div>
@@ -80,30 +90,37 @@ export function Dashboard() {
                 <p className="mb-1" style={{ color: metric.color }}>
                   {metric.value}
                 </p>
-                <p className="text-sm" style={{ color: 'var(--pr-text-secondary)' }}>{metric.label}</p>
+                <p className="text-sm" style={{ color: "var(--pr-text-secondary)" }}>
+                  {metric.label}
+                </p>
               </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* Authority Map Visualization */}
-      <div 
+      <DemoControlCenter />
+      <ActivityTimeline />
+
+      <div
         className="p-6 rounded-3xl border mb-8"
-        style={{ 
-          backgroundColor: 'var(--pr-bg-card)', 
-          borderColor: 'rgba(255,255,255,0.05)' 
+        style={{
+          backgroundColor: "var(--pr-bg-card)",
+          borderColor: "rgba(255,255,255,0.05)",
         }}
       >
         <div className="mb-6">
-          <h2 className="mb-1" style={{ color: 'var(--pr-text-primary)' }}>AI Authority Ecosystem</h2>
-          <p className="text-sm" style={{ color: 'var(--pr-text-muted)' }}>Digital nervous system for AI governance</p>
+          <h2 className="mb-1" style={{ color: "var(--pr-text-primary)" }}>
+            AI Authority Ecosystem
+          </h2>
+          <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+            Digital nervous system for AI governance
+          </p>
         </div>
-        
-        <div className="relative" style={{ height: '600px' }}>
+
+        <div className="relative" style={{ height: "600px" }}>
           <svg className="w-full h-full">
-            {/* Draw connections */}
-            {nodes.map((node, i) => 
+            {nodes.map((node, i) =>
               node.connections.map((targetIdx) => (
                 <motion.line
                   key={`${i}-${targetIdx}`}
@@ -120,8 +137,7 @@ export function Dashboard() {
                 />
               ))
             )}
-            
-            {/* Draw nodes */}
+
             {nodes.map((node, i) => (
               <motion.g
                 key={i}
@@ -133,17 +149,11 @@ export function Dashboard() {
                   cx={node.x}
                   cy={node.y}
                   r={i === 0 ? 50 : 35}
-                  fill={i === 0 ? 'var(--pr-authority-blue)' : 'var(--pr-bg-hover)'}
-                  stroke={i === 0 ? 'var(--pr-evidence-cyan)' : 'var(--pr-authority-blue)'}
+                  fill={i === 0 ? "var(--pr-authority-blue)" : "var(--pr-bg-hover)"}
+                  stroke={i === 0 ? "var(--pr-evidence-cyan)" : "var(--pr-authority-blue)"}
                   strokeWidth="2"
-                  animate={{
-                    scale: [1, 1.05, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                  }}
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
                 />
                 <text
                   x={node.x}
@@ -162,17 +172,20 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* AI Authority Maturity Index */}
-      <div 
+      <div
         className="p-6 rounded-3xl border"
-        style={{ 
-          backgroundColor: 'var(--pr-bg-card)', 
-          borderColor: 'rgba(255,255,255,0.05)' 
+        style={{
+          backgroundColor: "var(--pr-bg-card)",
+          borderColor: "rgba(255,255,255,0.05)",
         }}
       >
         <div className="mb-6">
-          <h2 className="mb-1" style={{ color: 'var(--pr-text-primary)' }}>AI Authority Maturity Index</h2>
-          <p className="text-sm" style={{ color: 'var(--pr-text-muted)' }}>Organizational governance capability assessment</p>
+          <h2 className="mb-1" style={{ color: "var(--pr-text-primary)" }}>
+            AI Authority Maturity Index
+          </h2>
+          <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+            Organizational governance capability assessment
+          </p>
         </div>
 
         <div className="flex items-center gap-8">
@@ -185,29 +198,48 @@ export function Dashboard() {
                 { level: "Level 4", label: "Accountable", value: 80 },
                 { level: "Level 5", label: "Insurable", value: 100 },
               ].map((level, index) => {
-                const isActive = index === 3; // Level 4.7
+                const isActive = index === maturityLevel;
                 return (
                   <div key={level.level} className="flex items-center gap-4">
                     <div className="w-24">
-                      <p className="text-sm font-medium" style={{ color: isActive ? 'var(--pr-authority-blue)' : 'var(--pr-text-secondary)' }}>
+                      <p
+                        className="text-sm font-medium"
+                        style={{
+                          color: isActive ? "var(--pr-authority-blue)" : "var(--pr-text-secondary)",
+                        }}
+                      >
                         {level.level}
                       </p>
                     </div>
                     <div className="flex-1">
-                      <div className="h-8 rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--pr-bg-hover)' }}>
+                      <div
+                        className="h-8 rounded-lg overflow-hidden"
+                        style={{ backgroundColor: "var(--pr-bg-hover)" }}
+                      >
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: isActive ? '94%' : `${level.value}%` }}
+                          animate={{
+                            width: isActive
+                              ? `${metrics.insuranceScore}%`
+                              : `${level.value}%`,
+                          }}
                           transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
                           className="h-full rounded-lg"
-                          style={{ 
-                            backgroundColor: isActive ? 'var(--pr-authority-blue)' : 'rgba(77, 124, 254, 0.3)',
+                          style={{
+                            backgroundColor: isActive
+                              ? "var(--pr-authority-blue)"
+                              : "rgba(77, 124, 254, 0.3)",
                           }}
                         />
                       </div>
                     </div>
                     <div className="w-32">
-                      <p className="text-sm" style={{ color: isActive ? 'var(--pr-text-primary)' : 'var(--pr-text-muted)' }}>
+                      <p
+                        className="text-sm"
+                        style={{
+                          color: isActive ? "var(--pr-text-primary)" : "var(--pr-text-muted)",
+                        }}
+                      >
                         {level.label}
                       </p>
                     </div>
@@ -218,22 +250,28 @@ export function Dashboard() {
           </div>
 
           <div className="text-center">
-            <div 
+            <div
               className="w-48 h-48 rounded-full flex items-center justify-center mb-4"
-              style={{ 
-                background: 'radial-gradient(circle, rgba(77, 124, 254, 0.2) 0%, transparent 70%)',
-                border: '3px solid var(--pr-authority-blue)',
+              style={{
+                background: "radial-gradient(circle, rgba(77, 124, 254, 0.2) 0%, transparent 70%)",
+                border: "3px solid var(--pr-authority-blue)",
               }}
             >
               <div>
-                <p className="mb-1" style={{ color: 'var(--pr-authority-blue)' }}>
-                  4.7
+                <p className="mb-1" style={{ color: "var(--pr-authority-blue)" }}>
+                  {maturityScore}
                 </p>
-                <p className="text-sm" style={{ color: 'var(--pr-text-secondary)' }}>Current Level</p>
+                <p className="text-sm" style={{ color: "var(--pr-text-secondary)" }}>
+                  Current Level
+                </p>
               </div>
             </div>
-            <p className="text-sm font-medium" style={{ color: 'var(--pr-text-primary)' }}>Highly Accountable</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--pr-text-muted)' }}>Approaching Insurable</p>
+            <p className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>
+              {metrics.insuranceScore >= 85 ? "Approaching Insurable" : "Highly Accountable"}
+            </p>
+            <p className="text-xs mt-1" style={{ color: "var(--pr-text-muted)" }}>
+              {state.insurance.riskLabel}
+            </p>
           </div>
         </div>
       </div>

@@ -10,13 +10,17 @@ import {
   Building2,
   Settings as SettingsIcon,
   Activity,
+  Compass,
 } from "lucide-react";
+import { DemoProvider, useDemo } from "../demo/DemoContext";
+import { NotificationProvider } from "./NotificationProvider";
 
 const navGroups = [
   {
     label: "Overview",
     items: [
-      { path: "/", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/", label: "Platform Overview", icon: Compass },
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ],
   },
   {
@@ -48,11 +52,14 @@ const navGroups = [
   },
 ];
 
-export function Layout() {
+function LayoutInner() {
   const location = useLocation();
+  const { state } = useDemo();
+  const pendingCount = state.approvals.filter((a) => a.status === "pending").length;
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
+    if (path === "/dashboard") return location.pathname === "/dashboard";
     return location.pathname.startsWith(path);
   };
 
@@ -144,6 +151,17 @@ export function Layout() {
                       >
                         {item.label}
                       </span>
+                      {item.path === "/approvals" && pendingCount > 0 && (
+                        <span
+                          className="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: "rgba(245,158,11,0.15)",
+                            color: "var(--pr-warning-amber)",
+                          }}
+                        >
+                          {pendingCount}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -199,7 +217,7 @@ export function Layout() {
               </div>
             </div>
             <p className="text-[10px]" style={{ color: "var(--pr-text-disabled)" }}>
-              All 6 agents verified · v2.4.1
+              All {state.agents.filter((a) => a.status === "Active").length} agents verified · v2.4.1
             </p>
           </div>
         </div>
@@ -210,5 +228,15 @@ export function Layout() {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+export function Layout() {
+  return (
+    <NotificationProvider>
+      <DemoProvider>
+        <LayoutInner />
+      </DemoProvider>
+    </NotificationProvider>
   );
 }
