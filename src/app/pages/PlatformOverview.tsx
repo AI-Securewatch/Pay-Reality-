@@ -185,7 +185,7 @@ const MODULES = [
   },
   {
     title: "Evidence Vault",
-    description: "Generate immutable evidence records.",
+    description: "Permanent repository of decision evidence and accountability records.",
     icon: Database,
     path: "/evidence-vault",
     color: "var(--pr-trust-green)",
