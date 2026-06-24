@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Clock, CheckCircle2, XCircle, Eye } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Eye, Play, ArrowRight } from "lucide-react";
 import { useDemo } from "../demo/DemoContext";
 import { useNotify } from "../components/NotificationProvider";
 import { DecisionExplanationPanel } from "../components/DecisionExplanationPanel";
@@ -49,12 +49,24 @@ export function DecisionIntercepts() {
   return (
     <div className="p-8" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-8">
-        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>
-          Decision Intercept Center
-        </h1>
-        <p style={{ color: "var(--pr-text-muted)" }}>
-          Real-time stream of AI decision evaluation and enforcement
-        </p>
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>
+              Decision Intercept Center
+            </h1>
+            <p style={{ color: "var(--pr-text-muted)" }}>
+              Real-time stream of AI decision evaluation and enforcement
+            </p>
+          </div>
+          <Link
+            to="/governance-simulation"
+            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all"
+            style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
+          >
+            <Play className="w-4 h-4" />
+            Run Simulation
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-8">

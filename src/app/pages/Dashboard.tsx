@@ -12,12 +12,9 @@ export function Dashboard() {
 
   const liveMetrics = [
     { label: "Active Agents", value: String(metrics.activeAgents), icon: Bot, color: "var(--pr-authority-blue)" },
-    { label: "Active Policies", value: String(metrics.policies), icon: FileCode, color: "var(--pr-evidence-cyan)" },
-    { label: "Decision Intercepts", value: String(metrics.intercepts), icon: GitBranch, color: "var(--pr-warning-amber)" },
     { label: "Pending Approvals", value: String(metrics.pendingApprovals), icon: Clock, color: "var(--pr-critical-red)" },
-    { label: "Evidence Records", value: String(metrics.evidenceRecords), icon: CheckCircle2, color: "var(--pr-trust-green)" },
-    { label: "Governance Coverage", value: metrics.governanceCoverage, icon: Shield, color: "var(--pr-trust-green)" },
-    { label: "Insurance Readiness Score", value: `${metrics.insuranceScore}/100`, icon: Building2, color: "var(--pr-verification-purple)" },
+    { label: "Active Escalations", value: "3", icon: GitBranch, color: "var(--pr-warning-amber)" },
+    { label: "Governance Score", value: "87/100", icon: Shield, color: "var(--pr-trust-green)" },
   ];
 
   useEffect(() => {
@@ -59,10 +56,10 @@ export function Dashboard() {
     <div className="p-8" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-8">
         <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>
-          Executive Dashboard
+          AI Authority Command Center
         </h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
-          Real-time AI authority governance and compliance monitoring
+          Provide executive visibility into autonomous authority
         </p>
       </div>
 
@@ -97,6 +94,87 @@ export function Dashboard() {
             </motion.div>
           );
         })}
+      </div>
+
+      {/* Delegated Authority Exposure */}
+      <div
+        className="p-6 rounded-3xl border mb-8"
+        style={{
+          backgroundColor: "var(--pr-bg-card)",
+          borderColor: "rgba(255,255,255,0.05)",
+        }}
+      >
+        <div className="mb-6">
+          <h2 className="mb-1" style={{ color: "var(--pr-text-primary)" }}>
+            Delegated Authority Exposure
+          </h2>
+          <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+            Total authority currently delegated to AI agents across all categories
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            { agent: "Treasury Agent", exposure: "R10M", category: "Financial" },
+            { agent: "Vendor Agent", exposure: "Banking Changes", category: "Vendor" },
+            { agent: "HR Agent", exposure: "Employee Records", category: "HR" },
+            { agent: "Operations Agent", exposure: "Production Access", category: "Operations" },
+          ].map((item, index) => (
+            <motion.div
+              key={item.agent}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="p-4 rounded-xl border"
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.05)" }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium" style={{ color: "var(--pr-text-primary)" }}>{item.agent}</span>
+                <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: "rgba(77,124,254,0.1)", color: "var(--pr-authority-blue)" }}>{item.category}</span>
+              </div>
+              <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>{item.exposure}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Requires Attention */}
+      <div
+        className="p-6 rounded-3xl border mb-8"
+        style={{
+          backgroundColor: "var(--pr-bg-card)",
+          borderColor: "rgba(255,255,255,0.05)",
+        }}
+      >
+        <div className="mb-6">
+          <h2 className="mb-1" style={{ color: "var(--pr-text-primary)" }}>
+            Requires Attention
+          </h2>
+          <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+            Items requiring immediate review or action
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: "Expiring Policies", count: 2, color: "var(--pr-warning-amber)" },
+            { label: "Pending Approvals", count: metrics.pendingApprovals, color: "var(--pr-critical-red)" },
+            { label: "Escalations", count: 3, color: "var(--pr-warning-amber)" },
+            { label: "Suspended Agents", count: 0, color: "var(--pr-text-muted)" },
+          ].map((item, index) => (
+            <motion.div
+              key={item.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="p-4 rounded-xl border"
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.05)" }}
+            >
+              <p className="text-2xl font-bold mb-1" style={{ color: item.color }}>{item.count}</p>
+              <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>{item.label}</p>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       <DemoControlCenter />

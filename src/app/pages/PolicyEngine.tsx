@@ -13,10 +13,12 @@ import { PROCESSING_STAGES, getExtractedControlSummary } from "../demo/documentE
 
 const TABS = [
   "Policy Library",
+  "Policy Sets",
+  "Visual Policy Composer",
   "Document Intelligence",
   "Authority Models",
   "Approval Workflows",
-  "Policy Simulator",
+  "Governance Simulation",
   "Coverage Analysis",
 ];
 
@@ -29,6 +31,47 @@ const categoryColors: Record<string, string> = {
   "Risk Controls": "var(--pr-warning-amber)",
 };
 
+const AUTHORITY_CATEGORY_RULES: Record<string, string[]> = {
+  financial: [
+    "Transaction Limits",
+    "Payment Approval Limits",
+    "Treasury Controls",
+    "Spending Thresholds",
+    "Escalation Rules",
+  ],
+  vendor: [
+    "Vendor Creation",
+    "Vendor Approval",
+    "Banking Detail Changes",
+    "Procurement Actions",
+    "Vendor Risk Controls",
+  ],
+  hr: [
+    "Employee Creation",
+    "Role Assignment",
+    "Compensation Actions",
+    "Access Requests",
+    "Leave Approval",
+  ],
+  operations: [
+    "Workflow Execution",
+    "System Actions",
+    "Process Automation",
+    "Resource Access",
+  ],
+  governance: [
+    "Policy Changes",
+    "Compliance Actions",
+    "Escalation Controls",
+    "Audit Requirements",
+  ],
+  custom: [
+    "Custom Rule Type",
+    "User-Defined Control",
+    "Custom Governance Rule",
+  ],
+};
+
 export function PolicyEngine() {
   const { state, togglePolicy, addManualPolicy, processDocuments } = useDemo();
   const notify = useNotify();
@@ -39,9 +82,13 @@ export function PolicyEngine() {
   const [formData, setFormData] = useState({
     name: "",
     category: "Financial Controls",
+    authorityCategory: "financial",
+    authorityCategoryMode: "Preset",
+    customAuthorityCategory: "",
     condition: "",
     action: "",
     agents: "",
+    ruleType: "",
   });
   const [simulatorInputs, setSimulatorInputs] = useState({
     agent: "Finance Agent",
@@ -76,7 +123,7 @@ export function PolicyEngine() {
       source: "manual",
     });
     notify.success(`Policy "${formData.name}" created`);
-    setFormData({ name: "", category: "Financial Controls", condition: "", action: "", agents: "" });
+    setFormData({ name: "", category: "Financial Controls", authorityCategory: "financial", authorityCategoryMode: "Preset", customAuthorityCategory: "", condition: "", action: "", agents: "", ruleType: "" });
     setModalView(null);
   };
 
@@ -95,14 +142,14 @@ export function PolicyEngine() {
             <div className="flex items-center gap-2 mb-1">
               <Shield className="w-5 h-5" style={{ color: "var(--pr-authority-blue)" }} />
               <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--pr-authority-blue)" }}>
-                Policy Engine
+                Policy Library
               </span>
             </div>
             <h1 className="text-2xl font-semibold mb-1" style={{ color: "var(--pr-text-primary)" }}>
-              Authority Control Center
+              Policy Library
             </h1>
             <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
-              Transform governance frameworks into enforceable AI authority controls
+              Central governance repository containing Active Policies, Draft Policies, Retired Policies, and Policy Sets
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -138,7 +185,7 @@ export function PolicyEngine() {
               }}
             >
               <Plus className="w-4 h-4" />
-              Create Policy
+              Create Policy Set
             </button>
           </div>
         </div>
@@ -371,6 +418,188 @@ export function PolicyEngine() {
 
         {activeTab === "Document Intelligence" && (
           <DocumentIntelligenceTab onUpload={() => setModalView("upload")} />
+        )}
+
+        {activeTab === "Policy Sets" && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2" style={{ color: "var(--pr-text-primary)" }}>
+                Policy Sets
+              </h2>
+              <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+                Group related policies into sets for organized governance management
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { name: "Treasury Policy Set", policies: ["Payment Policy", "Escalation Policy", "Approval Policy"], color: "var(--pr-authority-blue)" },
+                { name: "Vendor Governance Set", policies: ["Vendor Creation Policy", "Banking Policy", "Vendor Risk Policy"], color: "var(--pr-evidence-cyan)" },
+                { name: "HR Governance Set", policies: ["Employee Creation", "Payroll", "Leave Approval"], color: "var(--pr-verification-purple)" },
+              ].map((set, index) => (
+                <motion.div
+                  key={set.name}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="p-5 rounded-xl border cursor-pointer transition-all group"
+                  style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = set.color;
+                    e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
+                    e.currentTarget.style.backgroundColor = "var(--pr-bg-card)";
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Layers className="w-5 h-5" style={{ color: set.color }} />
+                    <span className="font-medium" style={{ color: "var(--pr-text-primary)" }}>{set.name}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {set.policies.map((policy) => (
+                      <div key={policy} className="flex items-center gap-2 text-sm" style={{ color: "var(--pr-text-muted)" }}>
+                        <div className="w-1 h-1 rounded-full" style={{ backgroundColor: set.color }} />
+                        {policy}
+                      </div>
+                    ))}
+                  </div>
+                  <button className="w-full mt-4 px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-secondary)" }}>
+                    View Set
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => notify.info("Create Policy Set feature coming soon")}
+              className="mt-6 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+              style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
+            >
+              <Plus className="w-4 h-4" />
+              Create Policy Set
+            </button>
+          </motion.div>
+        )}
+
+        {activeTab === "Visual Policy Composer" && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2" style={{ color: "var(--pr-text-primary)" }}>
+                Visual Policy Composer
+              </h2>
+              <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+                Build policies using IF-THEN-ELSE logic with advanced conditions and actions
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border" style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}>IF</span>
+                  <input
+                    type="text"
+                    placeholder="Condition (e.g., Payment > R100,000)"
+                    className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
+                    style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--pr-trust-green)", color: "#fff" }}>AND</span>
+                  <input
+                    type="text"
+                    placeholder="Additional condition (e.g., Vendor Risk = High)"
+                    className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
+                    style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--pr-warning-amber)", color: "#fff" }}>THEN</span>
+                  <input
+                    type="text"
+                    placeholder="Action (e.g., Escalate to CFO)"
+                    className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
+                    style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--pr-evidence-cyan)", color: "#fff" }}>ELSE</span>
+                  <input
+                    type="text"
+                    placeholder="Alternative action"
+                    className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
+                    style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => notify.info("Advanced logic options coming soon")}
+                  className="px-4 py-2 rounded-lg text-sm border"
+                  style={{ borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-secondary)" }}
+                >
+                  + Add Condition
+                </button>
+                <button
+                  onClick={() => notify.info("Save policy coming soon")}
+                  className="px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
+                >
+                  Save Policy
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === "Governance Simulation" && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2" style={{ color: "var(--pr-text-primary)" }}>
+                Governance Simulation Engine
+              </h2>
+              <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+                Test delegated authority, policy behavior, and governance outcomes before deployment
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {[
+                { title: "Single Action Simulation", desc: "Test individual agent actions", icon: Zap },
+                { title: "Multi-Step Workflow", desc: "Simulate complex workflows", icon: GitBranch },
+                { title: "Custom Scenario Builder", desc: "Build custom test scenarios", icon: Code2 },
+                { title: "What-If Analysis", desc: "Test policy changes impact", icon: BarChart3 },
+              ].map((item, index) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="p-5 rounded-xl border cursor-pointer transition-all"
+                  style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}
+                  onClick={() => notify.info(`${item.title} coming soon`)}
+                >
+                  <item.icon className="w-6 h-6 mb-3" style={{ color: "var(--pr-authority-blue)" }} />
+                  <h3 className="font-medium mb-1" style={{ color: "var(--pr-text-primary)" }}>{item.title}</h3>
+                  <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         )}
 
         {activeTab === "Policy Simulator" && (
@@ -663,6 +892,90 @@ export function PolicyEngine() {
                       onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
                     />
                   </div>
+
+                  {/* Authority Category Selection with Preset/Other/Custom */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
+                      Authority Category
+                    </label>
+                    <div className="flex gap-2 mb-3">
+                      {["Preset", "Other", "Custom"].map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setFormData({ ...formData, authorityCategoryMode: mode })}
+                          className="px-3 py-1.5 rounded-lg text-sm border transition-all"
+                          style={{
+                            backgroundColor: formData.authorityCategoryMode === mode ? "var(--pr-authority-blue)" : "transparent",
+                            borderColor: formData.authorityCategoryMode === mode ? "var(--pr-authority-blue)" : "rgba(255,255,255,0.1)",
+                            color: formData.authorityCategoryMode === mode ? "#fff" : "var(--pr-text-secondary)",
+                          }}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                    {formData.authorityCategoryMode === "Preset" && (
+                      <select
+                        value={formData.authorityCategory}
+                        onChange={(e) => setFormData({ ...formData, authorityCategory: e.target.value, ruleType: "" })}
+                        className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none"
+                        style={{
+                          backgroundColor: "var(--pr-bg-card)",
+                          borderColor: "rgba(255,255,255,0.08)",
+                          color: "var(--pr-text-primary)",
+                        }}
+                      >
+                        {[
+                          { id: "financial", label: "Financial Authority" },
+                          { id: "vendor", label: "Vendor Authority" },
+                          { id: "hr", label: "HR Authority" },
+                          { id: "operations", label: "Operations Authority" },
+                          { id: "governance", label: "Governance Authority" },
+                          { id: "custom", label: "Custom Authority" },
+                        ].map((cat) => (
+                          <option key={cat.id} value={cat.id} style={{ backgroundColor: "var(--pr-bg-secondary)" }}>{cat.label}</option>
+                        ))}
+                      </select>
+                    )}
+                    {(formData.authorityCategoryMode === "Other" || formData.authorityCategoryMode === "Custom") && (
+                      <input
+                        type="text"
+                        placeholder={formData.authorityCategoryMode === "Other" ? "Enter authority category..." : "Define custom authority category..."}
+                        value={formData.customAuthorityCategory}
+                        onChange={(e) => setFormData({ ...formData, customAuthorityCategory: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none"
+                        style={{
+                          backgroundColor: "var(--pr-bg-card)",
+                          borderColor: "rgba(255,255,255,0.08)",
+                          color: "var(--pr-text-primary)",
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Dynamic Rule Type Selection based on Authority Category */}
+                  {formData.authorityCategoryMode === "Preset" && formData.authorityCategory && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
+                        Rule Type
+                      </label>
+                      <select
+                        value={formData.ruleType}
+                        onChange={(e) => setFormData({ ...formData, ruleType: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none"
+                        style={{
+                          backgroundColor: "var(--pr-bg-card)",
+                          borderColor: "rgba(255,255,255,0.08)",
+                          color: "var(--pr-text-primary)",
+                        }}
+                      >
+                        <option value="">Select rule type...</option>
+                        {AUTHORITY_CATEGORY_RULES[formData.authorityCategory]?.map((rule) => (
+                          <option key={rule} value={rule} style={{ backgroundColor: "var(--pr-bg-secondary)" }}>{rule}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>

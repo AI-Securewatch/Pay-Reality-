@@ -37,6 +37,62 @@ const authorityTiers = [
 
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 
+function AuthorityCategoryTab({ category, configFields }: { category: string; configFields: string[] }) {
+  return (
+    <div className="p-8">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2" style={{ color: "var(--pr-text-primary)" }}>
+          {category} Authority Configuration
+        </h2>
+        <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+          Define delegated authority parameters for {category.toLowerCase()} operations
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {configFields.map((field, index) => (
+          <motion.div
+            key={field}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="p-5 rounded-xl border"
+            style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <Shield className="w-5 h-5" style={{ color: "var(--pr-authority-blue)" }} />
+              <span className="font-medium" style={{ color: "var(--pr-text-primary)" }}>{field}</span>
+            </div>
+            <p className="text-sm mb-3" style={{ color: "var(--pr-text-muted)" }}>
+              Configure {field.toLowerCase()} for autonomous AI agents
+            </p>
+            <button
+              className="w-full px-3 py-2 rounded-lg text-sm border"
+              style={{ backgroundColor: "transparent", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-secondary)" }}
+            >
+              Configure
+            </button>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="mt-6 p-5 rounded-xl border" style={{ backgroundColor: "rgba(77,124,254,0.05)", borderColor: "rgba(77,124,254,0.2)" }}>
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 mt-0.5" style={{ color: "var(--pr-authority-blue)" }} />
+          <div>
+            <p className="font-medium mb-1" style={{ color: "var(--pr-text-primary)" }}>
+              Dynamic Authority Configuration
+            </p>
+            <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
+              All {category.toLowerCase()} authority parameters can be dynamically adjusted based on agent performance, risk assessment, and organizational requirements.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AuthorityCenter() {
   const { state } = useDemo();
   const notify = useNotify();
@@ -47,7 +103,11 @@ export function AuthorityCenter() {
   const [wizardStep, setWizardStep] = useState<WizardStep>(1);
   const [agentName, setAgentName] = useState("");
   const [agentDept, setAgentDept] = useState("Finance");
+  const [agentDeptMode, setAgentDeptMode] = useState("Preset");
+  const [customDept, setCustomDept] = useState("");
   const [agentFramework, setAgentFramework] = useState("OpenAI Agents");
+  const [agentFrameworkMode, setAgentFrameworkMode] = useState("Preset");
+  const [customFramework, setCustomFramework] = useState("");
   const [authorityTier, setAuthorityTier] = useState(3);
 
   const stepLabels: Record<WizardStep, string> = {
@@ -67,7 +127,7 @@ export function AuthorityCenter() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 style={{ color: 'var(--pr-text-primary)' }}>Authority Center</h1>
-            <p style={{ color: 'var(--pr-text-muted)' }}>Manage AI authority delegation and permissions</p>
+            <p style={{ color: 'var(--pr-text-muted)' }}>Define and govern the authority delegated to autonomous AI agents before they execute actions</p>
           </div>
           <button
             onClick={openWizard}
@@ -81,13 +141,13 @@ export function AuthorityCenter() {
           </button>
         </div>
 
-        {/* Tab navigation */}
-        <div className="flex gap-0 mt-4">
-          {["Agents", "Authority Models"].map((tab) => (
+        {/* Tab navigation - Authority Categories */}
+        <div className="flex gap-0 mt-4 overflow-x-auto">
+          {["Agents", "Financial Authority", "Vendor Authority", "HR Authority", "Governance Authority", "Operations Authority", "Custom Authority"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="px-4 py-3 text-sm font-medium border-b-2 transition-all duration-150"
+              className="px-4 py-3 text-sm font-medium border-b-2 transition-all duration-150 whitespace-nowrap"
               style={{
                 borderBottomColor: activeTab === tab ? 'var(--pr-authority-blue)' : 'transparent',
                 color: activeTab === tab ? 'var(--pr-text-primary)' : 'var(--pr-text-muted)',
@@ -100,7 +160,12 @@ export function AuthorityCenter() {
         </div>
       </div>
 
-      {activeTab === "Authority Models" && <AuthorityModelsTab tiers={authorityTiersFromState} />}
+      {activeTab === "Financial Authority" && <AuthorityCategoryTab category="Financial" configFields={["Transaction Limits", "Daily Limits", "Monthly Limits", "Approval Thresholds", "Escalation Rules"]} />}
+      {activeTab === "Vendor Authority" && <AuthorityCategoryTab category="Vendor" configFields={["Create Vendors", "Modify Vendors", "Change Banking Details", "Vendor Risk Threshold", "Approval Requirements"]} />}
+      {activeTab === "HR Authority" && <AuthorityCategoryTab category="HR" configFields={["Create Employees", "Modify Records", "Payroll Access", "Leave Approval Rights"]} />}
+      {activeTab === "Governance Authority" && <AuthorityCategoryTab category="Governance" configFields={["Create Policies", "Modify Policies", "Approve Policies", "Trigger Investigations", "Escalation Rights"]} />}
+      {activeTab === "Operations Authority" && <AuthorityCategoryTab category="Operations" configFields={["System Access", "Resource Access", "Allowed Actions", "Escalation Rules"]} />}
+      {activeTab === "Custom Authority" && <AuthorityCategoryTab category="Custom" configFields={["Custom Authority Models", "Fully Configurable Parameters"]} />}
 
       {activeTab === "Agents" && <div className="p-8">
       {/* Search and Filter */}
@@ -315,23 +380,79 @@ export function AuthorityCenter() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Department</label>
-                      <select value={agentDept} onChange={(e) => setAgentDept(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
-                        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}>
-                        {["Finance", "Procurement", "HR", "Treasury", "Legal", "Operations"].map((d) => (
-                          <option key={d} value={d} style={{ backgroundColor: "var(--pr-bg-secondary)" }}>{d}</option>
+                      <div className="flex gap-1 mb-2">
+                        {["Preset", "Other", "Custom"].map((mode) => (
+                          <button
+                            key={mode}
+                            onClick={() => setAgentDeptMode(mode)}
+                            className="flex-1 px-2 py-1 rounded text-xs border transition-all"
+                            style={{
+                              backgroundColor: agentDeptMode === mode ? "var(--pr-authority-blue)" : "transparent",
+                              borderColor: agentDeptMode === mode ? "var(--pr-authority-blue)" : "rgba(255,255,255,0.1)",
+                              color: agentDeptMode === mode ? "#fff" : "var(--pr-text-secondary)",
+                            }}
+                          >
+                            {mode}
+                          </button>
                         ))}
-                      </select>
+                      </div>
+                      {agentDeptMode === "Preset" && (
+                        <select value={agentDept} onChange={(e) => setAgentDept(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                          style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}>
+                          {["Finance", "Procurement", "HR", "Treasury", "Legal", "Operations"].map((d) => (
+                            <option key={d} value={d} style={{ backgroundColor: "var(--pr-bg-secondary)" }}>{d}</option>
+                          ))}
+                        </select>
+                      )}
+                      {(agentDeptMode === "Other" || agentDeptMode === "Custom") && (
+                        <input
+                          type="text"
+                          placeholder={agentDeptMode === "Other" ? "Enter department..." : "Define custom department..."}
+                          value={customDept}
+                          onChange={(e) => setCustomDept(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                          style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>AI Framework</label>
-                      <select value={agentFramework} onChange={(e) => setAgentFramework(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
-                        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}>
-                        {["OpenAI Agents", "LangGraph", "CrewAI", "Microsoft Copilot", "Claude", "Custom"].map((f) => (
-                          <option key={f} value={f} style={{ backgroundColor: "var(--pr-bg-secondary)" }}>{f}</option>
+                      <div className="flex gap-1 mb-2">
+                        {["Preset", "Other", "Custom"].map((mode) => (
+                          <button
+                            key={mode}
+                            onClick={() => setAgentFrameworkMode(mode)}
+                            className="flex-1 px-2 py-1 rounded text-xs border transition-all"
+                            style={{
+                              backgroundColor: agentFrameworkMode === mode ? "var(--pr-authority-blue)" : "transparent",
+                              borderColor: agentFrameworkMode === mode ? "var(--pr-authority-blue)" : "rgba(255,255,255,0.1)",
+                              color: agentFrameworkMode === mode ? "#fff" : "var(--pr-text-secondary)",
+                            }}
+                          >
+                            {mode}
+                          </button>
                         ))}
-                      </select>
+                      </div>
+                      {agentFrameworkMode === "Preset" && (
+                        <select value={agentFramework} onChange={(e) => setAgentFramework(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                          style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}>
+                          {["OpenAI Agents", "LangGraph", "CrewAI", "Microsoft Copilot", "Claude", "Custom"].map((f) => (
+                            <option key={f} value={f} style={{ backgroundColor: "var(--pr-bg-secondary)" }}>{f}</option>
+                          ))}
+                        </select>
+                      )}
+                      {(agentFrameworkMode === "Other" || agentFrameworkMode === "Custom") && (
+                        <input
+                          type="text"
+                          placeholder={agentFrameworkMode === "Other" ? "Enter framework..." : "Define custom framework..."}
+                          value={customFramework}
+                          onChange={(e) => setCustomFramework(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                          style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

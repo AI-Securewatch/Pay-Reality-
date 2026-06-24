@@ -20,20 +20,21 @@ const navGroups = [
     label: "Overview",
     items: [
       { path: "/", label: "Platform Overview", icon: Compass },
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/command-center", label: "AI Authority Command Center", icon: LayoutDashboard },
     ],
   },
   {
     label: "Authority",
     items: [
-      { path: "/ai-agents", label: "AI Agents", icon: Bot },
+      { path: "/ai-agents-registry", label: "AI Agents Registry", icon: Bot },
       { path: "/authority-center", label: "Authority Center", icon: Shield },
     ],
   },
   {
     label: "Governance",
     items: [
-      { path: "/policy-center", label: "Policy Center", icon: FileCode },
+      { path: "/policy-library", label: "Policy Library", icon: FileCode },
+      { path: "/governance-simulation", label: "Governance Simulation", icon: Activity },
       { path: "/decision-intercepts", label: "Decision Intercepts", icon: GitBranch },
       { path: "/approvals", label: "Approvals", icon: CheckCircle },
     ],
@@ -45,9 +46,9 @@ const navGroups = [
     ],
   },
   {
-    label: "Intelligence",
+    label: "Assurance",
     items: [
-      { path: "/insurance-readiness", label: "Insurance Readiness", icon: Building2 },
+      { path: "/assurance-center", label: "Assurance Center", icon: Building2 },
     ],
   },
 ];
@@ -59,7 +60,7 @@ function LayoutInner() {
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
-    if (path === "/dashboard") return location.pathname === "/dashboard";
+    if (path === "/command-center") return location.pathname === "/command-center" || location.pathname === "/dashboard";
     return location.pathname.startsWith(path);
   };
 

@@ -45,6 +45,10 @@ type AgentForm = {
   monthlyLimit: string;
   approvalThreshold: string;
   escalationThreshold: string;
+  agentType: string;
+  customAgentType: string;
+  authorityCategory: string;
+  customAuthorityCategory: string;
 };
 
 const defaultForm: AgentForm = {
@@ -61,6 +65,10 @@ const defaultForm: AgentForm = {
   monthlyLimit: "",
   approvalThreshold: "",
   escalationThreshold: "",
+  agentType: "Preset",
+  customAgentType: "",
+  authorityCategory: "Financial",
+  customAuthorityCategory: "",
 };
 
 export function AIAgents() {
@@ -134,14 +142,14 @@ export function AIAgents() {
             <div className="flex items-center gap-2 mb-1">
               <Bot className="w-5 h-5" style={{ color: "var(--pr-authority-blue)" }} />
               <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--pr-authority-blue)" }}>
-                AI Agents
+                AI Agents Registry
               </span>
             </div>
             <h1 className="text-2xl font-semibold mb-1" style={{ color: "var(--pr-text-primary)" }}>
-              Delegated Authority Registry
+              AI Agents Registry
             </h1>
             <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
-              Monitor and manage all AI agents operating under delegated authority
+              Manage the identities of autonomous AI agents operating within your organization
             </p>
           </div>
           <button
@@ -156,13 +164,13 @@ export function AIAgents() {
           </button>
         </div>
 
-        {/* Stats */}
+        {/* Stats - Focus Areas */}
         <div className="flex items-center gap-8">
           {[
-            { label: "Active Agents", value: agentList.filter((a) => a.status === "Active").length, color: "var(--pr-trust-green)" },
-            { label: "Decisions Today", value: totalDecisions.toLocaleString(), color: "var(--pr-authority-blue)" },
-            { label: "Avg Accuracy", value: "99.0%", color: "var(--pr-evidence-cyan)" },
-            { label: "Critical Risk", value: agentList.filter((a) => a.risk === "Critical").length, color: "var(--pr-critical-red)" },
+            { label: "Identity Records", value: agentList.length, color: "var(--pr-authority-blue)" },
+            { label: "Active Status", value: agentList.filter((a) => a.status === "Active").length, color: "var(--pr-trust-green)" },
+            { label: "High Risk Profile", value: agentList.filter((a) => a.risk === "High" || a.risk === "Critical").length, color: "var(--pr-warning-amber)" },
+            { label: "Systems Access", value: agentList.length, color: "var(--pr-evidence-cyan)" },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-2">
               <span className="text-lg font-semibold font-mono" style={{ color: s.color }}>{s.value}</span>
@@ -466,6 +474,118 @@ export function AIAgents() {
                         </select>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Agent Type Selection - Preset/Other/Custom */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Agent Type</label>
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {["Preset", "Other", "Custom"].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setForm({ ...form, agentType: type })}
+                          className="px-3 py-2 rounded-lg text-sm border transition-all"
+                          style={{
+                            backgroundColor: form.agentType === type ? "var(--pr-authority-blue)" : "var(--pr-bg-card)",
+                            borderColor: form.agentType === type ? "var(--pr-authority-blue)" : "rgba(255,255,255,0.08)",
+                            color: form.agentType === type ? "#fff" : "var(--pr-text-secondary)",
+                          }}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                    {form.agentType === "Preset" && (
+                      <select
+                        value={form.customAgentType}
+                        onChange={(e) => setForm({ ...form, customAgentType: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}
+                      >
+                        <option value="">Select preset type...</option>
+                        <option value="Claims Agent">Claims Agent</option>
+                        <option value="Manufacturing Agent">Manufacturing Agent</option>
+                        <option value="Trading Agent">Trading Agent</option>
+                        <option value="Logistics Agent">Logistics Agent</option>
+                        <option value="Customer Service Agent">Customer Service Agent</option>
+                      </select>
+                    )}
+                    {form.agentType === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Enter agent type..."
+                        value={form.customAgentType}
+                        onChange={(e) => setForm({ ...form, customAgentType: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}
+                      />
+                    )}
+                    {form.agentType === "Custom" && (
+                      <input
+                        type="text"
+                        placeholder="Define custom agent type..."
+                        value={form.customAgentType}
+                        onChange={(e) => setForm({ ...form, customAgentType: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Authority Category Selection - Preset/Other/Custom */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Authority Category</label>
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {["Preset", "Other", "Custom"].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setForm({ ...form, authorityCategory: type })}
+                          className="px-3 py-2 rounded-lg text-sm border transition-all"
+                          style={{
+                            backgroundColor: form.authorityCategory === type ? "var(--pr-authority-blue)" : "var(--pr-bg-card)",
+                            borderColor: form.authorityCategory === type ? "var(--pr-authority-blue)" : "rgba(255,255,255,0.08)",
+                            color: form.authorityCategory === type ? "#fff" : "var(--pr-text-secondary)",
+                          }}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                    {form.authorityCategory === "Preset" && (
+                      <select
+                        value={form.customAuthorityCategory}
+                        onChange={(e) => setForm({ ...form, customAuthorityCategory: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}
+                      >
+                        <option value="">Select preset category...</option>
+                        <option value="Financial">Financial Authority</option>
+                        <option value="Vendor">Vendor Authority</option>
+                        <option value="HR">HR Authority</option>
+                        <option value="Governance">Governance Authority</option>
+                        <option value="Operations">Operations Authority</option>
+                      </select>
+                    )}
+                    {form.authorityCategory === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Enter authority category..."
+                        value={form.customAuthorityCategory}
+                        onChange={(e) => setForm({ ...form, customAuthorityCategory: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}
+                      />
+                    )}
+                    {form.authorityCategory === "Custom" && (
+                      <input
+                        type="text"
+                        placeholder="Define custom authority category..."
+                        value={form.customAuthorityCategory}
+                        onChange={(e) => setForm({ ...form, customAuthorityCategory: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.08)", color: "var(--pr-text-primary)" }}
+                      />
+                    )}
                   </div>
                 </motion.div>
               )}

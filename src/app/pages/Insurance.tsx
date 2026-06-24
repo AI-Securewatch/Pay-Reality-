@@ -19,10 +19,10 @@ export function Insurance() {
     <div className="p-8" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-8">
         <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>
-          Insurance Readiness
+          Assurance Center
         </h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
-          AI trustworthiness assessment and liability coverage readiness
+          Auditability, governance assurance, evidence completeness, and compliance readiness
         </p>
       </div>
 
@@ -57,7 +57,7 @@ export function Insurance() {
                 </span>
               </motion.p>
               <p className="text-sm" style={{ color: "var(--pr-text-secondary)" }}>
-                Insurable AI Score
+                Governance Assurance Score
               </p>
             </div>
           </div>
