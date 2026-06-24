@@ -204,3 +204,34 @@
     font-family: 'IBM Plex Mono', 'Courier New', monospace;
   }
 }
+
+/* PayReality Scrollbar Styling - Force dark theme scrollbars */
+::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: #111C31 !important;
+  border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4D7CFE !important;
+  border-radius: 4px !important;
+  transition: background 0.2s ease !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6B9AFF !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: #111C31 !important;
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: #4D7CFE #111C31 !important;
+}

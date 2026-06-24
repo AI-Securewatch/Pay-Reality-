@@ -2,34 +2,34 @@
 
 /* Webkit Scrollbar (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 8px !important;
+  height: 8px !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--pr-bg-card);
-  border-radius: 4px;
+  background: #111C31 !important;
+  border-radius: 4px !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(77, 124, 254, 0.3);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  background: #4D7CFE !important;
+  border-radius: 4px !important;
+  transition: background 0.2s ease !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(77, 124, 254, 0.5);
+  background: #6B9AFF !important;
 }
 
 /* Firefox Scrollbar */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(77, 124, 254, 0.3) var(--pr-bg-card);
+  scrollbar-width: thin !important;
+  scrollbar-color: #4D7CFE #111C31 !important;
 }
 
 /* Ensure scrollbar styling applies to all scrollable elements */
 ::-webkit-scrollbar-corner {
-  background: var(--pr-bg-card);
+  background: #111C31 !important;
 }
 
 /* Modal and dropdown scrollbars */
@@ -37,20 +37,27 @@
 .dropdown-content::-webkit-scrollbar,
 .overflow-y-auto::-webkit-scrollbar,
 .overflow-x-auto::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 6px !important;
+  height: 6px !important;
+}
+
+.modal-content::-webkit-scrollbar-track,
+.dropdown-content::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #111C31 !important;
 }
 
 .modal-content::-webkit-scrollbar-thumb,
 .dropdown-content::-webkit-scrollbar-thumb,
 .overflow-y-auto::-webkit-scrollbar-thumb,
 .overflow-x-auto::-webkit-scrollbar-thumb {
-  background: rgba(77, 124, 254, 0.25);
+  background: #4D7CFE !important;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover,
 .dropdown-content::-webkit-scrollbar-thumb:hover,
 .overflow-y-auto::-webkit-scrollbar-thumb:hover,
 .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(77, 124, 254, 0.4);
+  background: #6B9AFF !important;
 }

@@ -98,9 +98,15 @@ const FLOW_STEPS = [
   },
   {
     id: "policy",
-    label: "Policy Engine",
+    label: "Policy Library",
     icon: FileCode,
-    description: "Translate discovered controls into active policies that govern AI behavior in real time.",
+    description: "Translate discovered controls into active policies with policy sets and visual composition.",
+  },
+  {
+    id: "simulation",
+    label: "Governance Simulation",
+    icon: Play,
+    description: "Test authority, policies, and governance outcomes before deployment with multiple simulation types.",
   },
   {
     id: "decision",
@@ -127,14 +133,28 @@ const FLOW_STEPS = [
     description: "Generates immutable, cryptographically verifiable records of every governed decision.",
   },
   {
-    id: "insurance",
-    label: "Insurance Readiness",
+    id: "assurance",
+    label: "Assurance Center",
     icon: Building2,
-    description: "Measures organizational insurability based on governance coverage, evidence, and control effectiveness.",
+    description: "Measures governance assurance, auditability, evidence completeness, and compliance readiness.",
   },
 ];
 
 const MODULES = [
+  {
+    title: "AI Authority Command Center",
+    description: "Executive visibility into autonomous authority.",
+    icon: Compass,
+    path: "/command-center",
+    color: "var(--pr-authority-blue)",
+  },
+  {
+    title: "AI Agents Registry",
+    description: "Manage identities of autonomous AI agents.",
+    icon: Bot,
+    path: "/ai-agents",
+    color: "var(--pr-authority-blue)",
+  },
   {
     title: "Authority Center",
     description: "Define delegated authority structures.",
@@ -143,11 +163,18 @@ const MODULES = [
     color: "var(--pr-authority-blue)",
   },
   {
-    title: "Policy Engine",
-    description: "Convert governance documents into controls.",
+    title: "Policy Library",
+    description: "Central governance repository with policy sets.",
     icon: FileCode,
     path: "/policy-center",
     color: "var(--pr-verification-purple)",
+  },
+  {
+    title: "Governance Simulation Engine",
+    description: "Test authority, policies, and governance outcomes.",
+    icon: Play,
+    path: "/governance-simulation",
+    color: "var(--pr-evidence-cyan)",
   },
   {
     title: "Decision Intercepts",
@@ -157,13 +184,6 @@ const MODULES = [
     color: "var(--pr-warning-amber)",
   },
   {
-    title: "Approvals",
-    description: "Human oversight for high-risk decisions.",
-    icon: CheckCircle,
-    path: "/approvals",
-    color: "var(--pr-evidence-cyan)",
-  },
-  {
     title: "Evidence Vault",
     description: "Generate immutable evidence records.",
     icon: Database,
@@ -171,18 +191,11 @@ const MODULES = [
     color: "var(--pr-trust-green)",
   },
   {
-    title: "Insurance Readiness",
-    description: "Measure organizational insurability.",
+    title: "Assurance Center",
+    description: "Auditability and governance assurance.",
     icon: Building2,
     path: "/insurance-readiness",
     color: "var(--pr-verification-purple)",
-  },
-  {
-    title: "AI Agents",
-    description: "Monitor and govern AI actors.",
-    icon: Bot,
-    path: "/ai-agents",
-    color: "var(--pr-authority-blue)",
   },
 ];
 
@@ -207,20 +220,28 @@ const DEMO_JOURNEY = [
     step: 1,
     title: "Upload Governance Documents",
     description: "Start by ingesting delegation of authority, treasury controls, and procurement policies.",
-    action: "Go to Policy Center",
+    action: "Go to Policy Library",
     path: "/policy-center",
     progressKey: "documents" as const,
   },
   {
     step: 2,
     title: "Generate Controls & Policies",
-    description: "Document intelligence extracts enforceable controls and activates the policy engine.",
+    description: "Document intelligence extracts enforceable controls and activates the policy library.",
     action: "View Policies",
     path: "/policy-center",
     progressKey: "policies" as const,
   },
   {
     step: 3,
+    title: "Run Governance Simulation",
+    description: "Test authority, policies, and governance outcomes with the simulation engine.",
+    action: "Run Simulation",
+    path: "/governance-simulation",
+    progressKey: "simulation" as const,
+  },
+  {
+    step: 4,
     title: "Run AI Scenario",
     description: "Execute a treasury, vendor, or payroll scenario to see authority enforcement in action.",
     action: "Run Treasury Demo",
@@ -229,10 +250,10 @@ const DEMO_JOURNEY = [
     progressKey: "intercepts" as const,
   },
   {
-    step: 4,
-    title: "Review Evidence & Insurance Readiness",
-    description: "Inspect verifiable evidence artifacts and observe insurability metrics improve.",
-    action: "Review Insurance Readiness",
+    step: 5,
+    title: "Review Evidence & Assurance",
+    description: "Inspect verifiable evidence artifacts and observe governance assurance metrics.",
+    action: "Review Assurance",
     path: "/insurance-readiness",
     progressKey: "insurance" as const,
   },
@@ -297,6 +318,7 @@ export function PlatformOverview() {
   const journeyProgress = {
     documents: state.documents.length > 0,
     policies: state.policies.length > 0,
+    simulation: true,
     intercepts: state.intercepts.length > 0,
     insurance: state.insurance.score > 0,
   };
@@ -822,7 +844,7 @@ export function PlatformOverview() {
                 style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
               >
                 <Upload className="w-4 h-4" />
-                Upload Governance Document
+                Upload to Policy Library
               </Link>
               <button
                 type="button"

@@ -80,12 +80,11 @@ Features:
 Test delegated authority, policy behavior, and governance outcomes before deployment.
 
 Simulation Types:
-* Single Action Simulation
-* Multi-Step Workflow Simulation
-* Custom Scenario Builder
-* What-If Analysis
-* Policy Impact Testing
-* Authority Stress Testing
+* Single Action Simulation - Simulate a single AI decision with inputs and outputs
+* Multi-Step Workflow Simulation - Simulate workflows step-by-step with outcomes
+* Custom Scenario Builder - Fully customizable governance scenarios
+* What-If Analysis - Test governance changes and impacts
+* Decision Intercept Simulation - Visualize the full PayReality governance process (Hero Feature)
 
 ### Decision Intercepts
 
@@ -116,12 +115,15 @@ Executive visibility into autonomous authority with real-time metrics and govern
 ## Key Capabilities
 
 * Configurable authority models for any industry
-* Custom agent types and authority categories
-* Visual policy composition with advanced logic
-* Multi-step governance simulation
-* Real-time decision intercepts
+* Custom agent types and authority categories with Preset/Other/Custom support
+* Visual policy composition with dynamic authority category adaptation
+* Multi-step governance simulation with context-aware examples
+* Decision Intercept Simulation with visual pipeline (Hero Feature)
+* Real-time decision intercepts with simulation integration
 * Comprehensive evidence generation
 * Governance assurance scoring
+* Smart governance modeling (context-aware platform behavior)
+* Platform-wide Preset/Other/Custom dropdown pattern
 * Customizable approval workflows
 * Policy sets and version control
 
