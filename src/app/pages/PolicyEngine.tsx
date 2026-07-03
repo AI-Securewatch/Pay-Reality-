@@ -137,7 +137,7 @@ export function PolicyEngine() {
         className="px-8 pt-8 pb-0 border-b"
         style={{ borderColor: "rgba(255,255,255,0.06)" }}
       >
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Shield className="w-5 h-5" style={{ color: "var(--pr-authority-blue)" }} />
@@ -152,7 +152,7 @@ export function PolicyEngine() {
               Central governance repository containing Active Policies, Draft Policies, Retired Policies, and Policy Sets
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               className="px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-150"
               style={{
@@ -191,7 +191,7 @@ export function PolicyEngine() {
         </div>
 
         {/* Stats Row */}
-        <div className="flex items-center gap-8 mb-5">
+        <div className="flex items-center gap-4 sm:gap-8 mb-5 flex-wrap">
           {[
             { label: "Active Policies", value: activePolicies, color: "var(--pr-trust-green)" },
             { label: "Total Triggers Today", value: totalTriggers.toLocaleString(), color: "var(--pr-authority-blue)" },
@@ -210,7 +210,7 @@ export function PolicyEngine() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-0">
+        <div className="flex gap-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {TABS.map((tab) => (
             <button
               key={tab}
@@ -287,6 +287,8 @@ export function PolicyEngine() {
                 borderColor: "rgba(255,255,255,0.07)",
               }}
             >
+            <div className="overflow-x-auto">
+            <div className="min-w-[720px]">
               {/* Table Header */}
               <div
                 className="grid text-xs font-medium px-5 py-3 border-b"
@@ -412,6 +414,8 @@ export function PolicyEngine() {
                   </motion.div>
                 ))
               )}
+            </div>
+            </div>
             </div>
           </motion.div>
         )}
@@ -740,7 +744,7 @@ export function PolicyEngine() {
             <div className="p-6">
               {/* Method Selection */}
               {modalView === "methods" && (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Create Manually */}
                   <button
                     className="flex flex-col items-start p-5 rounded-xl border text-left transition-all duration-150 group"
@@ -1274,7 +1278,7 @@ function UploadDocumentsView({
                   {getExtractedControlSummary(uploaded).policiesFound} Enforceable Controls Discovered
                 </p>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                   { label: "Policies Found", value: String(getExtractedControlSummary(uploaded).policiesFound) },
                   { label: "Authority Rules", value: String(getExtractedControlSummary(uploaded).authorityRules) },
@@ -1395,7 +1399,7 @@ function PolicySimulatorTab({
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Inputs */}
         <div className="p-6 rounded-xl border" style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}>
           <p className="text-xs font-mono uppercase tracking-widest mb-4" style={{ color: "var(--pr-authority-blue)" }}>
@@ -1607,7 +1611,7 @@ function DocumentIntelligenceTab({ onUpload }: { onUpload: () => void }) {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { value: String(state.policies.length), label: "Policies Found" },
           { value: String(state.policies.filter((p) => p.requiredApprover).length), label: "Authority Rules" },
@@ -1654,7 +1658,7 @@ function CoverageAnalysisTab({ state }: { state: import("../demo/demoTypes").Dem
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="grid grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         {[
           { label: "Detected Controls", value: String(state.policies.length), color: "var(--pr-text-primary)" },
           { label: "Enforceable", value: String(activeCount), color: "var(--pr-trust-green)" },

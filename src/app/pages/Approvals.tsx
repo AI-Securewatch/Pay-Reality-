@@ -77,7 +77,7 @@ export function Approvals() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <div>
                   <p className="text-xs mb-1" style={{ color: "var(--pr-text-muted)" }}>
                     Agent

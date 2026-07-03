@@ -377,7 +377,7 @@ export function AuthorityCenter() {
                       onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Department</label>
                       <div className="flex gap-1 mb-2">
@@ -632,7 +632,7 @@ function AuthorityModelsTab({ tiers }: { tiers: AuthorityTier[] }) {
       animate={{ opacity: 1, y: 0 }}
       className="p-8"
     >
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {tiers.map((tier) => (
           <div
             key={tier.id}
@@ -673,10 +673,10 @@ function AuthorityModelsTab({ tiers }: { tiers: AuthorityTier[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Graph */}
         <div
-          className="col-span-2 rounded-2xl border overflow-hidden"
+          className="lg:col-span-2 rounded-2xl border overflow-hidden"
           style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
         >
           <svg width="100%" viewBox="0 0 640 440" style={{ display: "block" }}>

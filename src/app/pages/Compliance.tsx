@@ -52,7 +52,7 @@ export function Compliance() {
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm" style={{ color: 'var(--pr-text-muted)' }}>Coverage</span>

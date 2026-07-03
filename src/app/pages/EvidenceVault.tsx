@@ -525,7 +525,7 @@ export function EvidenceVault() {
                     Authority Snapshot
                   </h3>
                   <div className="p-4 rounded-xl" style={{ backgroundColor: "var(--pr-bg-hover)" }}>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs mb-1" style={{ color: "var(--pr-text-muted)" }}>Authority Category</p>
                         <p className="font-medium" style={{ color: "var(--pr-text-primary)" }}>{selectedPackage.authorityCategory}</p>

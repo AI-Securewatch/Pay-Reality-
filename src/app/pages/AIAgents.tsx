@@ -456,7 +456,7 @@ export function AIAgents() {
                       />
                     </div>
                   ))}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
                       { key: "department", label: "Department", options: ["Finance", "Procurement", "HR", "Treasury", "Legal", "Operations", "Support"] },
                       { key: "environment", label: "Environment", options: ["Production", "Staging", "Testing"] },
@@ -695,7 +695,7 @@ export function AIAgents() {
                   <p className="text-sm mb-6" style={{ color: "var(--pr-text-muted)" }}>
                     Define the financial and operational limits for this agent's authority.
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
                       { key: "transactionLimit", label: "Transaction Limit", placeholder: "e.g. $50,000" },
                       { key: "dailyLimit", label: "Daily Limit", placeholder: "e.g. $200,000" },

@@ -181,9 +181,9 @@ export function GovernanceSimulation() {
         </div>
 
         {/* Authority Category Selector */}
-        <div className="flex items-center gap-4 mb-5">
+        <div className="flex flex-wrap items-center gap-3 mb-5">
           <span className="text-sm" style={{ color: "var(--pr-text-muted)" }}>Authority Category:</span>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {["Preset", "Other", "Custom"].map((mode) => (
               <button
                 key={mode}
@@ -266,7 +266,7 @@ export function GovernanceSimulation() {
             {!interceptResult && (
               <div className="p-6 rounded-xl border mb-8" style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}>
                 <h3 className="font-medium mb-4" style={{ color: "var(--pr-text-primary)" }}>Decision Configuration</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Agent</label>
                     <input
@@ -390,7 +390,7 @@ export function GovernanceSimulation() {
                 style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}
               >
                 <h3 className="font-medium mb-4" style={{ color: "var(--pr-text-primary)" }}>Evaluation Results</h3>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div className="p-4 rounded-lg" style={{ backgroundColor: "var(--pr-bg-hover)" }}>
                     <p className="text-xs mb-1" style={{ color: "var(--pr-text-muted)" }}>Authority Evaluation</p>
                     <p className="font-medium" style={{ color: "var(--pr-text-primary)" }}>{interceptResult.authority.status}</p>
@@ -450,7 +450,7 @@ export function GovernanceSimulation() {
             </div>
 
             <div className="p-6 rounded-xl border" style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Agent</label>
                   <select
@@ -648,7 +648,7 @@ export function GovernanceSimulation() {
             </div>
 
             <div className="p-6 rounded-xl border" style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Agent</label>
                   <input
@@ -757,7 +757,7 @@ export function GovernanceSimulation() {
 
             <div className="p-6 rounded-xl border" style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.07)" }}>
               <h3 className="font-medium mb-4" style={{ color: "var(--pr-text-primary)" }}>Impact Analysis</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   { label: "Governance Impact", value: "Moderate" },
                   { label: "Authority Exposure", value: "+15%" },

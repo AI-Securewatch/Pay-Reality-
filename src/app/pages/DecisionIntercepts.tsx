@@ -69,7 +69,7 @@ export function DecisionIntercepts() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {[
           { label: "Total Today", value: String(decisions.length), color: "var(--pr-authority-blue)" },
           { label: "Approved / Resolved", value: String(approvedCount), color: "var(--pr-trust-green)" },
@@ -176,7 +176,7 @@ export function DecisionIntercepts() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-3">
                   <div>
                     <p className="text-xs mb-1" style={{ color: "var(--pr-text-muted)" }}>
                       Requested Action
