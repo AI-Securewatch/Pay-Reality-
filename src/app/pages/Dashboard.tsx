@@ -196,8 +196,12 @@ export function Dashboard() {
           </p>
         </div>
 
-        <div className="relative" style={{ height: "600px" }}>
-          <svg className="w-full h-full">
+        <div className="relative h-[300px] sm:h-[420px] lg:h-[600px]">
+          <svg
+            className="w-full h-full"
+            viewBox="0 0 800 600"
+            preserveAspectRatio="xMidYMid meet"
+          >
             {nodes.map((node, i) =>
               node.connections.map((targetIdx) => (
                 <motion.line
@@ -266,8 +270,8 @@ export function Dashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-8">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-8">
+          <div className="flex-1 min-w-0">
             <div className="space-y-4">
               {[
                 { level: "Level 1", label: "Uncontrolled", value: 20 },
@@ -278,8 +282,8 @@ export function Dashboard() {
               ].map((level, index) => {
                 const isActive = index === maturityLevel;
                 return (
-                  <div key={level.level} className="flex items-center gap-4">
-                    <div className="w-24">
+                  <div key={level.level} className="flex items-center gap-2 sm:gap-4">
+                    <div className="w-14 sm:w-24 flex-shrink-0">
                       <p
                         className="text-sm font-medium"
                         style={{
@@ -289,7 +293,7 @@ export function Dashboard() {
                         {level.level}
                       </p>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div
                         className="h-8 rounded-lg overflow-hidden"
                         style={{ backgroundColor: "var(--pr-bg-hover)" }}
@@ -311,7 +315,7 @@ export function Dashboard() {
                         />
                       </div>
                     </div>
-                    <div className="w-32">
+                    <div className="w-20 sm:w-32 flex-shrink-0">
                       <p
                         className="text-sm"
                         style={{
@@ -327,7 +331,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          <div className="text-center">
+          <div className="text-center self-center">
             <div
               className="w-48 h-48 rounded-full flex items-center justify-center mb-4"
               style={{
