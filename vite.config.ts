@@ -31,6 +31,18 @@ export default defineConfig({
     },
   },
 
+  server: {
+    proxy: {
+      // 127.0.0.1 (not localhost) avoids a slow IPv6-then-IPv4 DNS
+      // resolution fallback observed on this environment.
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

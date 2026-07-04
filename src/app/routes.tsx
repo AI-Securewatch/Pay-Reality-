@@ -12,6 +12,11 @@ import { Approvals } from "./pages/Approvals";
 import { Insurance } from "./pages/Insurance";
 import { Settings } from "./pages/Settings";
 import { NotFound } from "./pages/NotFound";
+import { LiveOverview } from "./live/pages/LiveOverview";
+import { LiveDocuments } from "./live/pages/LiveDocuments";
+import { LiveAgents } from "./live/pages/LiveAgents";
+import { LiveTestIntent } from "./live/pages/LiveTestIntent";
+import { LiveEvidence } from "./live/pages/LiveEvidence";
 
 export const router = createBrowserRouter([
   {
@@ -34,6 +39,11 @@ export const router = createBrowserRouter([
       { path: "assurance-center", Component: Insurance },
       { path: "insurance-readiness", element: <Navigate to="/assurance-center" replace /> },
       { path: "settings", Component: Settings },
+      { path: "live", Component: LiveOverview },
+      { path: "live/documents", Component: LiveDocuments },
+      { path: "live/agents", Component: LiveAgents },
+      { path: "live/test-intent", Component: LiveTestIntent },
+      { path: "live/evidence", Component: LiveEvidence },
       { path: "*", Component: NotFound },
     ],
   },
