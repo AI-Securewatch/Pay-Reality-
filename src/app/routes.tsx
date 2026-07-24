@@ -1,22 +1,12 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { Layout } from "./components/Layout";
 import { PlatformOverview } from "./pages/PlatformOverview";
-import { Dashboard } from "./pages/Dashboard";
-import { AuthorityCenter } from "./pages/AuthorityCenter";
-import { AIAgents } from "./pages/AIAgents";
-import { DecisionIntercepts } from "./pages/DecisionIntercepts";
-import { EvidenceVault } from "./pages/EvidenceVault";
-import { PolicyEngine } from "./pages/PolicyEngine";
-import { GovernanceSimulation } from "./pages/GovernanceSimulation";
-import { Approvals } from "./pages/Approvals";
-import { Insurance } from "./pages/Insurance";
-import { Settings } from "./pages/Settings";
 import { NotFound } from "./pages/NotFound";
-import { LiveOverview } from "./live/pages/LiveOverview";
-import { LiveDocuments } from "./live/pages/LiveDocuments";
 import { LiveAgents } from "./live/pages/LiveAgents";
+import { LiveDocuments } from "./live/pages/LiveDocuments";
 import { LiveTestIntent } from "./live/pages/LiveTestIntent";
 import { LiveEvidence } from "./live/pages/LiveEvidence";
+import { LiveAssurance } from "./live/pages/LiveAssurance";
 
 export const router = createBrowserRouter([
   {
@@ -24,26 +14,35 @@ export const router = createBrowserRouter([
     Component: Layout,
     children: [
       { index: true, Component: PlatformOverview },
+      { path: "authority", Component: LiveAgents },
+      { path: "policy", Component: LiveDocuments },
+      { path: "decisions", Component: LiveTestIntent },
+      { path: "evidence", Component: LiveEvidence },
+      { path: "assurance", Component: LiveAssurance },
+
+      // Legacy paths from the pre-consolidation app -- kept as redirects so
+      // no external link or bookmark 404s. See audit/EXECUTION_REPORT.md.
       { path: "platform-overview", element: <Navigate to="/" replace /> },
-      { path: "command-center", Component: Dashboard },
-      { path: "dashboard", element: <Navigate to="/command-center" replace /> },
-      { path: "authority-center", Component: AuthorityCenter },
-      { path: "ai-agents-registry", Component: AIAgents },
-      { path: "ai-agents", element: <Navigate to="/ai-agents-registry" replace /> },
-      { path: "decision-intercepts", Component: DecisionIntercepts },
-      { path: "evidence-vault", Component: EvidenceVault },
-      { path: "policy-library", Component: PolicyEngine },
-      { path: "policy-center", element: <Navigate to="/policy-library" replace /> },
-      { path: "governance-simulation", Component: GovernanceSimulation },
-      { path: "approvals", Component: Approvals },
-      { path: "assurance-center", Component: Insurance },
-      { path: "insurance-readiness", element: <Navigate to="/assurance-center" replace /> },
-      { path: "settings", Component: Settings },
-      { path: "live", Component: LiveOverview },
-      { path: "live/documents", Component: LiveDocuments },
-      { path: "live/agents", Component: LiveAgents },
-      { path: "live/test-intent", Component: LiveTestIntent },
-      { path: "live/evidence", Component: LiveEvidence },
+      { path: "command-center", element: <Navigate to="/assurance" replace /> },
+      { path: "dashboard", element: <Navigate to="/assurance" replace /> },
+      { path: "authority-center", element: <Navigate to="/authority" replace /> },
+      { path: "ai-agents-registry", element: <Navigate to="/authority" replace /> },
+      { path: "ai-agents", element: <Navigate to="/authority" replace /> },
+      { path: "decision-intercepts", element: <Navigate to="/decisions" replace /> },
+      { path: "evidence-vault", element: <Navigate to="/evidence" replace /> },
+      { path: "policy-library", element: <Navigate to="/policy" replace /> },
+      { path: "policy-center", element: <Navigate to="/policy" replace /> },
+      { path: "governance-simulation", element: <Navigate to="/decisions" replace /> },
+      { path: "approvals", element: <Navigate to="/decisions" replace /> },
+      { path: "assurance-center", element: <Navigate to="/assurance" replace /> },
+      { path: "insurance-readiness", element: <Navigate to="/assurance" replace /> },
+      { path: "settings", element: <Navigate to="/" replace /> },
+      { path: "live", element: <Navigate to="/" replace /> },
+      { path: "live/documents", element: <Navigate to="/policy" replace /> },
+      { path: "live/agents", element: <Navigate to="/authority" replace /> },
+      { path: "live/test-intent", element: <Navigate to="/decisions" replace /> },
+      { path: "live/evidence", element: <Navigate to="/evidence" replace /> },
+
       { path: "*", Component: NotFound },
     ],
   },
