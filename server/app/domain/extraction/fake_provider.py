@@ -8,7 +8,7 @@ class FakeExtractionProvider:
     def __init__(self, candidates: list[CandidateAuthority] | None = None):
         self._candidates = candidates or [
             CandidateAuthority(
-                principal_name="Regional Controller — EMEA",
+                principal_name="Regional Controller (EMEA)",
                 scope="vendor_payment",
                 limit_amount=50000.0,
                 currency="USD",

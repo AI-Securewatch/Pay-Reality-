@@ -1,7 +1,7 @@
-"""Claude-backed ExtractionProvider implementation -- spec Section 12.4
+"""Claude-backed ExtractionProvider implementation: spec Section 12.4
 Stage 2+3. This is genuinely non-deterministic (spec 21.4); its output is
 never trusted directly and only ever produces pending_review Authority rows
-(spec 13.1). Swappable behind ExtractionProvider (Principle 7) -- nothing
+(spec 13.1). Swappable behind ExtractionProvider (Principle 7); nothing
 downstream of app.domain.extraction.provider.ExtractionProvider depends on
 Claude specifically.
 """
@@ -29,7 +29,7 @@ EXTRACTION_TOOL = {
                     "properties": {
                         "principal_name": {
                             "type": "string",
-                            "description": "The role or named individual holding this authority, e.g. 'Regional Controller — EMEA'.",
+                            "description": "The role or named individual holding this authority, e.g. 'Regional Controller, EMEA'.",
                         },
                         "scope": {
                             "type": "string",
@@ -63,7 +63,7 @@ EXTRACTION_TOOL = {
 
 SYSTEM_PROMPT = (
     "You extract delegation-of-authority claims from enterprise governance "
-    "documents. Extract only what the text actually supports -- if an amount, "
+    "documents. Extract only what the text actually supports: if an amount, "
     "currency, or condition is not stated, leave it null and list the field "
     "in incomplete_fields rather than guessing. Every candidate must cite the "
     "exact source_excerpt and source_page it came from."

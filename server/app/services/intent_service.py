@@ -16,7 +16,7 @@ from app.opa_client import HttpOpaClient
 
 class AgentRevokedError(Exception):
     """spec 10.4: all Intent submissions from a revoked Agent are rejected
-    at the API layer with HTTP 403 before evaluation -- no Decision or
+    at the API layer with HTTP 403 before evaluation; no Decision or
     Evidence record is created."""
 
 
@@ -38,7 +38,7 @@ class _DbPolicyStore:
 
 
 class _EngineOpaClient:
-    """Adapts HttpOpaClient to decision_engine.OpaClient -- HttpOpaClient
+    """Adapts HttpOpaClient to decision_engine.OpaClient: HttpOpaClient
     already raises the exact exception types the engine expects."""
 
     def __init__(self, client: HttpOpaClient):
@@ -76,7 +76,7 @@ def _build_evidence_payload(
 
 def _classify_risk(amount: float) -> str:
     """Same thresholds as the retired demo's heuristic (kept as a sensible
-    default -- spec doesn't define risk-band boundaries itself, only that a
+    default: spec doesn't define risk-band boundaries itself, only that a
     risk_classification is recorded in Evidence, spec 17.1)."""
     if amount >= 250_000:
         return "CRITICAL"
@@ -130,7 +130,7 @@ def append_evidence(
         payload=payload,
         key_id=signature.key_id,
         signature=signature.value,
-        # spec 8.2 EvidenceRecord.status -- distinct from Decision.status
+        # spec 8.2 EvidenceRecord.status, distinct from Decision.status
         # (our HUMAN_REVIEW-resolution addition).
         status=status,
     )
@@ -173,7 +173,7 @@ def submit_intent(
         raise ReplayDetectedError(f"{agent.id}:{nonce}") from e
 
     # spec 10.4: a suspended Agent's intents resolve to HUMAN_REVIEW with a
-    # fixed reason -- OPA is never even queried in this case, but a Decision
+    # fixed reason: OPA is never even queried in this case, but a Decision
     # + Evidence record IS still created (preserves the evidentiary trail of
     # what was attempted while suspended).
     if agent.status == "suspended":
@@ -202,7 +202,7 @@ def submit_intent(
         return intent, decision, evidence
 
     # spec 9.3/12.6: an unrecognized action is ambiguous, not explicitly
-    # disallowed -- HUMAN_REVIEW, never DENY, and OPA is never queried.
+    # disallowed: HUMAN_REVIEW, never DENY, and OPA is never queried.
     if not is_recognized_scope(action):
         decision = Decision(
             intent_id=intent.id,

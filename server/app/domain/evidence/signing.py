@@ -46,7 +46,7 @@ def sign_payload(payload: dict[str, Any], signing_key_b64: str, key_id: str) -> 
 def verify_payload(payload: dict[str, Any], signature: Signature, public_key_b64: str) -> bool:
     """spec 17.5: re-serialize, recompute digest, verify against the public key.
 
-    Returns False (never raises) on any failure — a bad signature is data,
+    Returns False (never raises) on any failure: a bad signature is data,
     not an exceptional program state, and callers must treat False as a P1
     signal per spec 17.5, not as an error to swallow.
     """
@@ -60,7 +60,7 @@ def verify_payload(payload: dict[str, Any], signature: Signature, public_key_b64
 
 
 def public_key_b64_from_signing_key_b64(signing_key_b64: str) -> str:
-    """Derive the public key for a given private signing key — used at
+    """Derive the public key for a given private signing key, used at
     startup to know what public key verification should check against."""
     signing_key = nacl.signing.SigningKey(base64.b64decode(signing_key_b64))
     return base64.b64encode(bytes(signing_key.verify_key)).decode("ascii")

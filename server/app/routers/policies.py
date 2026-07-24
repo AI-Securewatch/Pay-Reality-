@@ -49,7 +49,7 @@ def list_documents(db: Session = Depends(get_db)):
 )
 async def upload_document(file: UploadFile, db: Session = Depends(get_db)):
     """spec 19.1. Extraction (spec 12.4 Stage 2-3) runs synchronously here
-    for Phase 1 simplicity -- a document transitions extraction_pending ->
+    for Phase 1 simplicity: a document transitions extraction_pending ->
     extracted|extraction_failed within this same request."""
     if file.content_type not in ("application/pdf", "application/octet-stream"):
         raise HTTPException(status_code=422, detail="unsupported_format")
@@ -148,7 +148,7 @@ def compile_policy(document_id: UUID, db: Session = Depends(get_db)):
     dependencies=[Depends(verify_operator_key)],
 )
 def activate_policy(policy_id: UUID, db: Session = Depends(get_db)):
-    """spec 19.3 + 14.4 (also used for rollback -- reactivating a retired
+    """spec 19.3 + 14.4 (also used for rollback: reactivating a retired
     version's id)."""
     from sqlalchemy import select
 

@@ -56,7 +56,7 @@ export function LiveAgents() {
         <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Live Agents</h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
           Register an AI agent with a signing key (spec Section 10). The private key never leaves
-          this browser -- only the public key is sent to the server.
+          this browser, only the public key is sent to the server.
         </p>
       </div>
 
@@ -106,7 +106,7 @@ export function LiveAgents() {
             <input
               value={newPrincipalName}
               onChange={(e) => setNewPrincipalName(e.target.value)}
-              placeholder="Regional Controller — EMEA"
+              placeholder="Regional Controller (EMEA)"
               className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             />

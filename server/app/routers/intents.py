@@ -36,7 +36,7 @@ def submit_intent(
     db: Session = Depends(get_db),
 ):
     """spec 19.5. The `agent` dependency has already verified the request
-    signature over the raw body -- this handler is authenticated by the
+    signature over the raw body; this handler is authenticated by the
     time it runs."""
     if str(body.agent_id) != str(agent.id):
         raise HTTPException(status_code=401, detail="agent_id_does_not_match_signing_key")
@@ -82,7 +82,7 @@ def submit_intent(
 
 @router.get("/decisions/{decision_id}", response_model=GetDecisionResponse)
 def get_decision(decision_id: UUID, db: Session = Depends(get_db)):
-    """New (not in spec 19's literal API) -- the poll endpoint a caller uses
+    """New (not in spec 19's literal API): the poll endpoint a caller uses
     until a HUMAN_REVIEW decision is resolved (see plan's addition)."""
     decision = intent_service.get_decision(db, decision_id)
     if decision is None:

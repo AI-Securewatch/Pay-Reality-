@@ -17,8 +17,8 @@ router = APIRouter(prefix="/v1/evidence", tags=["evidence"])
 @router.get("/verification-key", response_model=VerificationKeyResponse)
 def get_verification_key():
     """Publishes the current ED25519 public key so a regulator, insurer, or
-    auditor can verify an Evidence signature independently -- offline, with
-    no access to this server or its private key -- rather than only being
+    auditor can verify an Evidence signature independently (offline, with
+    no access to this server or its private key) rather than only being
     able to trust this API's own POST /verify result. See SECURITY.md's
     evidence-architecture section for what this does and doesn't cover yet
     (single active key, no historical key registry for rotation)."""

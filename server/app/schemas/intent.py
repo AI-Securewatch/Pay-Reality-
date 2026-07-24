@@ -43,7 +43,7 @@ class ResolutionSummary(BaseModel):
 
 
 class ResolveDecisionRequest(BaseModel):
-    """The Phase 1 addition (see plan) -- resolves a HUMAN_REVIEW decision
+    """The Phase 1 addition (see plan) that resolves a HUMAN_REVIEW decision
     without mutating the immutable Decision row."""
 
     resolution: str  # "approved" | "denied"
@@ -58,7 +58,7 @@ class ResolveDecisionResponse(BaseModel):
 
 
 class GetDecisionResponse(BaseModel):
-    """New (not in spec 19's literal API) -- the polling endpoint the
+    """New (not in spec 19's literal API): the polling endpoint the
     HUMAN_REVIEW-resolution addition needs (see plan)."""
 
     id: UUID

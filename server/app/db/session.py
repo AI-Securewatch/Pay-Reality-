@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import settings
 
 # connect_timeout bounds how long a connection attempt can hang before
-# failing -- without it, a database that's down or unreachable (not just
+# failing: without it, a database that's down or unreachable (not just
 # rejecting connections) can make every request, including /health/ready,
 # hang indefinitely instead of failing fast.
 engine = create_engine(

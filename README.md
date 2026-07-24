@@ -4,11 +4,11 @@
 
 PayReality gives an AI agent a real identity, a real delegated authority limit, and a real deterministic gate in front of every financial action it tries to take. Every decision, allow, deny, or escalate to a human, produces a cryptographically signed Evidence record it cannot quietly rewrite later.
 
-**Authority** — an agent's certificate and the Mandates it acts under.
-**Policy** — the compiled, versioned Rego bundle those Mandates become.
-**Runtime Decisions** — every Intent an agent submits, evaluated against the active Policy before anything executes.
-**Evidence** — an ED25519-signed record of what was decided and why, for every Decision and every resolution.
-**Assurance** — a live read of what's actually running: agent count, active Policy, Decision volume by outcome.
+**Authority**: an agent's certificate and the Mandates it acts under.
+**Policy**: the compiled, versioned Rego bundle those Mandates become.
+**Runtime Decisions**: every Intent an agent submits, evaluated against the active Policy before anything executes.
+**Evidence**: an ED25519-signed record of what was decided and why, for every Decision and every resolution.
+**Assurance**: a live read of what's actually running, including agent count, active Policy, and Decision volume by outcome.
 
 This is not a demo of what that would look like. `server/` is a working FastAPI + PostgreSQL + Open Policy Agent backend; the frontend calls it for real, with no mocked data and no scripted outcomes. See [PRODUCT.md](PRODUCT.md) for what that means in practice, and [ARCHITECTURE.md](ARCHITECTURE.md) for how it's built.
 
@@ -16,11 +16,11 @@ This is not a demo of what that would look like. `server/` is a working FastAPI 
 
 ## How a decision actually happens
 
-1. An **Agent** (a certificate-holding identity acting for a Principal) submits an **Intent** — signed with its private key, which never leaves wherever it was generated.
+1. An **Agent** (a certificate-holding identity acting for a Principal) submits an **Intent**, signed with its private key, which never leaves wherever it was generated.
 2. The **Decision Engine** builds an OPA input document and queries the active **Policy** (a compiled Rego bundle built from human-approved **Authorities**).
-3. OPA returns `allow`, `deny`, or nothing decisive — anything not explicitly `allow` resolves to `HUMAN_REVIEW`. This is fail-closed by construction: an OPA timeout, an OPA error, or no active Policy all also resolve to `HUMAN_REVIEW`, never `ALLOW`.
-4. An **Evidence** record is signed (ED25519, over a SHA-256 digest of the canonical JSON payload) and stored. A `HUMAN_REVIEW` decision that's later approved or denied appends a *second* Evidence record rather than mutating the first — the Decision row itself never changes after it's written.
-5. **Assurance** reads real counts and real recent Decisions from the same database — it is not a static or seeded view.
+3. OPA returns `allow`, `deny`, or nothing decisive. Anything not explicitly `allow` resolves to `HUMAN_REVIEW`. This is fail-closed by construction: an OPA timeout, an OPA error, or no active Policy all also resolve to `HUMAN_REVIEW`, never `ALLOW`.
+4. An **Evidence** record is signed (ED25519, over a SHA-256 digest of the canonical JSON payload) and stored. A `HUMAN_REVIEW` decision that's later approved or denied appends a *second* Evidence record rather than mutating the first; the Decision row itself never changes after it's written.
+5. **Assurance** reads real counts and real recent Decisions from the same database. It is not a static or seeded view.
 
 ## Repository layout
 
@@ -55,17 +55,17 @@ Set `VITE_API_URL` (see `.env.example`) to point at the backend above.
 
 ## Documentation
 
-* [PRODUCT.md](PRODUCT.md) — what PayReality is, is not, and how a customer derives value from it
-* [ARCHITECTURE.md](ARCHITECTURE.md) — system design, data flow, and the decision/evidence pipeline in detail
-* [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md) — every real endpoint, its auth requirement, and its schema (`openapi.json` is the machine-readable source)
-* [DEPLOYMENT.md](DEPLOYMENT.md) — hosting recommendation, environment variables, CI/CD, rollback, monitoring
-* [SECURITY.md](SECURITY.md) — full security posture: what's covered, what's a known gap, and why
-* [VERSION_3_ROADMAP.md](VERSION_3_ROADMAP.md) — what's next, phased by how far along the company is, not by feature wishlist
+* [PRODUCT.md](PRODUCT.md): what PayReality is, is not, and how a customer derives value from it
+* [ARCHITECTURE.md](ARCHITECTURE.md): system design, data flow, and the decision/evidence pipeline in detail
+* [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md): every real endpoint, its auth requirement, and its schema (`openapi.json` is the machine-readable source)
+* [DEPLOYMENT.md](DEPLOYMENT.md): hosting recommendation, environment variables, CI/CD, rollback, monitoring
+* [SECURITY.md](SECURITY.md): full security posture, including what's covered, what's a known gap, and why
+* [VERSION_3_ROADMAP.md](VERSION_3_ROADMAP.md): what's next, phased by how far along the company is, not by feature wishlist
 
 ## Status
 
-The Runtime Authority engine, policy pipeline, and Evidence signing are real and covered by passing tests. The backend is not yet hosted anywhere reachable by the live frontend — see DEPLOYMENT.md for the recommended path and SECURITY.md / ARCHITECTURE.md for exactly what "real" does and doesn't cover today. There is no human login/RBAC system yet; a single shared operator credential gates the endpoints that would otherwise need one (see SECURITY.md).
+The Runtime Authority engine, policy pipeline, and Evidence signing are real and covered by passing tests. The backend is not yet hosted anywhere reachable by the live frontend. See DEPLOYMENT.md for the recommended path and SECURITY.md / ARCHITECTURE.md for exactly what "real" does and doesn't cover today. There is no human login/RBAC system yet; a single shared operator credential gates the endpoints that would otherwise need one (see SECURITY.md).
 
 ## License
 
-Proprietary – All Rights Reserved.
+Proprietary. All Rights Reserved.

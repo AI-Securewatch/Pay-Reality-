@@ -36,7 +36,7 @@ export function LiveEvidence() {
       <div className="space-y-3">
         {records.length === 0 && (
           <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
-            No evidence yet — submit an Intent from the Test a Decision page.
+            No evidence yet. Submit an Intent from the Test a Decision page.
           </p>
         )}
         {records.map((e, i) => {
@@ -72,7 +72,7 @@ export function LiveEvidence() {
                 {["action", "amount", "authority_outcome", "risk_classification"].map((k) => (
                   <div key={k}>
                     <p style={{ color: "var(--pr-text-muted)" }}>{k}</p>
-                    <p style={{ color: "var(--pr-text-primary)" }}>{String(e.payload[k] ?? "—")}</p>
+                    <p style={{ color: "var(--pr-text-primary)" }}>{String(e.payload[k] ?? "N/A")}</p>
                   </div>
                 ))}
               </div>

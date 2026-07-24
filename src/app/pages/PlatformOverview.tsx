@@ -44,7 +44,7 @@ const WORKFLOW = [
     step: "03",
     icon: FlaskConical,
     title: "Runtime Decisions",
-    desc: "Submit a real intent — an agent requesting to act — and watch the Runtime Authority Engine evaluate it against the active policy: approve, deny, or escalate to human review.",
+    desc: "Submit a real intent (an agent requesting to act) and watch the Runtime Authority Engine evaluate it against the active policy: approve, deny, or escalate to human review.",
     path: "/decisions",
     color: "var(--pr-warning-amber)",
   },
@@ -60,7 +60,7 @@ const WORKFLOW = [
     step: "05",
     icon: Building2,
     title: "Assurance",
-    desc: "A live rollup of what's actually been authorized, decided, and evidenced — not a projection, a record.",
+    desc: "A live rollup of what's actually been authorized, decided, and evidenced. Not a projection, a record.",
     path: "/assurance",
     color: "var(--pr-trust-green)",
   },
@@ -101,7 +101,7 @@ export function PlatformOverview() {
           PayReality is Enterprise Trust Infrastructure for autonomous AI. Every enterprise already
           knows how to delegate authority to people. This platform makes that authority
           machine-enforceable: every AI action is evaluated against your actual policy,
-          deterministically, before it executes — and every decision produces evidence you can
+          deterministically, before it executes, and every decision produces evidence you can
           verify independently.
         </p>
         <p className="text-sm max-w-2xl mb-8" style={{ color: "var(--pr-text-muted)" }}>
@@ -140,14 +140,14 @@ export function PlatformOverview() {
         {reachable === false ? (
           <div className="flex items-center gap-2 text-sm" style={{ color: "var(--pr-warning-amber)" }}>
             <ShieldCheck className="w-4 h-4" />
-            Backend not reachable from this build. The engine below runs against a real API —
+            Backend not reachable from this build. The engine below runs against a real API;
             it needs the server running to respond.
           </div>
         ) : (
           <>
             <div>
               <div className="text-2xl font-semibold" style={{ color: "var(--pr-text-primary)" }}>
-                {agentCount ?? "—"}
+                {agentCount ?? "N/A"}
               </div>
               <div className="text-xs" style={{ color: "var(--pr-text-muted)" }}>
                 Registered agents

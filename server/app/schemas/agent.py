@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class CreatePrincipalRequest(BaseModel):
-    """Not in the spec's literal API surface (Section 19) -- Principals are
+    """Not in the spec's literal API surface (Section 19); Principals are
     normally created implicitly during document onboarding (spec 8.2's
     lifecycle: "Created when a DoA document is onboarded"). This endpoint is
     a Phase 1 convenience so an Agent/Mandate can be bootstrapped and tested

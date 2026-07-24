@@ -1,4 +1,4 @@
-"""httpx-based OPA client — implements the OpaClient protocol used by
+"""httpx-based OPA client: implements the OpaClient protocol used by
 app.domain.decision.engine, and the bundle-activation calls used by the
 Policy Compiler (spec 12.4 Stage 9)."""
 

@@ -1,4 +1,4 @@
-"""Policy Compiler — spec Section 12.4 Stage 6.
+"""Policy Compiler: spec Section 12.4 Stage 6.
 
 Converts approved Authority records into Mandate/Constraint records and a
 Rego bundle + bundle_hash. Pure function of its inputs: the same approved
@@ -7,7 +7,7 @@ identical bundle_hash (spec 12.4 Stage 6's determinism guarantee).
 
 The "bundle" here is (rego_source, mandates_data) pushed into OPA via its
 management API (see app.opa_client) rather than a signed bundle+manifest
-served over OPA's native bundle-polling mechanism -- a deliberate Phase 1
+served over OPA's native bundle-polling mechanism, a deliberate Phase 1
 simplification. bundle_hash is our own compile-time integrity record (used
 for policy versioning and Evidence per spec 14.5), not something round-
 tripped through OPA's bundle-signature feature.
@@ -22,7 +22,7 @@ from typing import Any
 
 DUAL_APPROVAL_PATTERN = re.compile(r"^requires_dual_approval_above_(\d+(?:\.\d+)?)$")
 
-# Mandates without an extracted expiry default to a wide validity window --
+# Mandates without an extracted expiry default to a wide validity window:
 # Phase 1 authority documents rarely specify one, and Authority (spec 8.2)
 # has no valid_from/valid_to fields to carry forward even when they do.
 DEFAULT_VALIDITY = timedelta(days=365 * 5)
@@ -41,7 +41,7 @@ class CompilationConflictError(Exception):
 
 @dataclass(frozen=True)
 class CompiledAuthority:
-    """The subset of an approved Authority row the compiler needs -- kept
+    """The subset of an approved Authority row the compiler needs, kept
     separate from the SQLAlchemy model so this module has no DB dependency."""
 
     id: str
@@ -104,7 +104,7 @@ def _parse_conditions(conditions: list[Any]) -> tuple[float | None, list[dict[st
 def _check_conflicts(authorities: list[CompiledAuthority]) -> None:
     """Two approved Authority records for the same (principal_id, scope)
     with different max_amount cannot be represented as one unambiguous
-    Mandate -- spec 12.4 Stage 6's named failure mode."""
+    Mandate (spec 12.4 Stage 6's named failure mode)."""
     seen: dict[tuple[str, str], CompiledAuthority] = {}
     conflicts: list[str] = []
     for auth in authorities:
@@ -192,7 +192,7 @@ def to_utc_iso(dt: datetime) -> str:
     which is lexicographic, not chronological. Two otherwise-correct ISO8601
     timestamps with different UTC offsets (e.g. "...19:49:27+02:00" vs
     "...17:50:49+00:00") do NOT compare correctly as strings even though
-    they represent nearby instants -- every timestamp that ever reaches a
+    they represent nearby instants: every timestamp that ever reaches a
     Rego comparison must be rendered in this exact same offset for
     lexicographic order to match chronological order.
     """
@@ -215,13 +215,13 @@ def compile_authorities(
     now: datetime | None = None,
 ) -> CompilationResult:
     """spec 12.4 Stage 6. Raises CompilationConflictError on unresolvable
-    conflicts -- callers must leave the Policy row in `draft` on that path.
+    conflicts: callers must leave the Policy row in `draft` on that path.
 
     Mandate/Constraint ids are derived deterministically (uuid5, not
     uuid4) from (policy_version, authority_id) rather than authority_id
     alone. Two reasons: (1) "the same Authority set compiled twice produces
     an identical bundle_hash" (spec 12.4 Stage 6) requires non-random ids;
-    (2) a Mandate "belongs to exactly one Policy version" (spec 8.2) -- an
+    (2) a Mandate "belongs to exactly one Policy version" (spec 8.2); an
     Authority approved once but compiled into two different Policy
     versions must get two distinct Mandate rows, not a duplicate-key
     collision on the second compile.

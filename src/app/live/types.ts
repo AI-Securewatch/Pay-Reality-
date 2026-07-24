@@ -1,4 +1,4 @@
-// Named distinctly from src/app/demo/demoTypes.ts on purpose -- nothing in
+// Named distinctly from src/app/demo/demoTypes.ts on purpose: nothing in
 // the demo should ever import from here or vice versa (the demo stays a
 // fully separate, untouched concern; see plan's "Demo preservation").
 

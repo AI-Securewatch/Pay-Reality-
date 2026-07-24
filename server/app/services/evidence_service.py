@@ -26,7 +26,7 @@ def list_evidence(db: Session, decision_id: uuid.UUID | None = None) -> list[Evi
 
 def verify_evidence(db: Session, evidence_id: uuid.UUID) -> tuple[bool, str]:
     """spec 17.5. A False result is a P1-severity signal for the caller to
-    surface, not something this function itself escalates -- verification
+    surface, not something this function itself escalates: verification
     is a query, not an alerting action."""
     evidence = db.get(Evidence, evidence_id)
     if evidence is None:

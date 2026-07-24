@@ -239,7 +239,7 @@ export function LiveDocuments() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
-                        Limit amount (extracted: {a.limit_amount ?? "—"})
+                        Limit amount (extracted: {a.limit_amount ?? "N/A"})
                       </label>
                       <input
                         type="number"

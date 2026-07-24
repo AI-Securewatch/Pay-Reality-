@@ -67,8 +67,8 @@ export function LiveAssurance() {
         <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Enterprise Assurance</h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
           A live rollup of what has actually been authorized, decided, and evidenced. Every number
-          here is derived directly from real agents, real policy, and real signed Evidence records
-          — not a computed maturity score, because that would be one more thing this page would be
+          here is derived directly from real agents, real policy, and real signed Evidence records,
+          not a computed maturity score, because that would be one more thing this page would be
           claiming rather than showing.
         </p>
       </div>

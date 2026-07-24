@@ -43,7 +43,7 @@ def store_document(db: Session, name: str, pdf_bytes: bytes) -> Document:
 def _find_or_create_principal(db: Session, name: str, document_id: uuid.UUID) -> Principal:
     """spec 8.2 Principal lifecycle: "Created when a DoA document is
     onboarded and a named role/individual is identified." Matched by exact
-    name -- Phase 1 has no principal-merging/fuzzy-matching UI."""
+    name; Phase 1 has no principal-merging/fuzzy-matching UI."""
     existing = db.scalar(select(Principal).where(Principal.name == name))
     if existing is not None:
         return existing
@@ -56,7 +56,7 @@ def _find_or_create_principal(db: Session, name: str, document_id: uuid.UUID) ->
 def run_extraction(db: Session, document: Document, provider: ExtractionProvider) -> Document:
     """spec 12.4 Stage 2+3. On any failure, the document transitions to
     extraction_failed and the caller may retry without re-uploading (spec
-    12.4 Stage 2's recovery strategy) -- callers should not let an exception
+    12.4 Stage 2's recovery strategy); callers should not let an exception
     here propagate as a 500 without first persisting that transition."""
     try:
         pdf_bytes = Path(document.storage_uri).read_bytes()

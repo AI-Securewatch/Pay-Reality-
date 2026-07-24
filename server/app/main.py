@@ -15,7 +15,7 @@ logger = logging.getLogger("payreality.startup")
 
 def _validate_production_config() -> None:
     """Refuse to boot in production with missing/default secrets rather than
-    running degraded -- e.g. silently unable to sign Evidence, or exposing
+    running degraded: e.g. silently unable to sign Evidence, or exposing
     every policy/resolution endpoint with no operator gate."""
     if settings.environment != "production":
         return

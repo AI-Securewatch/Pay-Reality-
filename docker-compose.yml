@@ -1,6 +1,6 @@
 # Local/self-hosted topology for the PayReality backend: Postgres + OPA +
 # the FastAPI app, wired together the same way they'd be wired in a real
-# deploy (see DEPLOYMENT.md). Not used by the Vercel-hosted frontend build --
+# deploy (see DEPLOYMENT.md). Not used by the Vercel-hosted frontend build;
 # this is for running the API + its dependencies somewhere real.
 services:
   postgres:
@@ -38,9 +38,9 @@ services:
       DATABASE_URL: postgresql+psycopg://payreality:payreality_dev@postgres:5432/payreality_dev
       OPA_URL: http://opa:8181
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      EVIDENCE_SIGNING_KEY_B64: ${EVIDENCE_SIGNING_KEY_B64:?set a base64 ED25519 seed -- see server/.env.example}
+      EVIDENCE_SIGNING_KEY_B64: ${EVIDENCE_SIGNING_KEY_B64:?set a base64 ED25519 seed, see server/.env.example}
       EVIDENCE_SIGNING_KEY_ID: ${EVIDENCE_SIGNING_KEY_ID:-signing_key_dev}
-      ADMIN_API_KEY: ${ADMIN_API_KEY:?set an operator key -- see server/.env.example}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:?set an operator key, see server/.env.example}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8000:8000"

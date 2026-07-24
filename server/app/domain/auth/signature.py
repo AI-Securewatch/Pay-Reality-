@@ -1,4 +1,4 @@
-"""Agent request-signature verification -- spec Section 21.2 (compromised
+"""Agent request-signature verification: spec Section 21.2 (compromised
 agent credential mitigation) and Section 19 (X-PayReality-Key-Id /
 X-PayReality-Signature headers).
 
@@ -16,14 +16,14 @@ import nacl.signing
 
 def _decode_public_key(public_key: str) -> bytes:
     """Certificates store keys as 'ed25519:base64:<...>' (spec 19.4's
-    example) or plain base64 -- accept either."""
+    example) or plain base64; accept either."""
     raw = public_key.split(":")[-1]
     return base64.b64decode(raw)
 
 
 def verify_request_signature(body: bytes, signature_b64: str, public_key: str) -> bool:
     """Verify a signature over the raw canonical request body. Never
-    raises -- an invalid signature is data (reject the request), not an
+    raises: an invalid signature is data (reject the request), not an
     exceptional program state."""
     try:
         verify_key = nacl.signing.VerifyKey(_decode_public_key(public_key))
@@ -45,7 +45,7 @@ def check_timestamp_window(
     """spec 21.2: requests outside the signature validity window are
     rejected regardless of nonce. Nonce-reuse itself is enforced by the
     intents table's UNIQUE(agent_id, nonce) constraint at insert time
-    (see app.services.intent_service) rather than a separate cache --
+    (see app.services.intent_service) rather than a separate cache;
     Phase 1 has no Redis dependency, and the DB constraint gives a
     stronger guarantee (no reuse ever, not just within a TTL window)."""
     now = now or datetime.now(timezone.utc)

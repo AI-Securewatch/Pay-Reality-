@@ -96,7 +96,7 @@ def test_allow_and_deny_both_true_resolves_to_deny_not_allow():
 
 
 def test_ambiguous_result_resolves_to_human_review():
-    """Neither allow nor deny nor requires_review set -- fail closed."""
+    """Neither allow nor deny nor requires_review set; fail closed."""
     client = FakeOpaClient(result={})
     decision = evaluate(INTENT, CONTEXT, "prin_1", FakePolicyStore(ACTIVE), client)
     assert decision.outcome == "HUMAN_REVIEW"

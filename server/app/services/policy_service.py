@@ -25,7 +25,7 @@ class PolicyNotFoundError(Exception):
 
 class StaticValidationError(Exception):
     """spec 12.4 Stage 7. Raised when the compiled Rego bundle fails to
-    load into OPA -- compilation must fail closed, Policy stays draft."""
+    load into OPA: compilation must fail closed, Policy stays draft."""
 
 
 class BundleHashMismatchError(Exception):
@@ -37,7 +37,7 @@ class BundleHashMismatchError(Exception):
 def compile_document(db: Session, document_id: uuid.UUID) -> Policy:
     """spec 12.4 Stage 6-8: compile -> static validation -> version
     assignment, as one call. Raises CompilationConflictError (caller should
-    map to 422) or NoApprovedAuthoritiesError -- neither leaves a Policy row
+    map to 422) or NoApprovedAuthoritiesError; neither leaves a Policy row
     behind, since a Policy only gets created once compilation actually
     succeeds and static validation passes.
     """
@@ -64,7 +64,7 @@ def compile_document(db: Session, document_id: uuid.UUID) -> Policy:
     ]
 
     # Computed up front (spec 12.4 Stage 8 assigns this at the end, but the
-    # compiler needs it now to derive version-scoped Mandate ids -- see
+    # compiler needs it now to derive version-scoped Mandate ids; see
     # compile_authorities' docstring).
     next_version = (db.scalar(select(func.max(Policy.version))) or 0) + 1
 
@@ -74,7 +74,7 @@ def compile_document(db: Session, document_id: uuid.UUID) -> Policy:
 
     # spec 12.4 Stage 7: static validation against a scratch OPA package
     # before this bundle is ever eligible for activation. The Rego's
-    # `package` declaration -- not just the module path -- must be renamed
+    # `package` declaration (not just the module path) must be renamed
     # for this probe: OPA namespaces default-rule conflicts by package, so
     # validating under the real "payreality.authorization" package would
     # collide with whatever policy is currently active, breaking every
@@ -154,7 +154,7 @@ def _mandates_data_for_policy(db: Session, policy_id: uuid.UUID) -> list[dict]:
 
 
 def activate_policy(db: Session, policy_id: uuid.UUID) -> Policy:
-    """spec 12.4 Stage 9 + 14.3/14.4: activation is transactional -- the
+    """spec 12.4 Stage 9 + 14.3/14.4: activation is transactional: the
     prior active Policy is not retired until the new bundle is confirmed
     loaded. Reused verbatim for rollback (spec 14.4): reactivating a
     previously-retired version's id is the same operation."""
@@ -163,7 +163,7 @@ def activate_policy(db: Session, policy_id: uuid.UUID) -> Policy:
         raise PolicyNotFoundError(str(policy_id))
 
     # Recompile the Rego for this policy's mandates (deterministic given the
-    # same mandates -- see app.domain.compiler) and load it plus the mandate
+    # same mandates; see app.domain.compiler) and load it plus the mandate
     # data into OPA before touching any DB status.
     from app.domain.compiler.compiler import REGO_TEMPLATE
 

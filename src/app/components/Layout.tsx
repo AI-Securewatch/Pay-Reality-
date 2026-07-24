@@ -17,7 +17,7 @@ import { OperatorKeyField } from "../live/components/OperatorKeyField";
 
 // One workflow, in order: Authority -> Policy -> Runtime Decisions ->
 // Evidence -> Assurance. No department-shaped groups, no duplicate
-// "real" vs "demo" sections -- see audit/EXECUTION_REPORT.md.
+// "real" vs "demo" sections: see audit/EXECUTION_REPORT.md.
 const navItems = [
   { path: "/", label: "Overview", icon: Compass },
   { path: "/authority", label: "Authority", icon: Bot },

@@ -1,7 +1,7 @@
 """Operator authentication, request context/logging, security headers, and
 per-client rate limiting.
 
-Phase 1 has no human user/session/RBAC system yet -- `resolved_by` on a
+Phase 1 has no human user/session/RBAC system yet: `resolved_by` on a
 decision resolution is still a free-text field (see
 app.services.resolution_service). `verify_operator_key` is a real, working
 gate (not a mock) on the endpoints that mutate policy or resolve a
@@ -51,7 +51,7 @@ async def observability_middleware(request: Request, call_next):
     BaseHTTPMiddleware has a documented history of losing exceptions across
     multiple stacked instances (the exception raised by the route handler
     never reaches an outer layer's except block, producing an empty
-    response body instead of a clean JSON 500 -- verified locally while
+    response body instead of a clean JSON 500, verified locally while
     building this). One middleware, one try/except around call_next, is the
     reliable version of the same behavior.
     """

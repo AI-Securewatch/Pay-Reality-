@@ -13,7 +13,7 @@ class Base(DeclarativeBase):
     # server timezone defaulted to Africa/Johannesburg (UTC+2) at initdb
     # time; without this, a timezone-aware Python datetime silently gets
     # converted to server-local wall-clock time on write and loses its
-    # offset on read -- which broke Mandate valid_from/valid_to comparisons
+    # offset on read, which broke Mandate valid_from/valid_to comparisons
     # against Intent timestamps in the Rego bundle (both looked like naive
     # ISO strings, but represented different instants).
     type_annotation_map = {datetime: DateTime(timezone=True)}
@@ -68,7 +68,7 @@ class Authority(Base):
     source_excerpt: Mapped[str | None] = mapped_column(Text)
     source_page: Mapped[int | None]
     status: Mapped[str] = mapped_column(Text, nullable=False)
-    # Free-text identifier, not a FK -- there is no user/auth system yet in
+    # Free-text identifier, not a FK; there is no user/auth system yet in
     # Phase 1 (see plan's frontend-integration notes); becomes a real FK
     # once login exists.
     reviewer_id: Mapped[str | None] = mapped_column(Text)

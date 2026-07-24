@@ -23,5 +23,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # Runs pending Alembic migrations, then starts the API. A failed migration
 # aborts startup rather than serving traffic against a schema it doesn't
-# match -- see DEPLOYMENT.md for the rollback procedure.
+# match: see DEPLOYMENT.md for the rollback procedure.
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

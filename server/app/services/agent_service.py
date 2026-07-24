@@ -58,8 +58,8 @@ def create_agent(
 
 def list_agents_with_active_certificate(db: Session) -> list[tuple[Agent, Certificate | None]]:
     """Each Agent paired with its active Certificate (spec 10.3: exactly one
-    Certificate is active per Agent at a time) so callers -- e.g. the Live
-    UI's agent-signing-key lookup -- always see a real certificate_id, not
+    Certificate is active per Agent at a time) so callers (e.g. the Live
+    UI's agent-signing-key lookup) always see a real certificate_id, not
     just at creation time."""
     agents = list(db.scalars(select(Agent)))
     certs_by_agent = {

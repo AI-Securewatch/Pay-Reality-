@@ -27,7 +27,7 @@ def resolve_decision(
 ) -> DecisionResolution:
     """The Phase 1 addition described in the plan: closes the HUMAN_REVIEW
     loop without mutating the immutable Decision row (spec 8.2's lifecycle
-    guarantee -- "created once, immutable, never updated"). Appends a new
+    guarantee: "created once, immutable, never updated"). Appends a new
     chained Evidence record capturing the resolution as a separate fact
     (spec 17's evidence-by-default principle applied to this new event)."""
     decision = db.get(Decision, decision_id)

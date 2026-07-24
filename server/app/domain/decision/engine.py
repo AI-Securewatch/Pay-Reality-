@@ -1,4 +1,4 @@
-"""Decision Engine — spec Section 16.2's algorithm, ported directly to Python.
+"""Decision Engine: spec Section 16.2's algorithm, ported directly to Python.
 
 Pure orchestration: no DB access. Callers pass in an OPA client and a
 PolicyStore-like lookup for the active policy, which makes this module

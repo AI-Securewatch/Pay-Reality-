@@ -5,7 +5,7 @@ import { getOperatorKey, setOperatorKey } from "../operatorKey";
 // The backend requires this key for policy review/compile/activate and
 // decision-resolution calls (app/security.py::verify_operator_key). There's
 // no human login system yet, so this is the real, working credential entry
-// point for the single shared operator key -- not a placeholder.
+// point for the single shared operator key, not a placeholder.
 export function OperatorKeyField() {
   const [value, setValue] = useState(getOperatorKey());
   const [saved, setSaved] = useState(false);

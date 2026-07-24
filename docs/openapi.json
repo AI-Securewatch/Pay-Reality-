@@ -219,7 +219,7 @@
           "policies"
         ],
         "summary": "Upload Document",
-        "description": "spec 19.1. Extraction (spec 12.4 Stage 2-3) runs synchronously here\nfor Phase 1 simplicity -- a document transitions extraction_pending ->\nextracted|extraction_failed within this same request.",
+        "description": "spec 19.1. Extraction (spec 12.4 Stage 2-3) runs synchronously here\nfor Phase 1 simplicity: a document transitions extraction_pending ->\nextracted|extraction_failed within this same request.",
         "operationId": "upload_document_v1_policies_documents_post",
         "parameters": [
           {
@@ -459,7 +459,7 @@
           "policies"
         ],
         "summary": "Activate Policy",
-        "description": "spec 19.3 + 14.4 (also used for rollback -- reactivating a retired\nversion's id).",
+        "description": "spec 19.3 + 14.4 (also used for rollback: reactivating a retired\nversion's id).",
         "operationId": "activate_policy_v1_policies__policy_id__activate_post",
         "parameters": [
           {
@@ -537,7 +537,7 @@
           "intents"
         ],
         "summary": "Submit Intent",
-        "description": "spec 19.5. The `agent` dependency has already verified the request\nsignature over the raw body -- this handler is authenticated by the\ntime it runs.",
+        "description": "spec 19.5. The `agent` dependency has already verified the request\nsignature over the raw body; this handler is authenticated by the\ntime it runs.",
         "operationId": "submit_intent_v1_intents_post",
         "parameters": [
           {
@@ -599,7 +599,7 @@
           "intents"
         ],
         "summary": "Get Decision",
-        "description": "New (not in spec 19's literal API) -- the poll endpoint a caller uses\nuntil a HUMAN_REVIEW decision is resolved (see plan's addition).",
+        "description": "New (not in spec 19's literal API): the poll endpoint a caller uses\nuntil a HUMAN_REVIEW decision is resolved (see plan's addition).",
         "operationId": "get_decision_v1_decisions__decision_id__get",
         "parameters": [
           {
@@ -706,7 +706,7 @@
           "evidence"
         ],
         "summary": "Get Verification Key",
-        "description": "Publishes the current ED25519 public key so a regulator, insurer, or\nauditor can verify an Evidence signature independently -- offline, with\nno access to this server or its private key -- rather than only being\nable to trust this API's own POST /verify result. See SECURITY.md's\nevidence-architecture section for what this does and doesn't cover yet\n(single active key, no historical key registry for rotation).",
+        "description": "Publishes the current ED25519 public key so a regulator, insurer, or\nauditor can verify an Evidence signature independently (offline, with\nno access to this server or its private key) rather than only being\nable to trust this API's own POST /verify result. See SECURITY.md's\nevidence-architecture section for what this does and doesn't cover yet\n(single active key, no historical key registry for rotation).",
         "operationId": "get_verification_key_v1_evidence_verification_key_get",
         "responses": {
           "200": {
@@ -1217,7 +1217,7 @@
           "name"
         ],
         "title": "CreatePrincipalRequest",
-        "description": "Not in the spec's literal API surface (Section 19) -- Principals are\nnormally created implicitly during document onboarding (spec 8.2's\nlifecycle: \"Created when a DoA document is onboarded\"). This endpoint is\na Phase 1 convenience so an Agent/Mandate can be bootstrapped and tested\nbefore any document has been uploaded and reviewed."
+        "description": "Not in the spec's literal API surface (Section 19); Principals are\nnormally created implicitly during document onboarding (spec 8.2's\nlifecycle: \"Created when a DoA document is onboarded\"). This endpoint is\na Phase 1 convenience so an Agent/Mandate can be bootstrapped and tested\nbefore any document has been uploaded and reviewed."
       },
       "DecisionSummary": {
         "properties": {
@@ -1409,7 +1409,7 @@
           "evaluated_mandates"
         ],
         "title": "GetDecisionResponse",
-        "description": "New (not in spec 19's literal API) -- the polling endpoint the\nHUMAN_REVIEW-resolution addition needs (see plan)."
+        "description": "New (not in spec 19's literal API): the polling endpoint the\nHUMAN_REVIEW-resolution addition needs (see plan)."
       },
       "HTTPValidationError": {
         "properties": {
@@ -1580,7 +1580,7 @@
           "resolved_by"
         ],
         "title": "ResolveDecisionRequest",
-        "description": "The Phase 1 addition (see plan) -- resolves a HUMAN_REVIEW decision\nwithout mutating the immutable Decision row."
+        "description": "The Phase 1 addition (see plan) that resolves a HUMAN_REVIEW decision\nwithout mutating the immutable Decision row."
       },
       "ResolveDecisionResponse": {
         "properties": {

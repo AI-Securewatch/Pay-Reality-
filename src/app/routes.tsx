@@ -20,7 +20,7 @@ export const router = createBrowserRouter([
       { path: "evidence", Component: LiveEvidence },
       { path: "assurance", Component: LiveAssurance },
 
-      // Legacy paths from the pre-consolidation app -- kept as redirects so
+      // Legacy paths from the pre-consolidation app, kept as redirects so
       // no external link or bookmark 404s. See audit/EXECUTION_REPORT.md.
       { path: "platform-overview", element: <Navigate to="/" replace /> },
       { path: "command-center", element: <Navigate to="/assurance" replace /> },
