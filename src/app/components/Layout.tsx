@@ -13,6 +13,9 @@ import {
   Activity,
   Compass,
   Menu,
+  Radio,
+  FileCheck,
+  FlaskConical,
 } from "lucide-react";
 import { DemoProvider, useDemo } from "../demo/DemoContext";
 import { NotificationProvider } from "./NotificationProvider";
@@ -53,6 +56,16 @@ const navGroups = [
     label: "Assurance",
     items: [
       { path: "/assurance-center", label: "Assurance Center", icon: Building2 },
+    ],
+  },
+  {
+    label: "Live",
+    items: [
+      { path: "/live", label: "Live Overview", icon: Radio },
+      { path: "/live/documents", label: "Documents & Review", icon: FileCheck },
+      { path: "/live/agents", label: "Live Agents", icon: Bot },
+      { path: "/live/test-intent", label: "Test a Decision", icon: FlaskConical },
+      { path: "/live/evidence", label: "Live Evidence", icon: Database },
     ],
   },
 ];
