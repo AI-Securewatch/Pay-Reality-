@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 import { useIsMobile } from "./ui/use-mobile";
+import { OperatorKeyField } from "../live/components/OperatorKeyField";
 
 // One workflow, in order: Authority -> Policy -> Runtime Decisions ->
 // Evidence -> Assurance. No department-shaped groups, no duplicate
@@ -136,6 +137,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             Deterministic. Fail-closed. Every decision signed.
           </p>
         </div>
+        <OperatorKeyField />
       </div>
     </>
   );

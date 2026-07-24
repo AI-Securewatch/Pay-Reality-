@@ -1,3 +1,5 @@
+import { getOperatorKey } from "./operatorKey";
+
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
 export class ApiError extends Error {
@@ -10,6 +12,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type") && init.body && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
+  }
+  const operatorKey = getOperatorKey();
+  if (operatorKey && !headers.has("X-PayReality-Operator-Key")) {
+    headers.set("X-PayReality-Operator-Key", operatorKey);
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
