@@ -31,6 +31,8 @@ server/tests/      36 unit tests covering the decision engine, compiler, and sig
 src/app/           React + Vite frontend, one workflow-ordered nav:
                    Overview -> Authority -> Policy -> Runtime Decisions -> Evidence -> Assurance
 docker-compose.yml Postgres + OPA + the API, wired the way a real deploy is wired
+render.yaml         Render Blueprint: the actual production hosting target, see GO_LIVE.md
+scripts/            scripts/smoke_test.py: end-to-end pipeline check against any live instance
 openapi.json        Exported OpenAPI schema for every live endpoint
 ```
 
@@ -59,12 +61,15 @@ Set `VITE_API_URL` (see `.env.example`) to point at the backend above.
 * [ARCHITECTURE.md](ARCHITECTURE.md): system design, data flow, and the decision/evidence pipeline in detail
 * [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md): every real endpoint, its auth requirement, and its schema (`openapi.json` is the machine-readable source)
 * [DEPLOYMENT.md](DEPLOYMENT.md): hosting recommendation, environment variables, CI/CD, rollback, monitoring
+* [GO_LIVE.md](GO_LIVE.md): the literal step-by-step procedure to take the backend from packaged to actually live
+* [OPERATIONS_RUNBOOK.md](OPERATIONS_RUNBOOK.md): day-2 operations once it's live, monitoring, incident response, rollback
+* [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md): every production-readiness requirement, checked off only where actually true
 * [SECURITY.md](SECURITY.md): full security posture, including what's covered, what's a known gap, and why
 * [VERSION_3_ROADMAP.md](VERSION_3_ROADMAP.md): what's next, phased by how far along the company is, not by feature wishlist
 
 ## Status
 
-The Runtime Authority engine, policy pipeline, and Evidence signing are real and covered by passing tests. The backend is not yet hosted anywhere reachable by the live frontend. See DEPLOYMENT.md for the recommended path and SECURITY.md / ARCHITECTURE.md for exactly what "real" does and doesn't cover today. There is no human login/RBAC system yet; a single shared operator credential gates the endpoints that would otherwise need one (see SECURITY.md).
+The Runtime Authority engine, policy pipeline, and Evidence signing are real and covered by passing tests. The backend is not yet hosted anywhere reachable by the live frontend. See GO_LIVE.md for the recommended path and SECURITY.md / ARCHITECTURE.md for exactly what "real" does and doesn't cover today. There is no human login/RBAC system yet; a single shared operator credential gates the endpoints that would otherwise need one (see SECURITY.md).
 
 ## License
 

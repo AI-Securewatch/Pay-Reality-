@@ -72,10 +72,20 @@ def create_app() -> FastAPI:
     def health_ready():
         """Readiness: checked live on every call, not cached. A false
         'ready' here is worse than a slow one, since a load balancer or
-        orchestrator will route real traffic based on this."""
-        checks = {"database": False, "opa": False}
+        orchestrator will route real traffic based on this.
 
-        try:
+        Each check runs with a hard overall deadline via a worker thread,
+        not just the engine's own connect_timeout: psycopg retries every
+        address a hostname resolves to (e.g. both ::1 and 127.0.0.1 for
+        "localhost"), each getting its own connect_timeout budget, so an
+        unreachable "localhost" database took 14+ seconds to fail even
+        with connect_timeout=5, caught by actually timing this endpoint
+        against a real unreachable database, not assumed from the config
+        alone. The .result(timeout=...) below bounds the HTTP response
+        itself regardless of how many addresses get tried underneath."""
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+        def _check_database() -> bool:
             from sqlalchemy import text
 
             from app.db.session import SessionLocal
@@ -83,19 +93,42 @@ def create_app() -> FastAPI:
             db = SessionLocal()
             try:
                 db.execute(text("SELECT 1"))
-                checks["database"] = True
+                return True
             finally:
                 db.close()
+
+        def _check_opa() -> bool:
+            from app.opa_client import HttpOpaClient
+
+            return HttpOpaClient().health()
+
+        # Not a `with` block deliberately: ThreadPoolExecutor.__exit__ calls
+        # shutdown(wait=True), which would block this response on the same
+        # slow-to-fail connection attempt we're trying to bound. A future
+        # that times out here keeps running in its worker thread in the
+        # background (Python can't force-kill a thread), but that no
+        # longer blocks the HTTP response, which is the actual guarantee
+        # this endpoint needs to make.
+        checks = {"database": False, "opa": False}
+        pool = ThreadPoolExecutor(max_workers=2)
+        db_future = pool.submit(_check_database)
+        opa_future = pool.submit(_check_opa)
+
+        try:
+            checks["database"] = db_future.result(timeout=3)
+        except FutureTimeoutError:
+            logger.warning("readiness_check_timed_out component=database")
         except Exception:
             logger.exception("readiness_check_failed component=database")
 
         try:
-            from app.opa_client import HttpOpaClient
-
-            checks["opa"] = HttpOpaClient().health()
+            checks["opa"] = opa_future.result(timeout=3)
+        except FutureTimeoutError:
+            logger.warning("readiness_check_timed_out component=opa")
         except Exception:
             logger.exception("readiness_check_failed component=opa")
 
+        pool.shutdown(wait=False)
         ready = all(checks.values())
         return JSONResponse(status_code=200 if ready else 503, content={"ready": ready, "checks": checks})
 

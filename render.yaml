@@ -1,0 +1,79 @@
+# Render Blueprint for the PayReality backend: FastAPI web service, a
+# private OPA service (never exposed publicly, see SECURITY.md's
+# policy-tampering section for why), and a managed Postgres database.
+#
+# This file has not been applied against a real Render account (none was
+# available in the environment this was written in). Apply it with:
+#   Render Dashboard -> New -> Blueprint -> connect this repo -> Apply.
+# Render will validate the schema on import and surface any errors there;
+# treat the first apply as the real validation step, not this file alone.
+#
+# After first apply, add the custom domain by hand (Render doesn't take
+# custom domains through the Blueprint): service payreality-api -> Settings
+# -> Custom Domain -> add api.aisecurewatch.com -> Render gives you a CNAME
+# target -> add that CNAME at whatever registrar controls aisecurewatch.com's
+# DNS today (see GO_LIVE.md; it is not currently delegated to Vercel).
+
+databases:
+  - name: payreality-db
+    databaseName: payreality
+    user: payreality
+    plan: starter
+    region: oregon
+    postgresMajorVersion: "16"
+
+services:
+  # Open Policy Agent: internal-only. No public URL, no auth of its own,
+  # trusts anything that can reach it, and must stay a private service.
+  - type: pserv
+    name: payreality-opa
+    runtime: image
+    region: oregon
+    plan: starter
+    image:
+      url: docker.io/openpolicyagent/opa:latest-static
+    dockerCommand: run --server --addr 0.0.0.0:8181
+    envVars:
+      - key: PORT
+        value: "8181"
+
+  # FastAPI backend. Public-facing; this is what api.aisecurewatch.com
+  # points at once the custom domain step below is done.
+  - type: web
+    name: payreality-api
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: payreality-db
+          property: connectionString
+      - key: OPA_URL
+        fromService:
+          name: payreality-opa
+          type: pserv
+          property: hostport
+      # Secrets: intentionally not given a value here. Render will prompt
+      # for these on first apply (sync: false) rather than storing a
+      # default anyone reading this file could see.
+      - key: EVIDENCE_SIGNING_KEY_B64
+        sync: false
+      - key: EVIDENCE_SIGNING_KEY_ID
+        value: signing_key_prod_v1
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: INTENT_SIGNATURE_WINDOW_SECONDS
+        value: "300"
+      # The frontend's actual current production origin (see
+      # GO_LIVE.md if this ever changes to a custom aisecurewatch.com
+      # subdomain instead).
+      - key: CORS_ORIGIN
+        value: https://pay-reality-demo.vercel.app
