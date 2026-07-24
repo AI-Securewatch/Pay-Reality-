@@ -1,184 +1,70 @@
 # PayReality
 
-**Enterprise Authority Infrastructure for Autonomous AI Systems**
+**Runtime Trust Infrastructure for Autonomous AI Agents.**
 
-PayReality is a configurable enterprise authority infrastructure platform for autonomous AI systems. The platform models your governance reality, not forcing you into predefined workflows.
+PayReality gives an AI agent a real identity, a real delegated authority limit, and a real deterministic gate in front of every financial action it tries to take. Every decision, allow, deny, or escalate to a human, produces a cryptographically signed Evidence record it cannot quietly rewrite later.
 
-**Identity proves who an AI agent is.**
+**Authority** — an agent's certificate and the Mandates it acts under.
+**Policy** — the compiled, versioned Rego bundle those Mandates become.
+**Runtime Decisions** — every Intent an agent submits, evaluated against the active Policy before anything executes.
+**Evidence** — an ED25519-signed record of what was decided and why, for every Decision and every resolution.
+**Assurance** — a live read of what's actually running: agent count, active Policy, Decision volume by outcome.
 
-**Authority defines what it is allowed to do.**
-
-**Policies define the rules.**
-
-**Decision Intercepts enforce the rules.**
-
-**Evidence proves compliance.**
-
-**Assurance demonstrates governance readiness.**
+This is not a demo of what that would look like. `server/` is a working FastAPI + PostgreSQL + Open Policy Agent backend; the frontend calls it for real, with no mocked data and no scripted outcomes. See [PRODUCT.md](PRODUCT.md) for what that means in practice, and [ARCHITECTURE.md](ARCHITECTURE.md) for how it's built.
 
 ---
 
-## Platform Principle
+## How a decision actually happens
 
-PayReality provides governance primitives, not governance templates. Every major feature supports:
+1. An **Agent** (a certificate-holding identity acting for a Principal) submits an **Intent** — signed with its private key, which never leaves wherever it was generated.
+2. The **Decision Engine** builds an OPA input document and queries the active **Policy** (a compiled Rego bundle built from human-approved **Authorities**).
+3. OPA returns `allow`, `deny`, or nothing decisive — anything not explicitly `allow` resolves to `HUMAN_REVIEW`. This is fail-closed by construction: an OPA timeout, an OPA error, or no active Policy all also resolve to `HUMAN_REVIEW`, never `ALLOW`.
+4. An **Evidence** record is signed (ED25519, over a SHA-256 digest of the canonical JSON payload) and stored. A `HUMAN_REVIEW` decision that's later approved or denied appends a *second* Evidence record rather than mutating the first — the Decision row itself never changes after it's written.
+5. **Assurance** reads real counts and real recent Decisions from the same database — it is not a static or seeded view.
 
-* Presets
-* Other
-* Custom
+## Repository layout
 
-The platform adapts to your organization. Your organization should not adapt to the platform.
+```
+server/            FastAPI backend: decision engine, OPA client, policy compiler,
+                    evidence signing, Alembic migrations
+server/tests/      36 unit tests covering the decision engine, compiler, and signing
+src/app/           React + Vite frontend, one workflow-ordered nav:
+                   Overview -> Authority -> Policy -> Runtime Decisions -> Evidence -> Assurance
+docker-compose.yml Postgres + OPA + the API, wired the way a real deploy is wired
+openapi.json        Exported OpenAPI schema for every live endpoint
+```
 
----
+## Running it locally
 
-## Core Modules
+Backend (needs Docker, or a local Postgres + `opa` binary):
 
-### AI Agents Registry
+```
+docker compose up --build
+```
 
-**WHO is acting?**
+or without Docker, see `server/.env.example` for the required environment variables and `server/pyproject.toml` for dependencies (`pip install -e ".[dev]"`, then `alembic upgrade head`, then `uvicorn app.main:app --reload`).
 
-Manage the identities of autonomous AI agents operating within your organization.
+Frontend:
 
-Focus Areas:
-* Identity
-* Agent Type
-* Status
-* Systems Access
-* Risk Profile
-* Activity
-* Health
+```
+npm install
+npm run dev
+```
 
-### Authority Center
+Set `VITE_API_URL` (see `.env.example`) to point at the backend above.
 
-**WHAT are they allowed to do?**
+## Documentation
 
-Define and govern the authority delegated to autonomous AI agents before they execute actions.
-
-Authority Categories:
-* Financial Authority
-* Vendor Authority
-* HR Authority
-* Governance Authority
-* Operations Authority
-* Custom Authority
-
-### Policy Library
-
-**Governance Rules**
-
-Central governance repository containing Active Policies, Draft Policies, Retired Policies, and Policy Sets.
-
-Features:
-* Policy Sets for grouped governance
-* Visual Policy Composer with IF-THEN-ELSE logic
-* Version control with rollback
-* Custom policies alongside templates
-
-### Governance Simulation Engine
-
-**Testing & Validation**
-
-Test delegated authority, policy behavior, and governance outcomes before deployment.
-
-Simulation Types:
-* Single Action Simulation - Simulate a single AI decision with inputs and outputs
-* Multi-Step Workflow Simulation - Simulate workflows step-by-step with outcomes
-* Custom Scenario Builder - Fully customizable governance scenarios
-* What-If Analysis - Test governance changes and impacts
-* Decision Intercept Simulation - Visualize the full PayReality governance process (Hero Feature)
-
-### Decision Intercepts
-
-**Enforcement**
-
-Validate AI actions before execution with real-time policy evaluation.
-
-### Evidence Vault
-
-**Proof & Accountability**
-
-The permanent repository of evidence generated by autonomous AI decisions, authority evaluations, policy checks, approvals, denials, escalations, and execution outcomes.
-
-Features:
-* Evidence Packages with complete decision records
-* Decision Timeline showing chronological event flow
-* Authority Snapshot capturing context at decision time
-* Policy Snapshot with historical policy evaluations
-* Escalations & Exceptions for denied and escalated actions
-* Audit Search with advanced filters (Agent, Authority Category, Policy, Department, Date Range, Outcome)
-* Export capabilities (PDF Evidence Package, Audit Report, Governance Report, Compliance Export)
-
-### Assurance Center
-
-**Assurance & Auditability**
-
-Auditability, governance assurance, evidence completeness, approval coverage, compliance readiness, and organizational risk posture.
-
-### AI Authority Command Center
-
-**Command Center**
-
-Executive visibility into autonomous authority with real-time metrics and governance scoring.
-
----
-
-## Key Capabilities
-
-* Configurable authority models for any industry
-* Custom agent types and authority categories with Preset/Other/Custom support
-* Visual policy composition with dynamic authority category adaptation
-* Multi-step governance simulation with context-aware examples
-* Decision Intercept Simulation with visual pipeline (Hero Feature)
-* Real-time decision intercepts with simulation integration
-* Comprehensive evidence generation
-* Governance assurance scoring
-* Smart governance modeling (context-aware platform behavior)
-* Platform-wide Preset/Other/Custom dropdown pattern
-* Customizable approval workflows
-* Policy sets and version control
-
----
-
-## Technology Stack
-
-* React
-* TypeScript
-* Vite
-* Tailwind CSS
-* Framer Motion
-* Vercel
-
----
-
-## Live Demo
-
-Production deployment:
-
-https://pay-reality-demo.vercel.app
-
----
-
-## Vision
-
-We believe AI systems will soon execute billions of dollars of transactions on behalf of organizations.
-
-The future requires infrastructure that can prove:
-
-* Who acted
-* What authority existed
-* Why a decision was allowed
-* What evidence supports it
-
-PayReality is building that trust layer as configurable enterprise authority infrastructure.
-
----
+* [PRODUCT.md](PRODUCT.md) — what PayReality is, is not, and how a customer derives value from it
+* [ARCHITECTURE.md](ARCHITECTURE.md) — system design, data flow, and the decision/evidence pipeline in detail
+* [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md) — every real endpoint, its auth requirement, and its schema (`openapi.json` is the machine-readable source)
+* [DEPLOYMENT.md](DEPLOYMENT.md) — hosting recommendation, environment variables, CI/CD, rollback, monitoring
+* [SECURITY.md](SECURITY.md) — full security posture: what's covered, what's a known gap, and why
+* [VERSION_3_ROADMAP.md](VERSION_3_ROADMAP.md) — what's next, phased by how far along the company is, not by feature wishlist
 
 ## Status
 
-**Current Version:** v4.0 - Platform Evolution
-
-This repository contains PayReality as a configurable enterprise authority infrastructure platform supporting any industry, any governance framework, any authority model, and any autonomous workflow without requiring redesign or forcing customers into predefined templates.
-
----
+The Runtime Authority engine, policy pipeline, and Evidence signing are real and covered by passing tests. The backend is not yet hosted anywhere reachable by the live frontend — see DEPLOYMENT.md for the recommended path and SECURITY.md / ARCHITECTURE.md for exactly what "real" does and doesn't cover today. There is no human login/RBAC system yet; a single shared operator credential gates the endpoints that would otherwise need one (see SECURITY.md).
 
 ## License
 

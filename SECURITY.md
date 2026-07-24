@@ -1,0 +1,81 @@
+# Security
+
+A full review of this codebase's security posture as it actually stands, written the same way the rest of this pass was done: real findings, real fixes where a fix was proportionate, and named gaps where it wasn't yet.
+
+## Authentication
+
+Three mechanisms exist; there is deliberately no fourth ("human login") yet.
+
+- **Agent signature** (`server/app/domain/auth/signature.py`) — an Agent's ED25519 private key is generated client-side (`src/app/live/crypto.ts`) and never transmitted; only the public key is registered server-side via `POST /v1/agents`. Every `POST /v1/intents` is signed over the raw request body, and the signature is checked against the stored public key plus a timestamp window (`INTENT_SIGNATURE_WINDOW_SECONDS`, default 300s) to bound replay. This is real, working, and was already in place before this pass.
+- **Operator key** (`server/app/security.py::verify_operator_key`) — **added in this pass**. Before it, every policy-mutation and decision-resolution endpoint was completely open: anyone who could reach the API could approve authorities, activate policies, or resolve a `HUMAN_REVIEW` decision as `approved`. `ADMIN_API_KEY` is a single shared secret, checked with `hmac.compare_digest` (constant-time, avoiding a timing side-channel), required via `X-PayReality-Operator-Key`. It gates: `POST /v1/principals`, `POST /v1/agents`, `POST /v1/policies/documents`, `PATCH /v1/policies/authorities/{id}`, `POST /v1/policies/{id}/compile`, `POST /v1/policies/{id}/activate`, `POST /v1/decisions/{id}/resolve`.
+- **None (by design)** — every `GET` and the evidence-verification endpoints. There's no user identity to authorize reads *against* yet, and the frontend's own dashboards need this data. This stops being correct the moment there's a second, mutually distrusting tenant (see VERSION_3_ROADMAP.md).
+
+**What the operator key is not**: a real RBAC system. It answers "is this caller a legitimate operator" — not "which operator, with what permissions, and is this logged against their identity." `resolved_by` and `reviewer_id` remain free-text fields. This is a real, working, proportionate control for a single-tenant pilot with one ops team; it is explicitly not sufficient once there's more than one.
+
+## Authorization
+
+Enforced entirely at the endpoint/dependency level (`Depends(verify_operator_key)`), not at the row level — there's no concept of "this operator can only touch this principal's data" because there's only one tenant. This is correct today and named as a hard requirement before onboarding a second tenant, not an oversight to catch later.
+
+## Secrets management
+
+- `EVIDENCE_SIGNING_KEY_B64` and `ADMIN_API_KEY` are read from environment variables (`server/app/config.py`, `pydantic-settings`), never hardcoded, never logged.
+- **Boot-time enforcement, added in this pass**: `server/app/main.py::_validate_production_config` refuses to start at all when `ENVIRONMENT=production` and either secret (or a non-default `CORS_ORIGIN`) is missing. Previously the app would boot "successfully" with an empty signing key and silently produce unverifiable Evidence, or boot with every operator endpoint wide open — both now hard startup failures instead of silent degradation.
+- **Not yet done**: secrets live in host-level env vars, not a dedicated secrets manager. Acceptable for the pilot-scale deployment recommended in DEPLOYMENT.md; a hard requirement (AWS Secrets Manager / Azure Key Vault, ideally HSM-backed for the signing key specifically) before the Series-A-scale deployment in that same document.
+
+## Injection
+
+- **SQL**: 100% SQLAlchemy ORM / Core with parameter binding (`db.get`, `select(...)`, `db.scalars(...)`) — no raw string-interpolated SQL anywhere in `server/app`, including the one raw-SQL readiness check (`text("SELECT 1")`, a static string with no interpolation).
+- **NoSQL/command injection**: not applicable — no shell-out, no dynamic query construction against OPA (the input document is a structured dict serialized by `httpx`, not string-built).
+- **Rego injection**: policy content itself is only ever written by `HttpOpaClient.upload_policy`, which is only reachable via the operator-key-gated `activate_policy` flow, and the Rego source comes from the compiler (`domain/compiler/compiler.py`), not directly from user input.
+
+## Policy tampering
+
+This is the most consequential attack surface in the whole system, because a tampered policy silently changes what gets `ALLOW`ed. Two real controls exist:
+
+1. **`bundle_hash`** on every `Policy` row — a hash of the compiled bundle, letting a later audit detect drift between what the database says was activated and what's actually loaded into OPA.
+2. **Network isolation of OPA itself** — OPA's own HTTP API (`upload_policy`, `upload_data`) has **no authentication of its own**. It trusts whatever can reach it. The only thing standing between "anyone on the internet" and "silently rewriting the active authorization policy" is that OPA must never be exposed on a public address — it must only be reachable from the FastAPI backend, on a private network. **This is called out explicitly in DEPLOYMENT.md's hosting recommendation and must be verified at every deploy**, not assumed. If OPA is ever accidentally exposed (a misconfigured security group, a debug port left open), that is a full authorization bypass, not a minor issue.
+
+## Replay attacks
+
+Two independent layers, both already in place before this pass:
+
+- **Intent-level**: `nonce` + `agent_id` uniqueness constraint (`uq_intents_agent_nonce`) at the database level — a replayed Intent with the same nonce from the same agent is rejected regardless of timing.
+- **Signature-level**: `requested_at` must fall within `INTENT_SIGNATURE_WINDOW_SECONDS` of the server's clock, bounding how long a captured signed request stays valid even before the nonce check runs.
+
+## API abuse / rate limiting
+
+**Added in this pass** (`server/app/security.py`) — a fixed-window limiter (120 requests/60s per client IP, or per `X-Forwarded-For` when behind a proxy) applied globally. Before this, there was no limit of any kind — a single client could exhaust database connections or brute-force the operator key with unlimited attempts. Known limitation: the counter is in-process memory, so it only limits traffic to a single instance. Scaling to more than one backend instance requires moving this to shared state (Redis or equivalent) first — noted in ARCHITECTURE.md and DEPLOYMENT.md so it isn't discovered the hard way after a second instance is already live.
+
+## Evidence integrity and cryptography
+
+- **Algorithm**: ED25519 (via `pynacl`), signing the SHA-256 digest of a canonically-serialized (sorted keys, no incidental whitespace) JSON payload. This is a modern, well-regarded signature scheme, not a custom cryptographic construction.
+- **Independent verifiability, added in this pass**: `GET /v1/evidence/verification-key` publishes the current public key, so a regulator, insurer, or auditor can verify a signature themselves — offline, without this server, without trusting this server's own `/verify` endpoint. Before this pass, verification was only possible by trusting this system's own `POST /v1/evidence/{id}/verify` result, which is a materially weaker guarantee for exactly the audiences (insurers, regulators) this evidence exists for.
+- **Known gap — key rotation**: `Evidence.key_id` is stored per-record (schema-ready), but verification always checks against whichever key is *currently* configured (`evidence_service.verify_evidence`), not a historical registry keyed by `key_id`. **Rotating the signing key today would silently break verification of every Evidence record signed under the previous key.** This needs a real key registry (`key_id -> public_key`, retained forever, never deleted) before any rotation is attempted — scoped in VERSION_3_ROADMAP.md, not attempted as a rushed fix in this pass because a wrong key-registry design would be worse than the current single-key state, which is at least honestly documented.
+- **Known gap — no hash-chaining between records**: each Evidence row is independently tamper-evident (its own signature covers its own payload), but consecutive Evidence records for the same Decision aren't cryptographically linked to each other. A row deleted directly from the database (bypassing the API entirely) isn't detectable from the Evidence table alone — only from infrastructure-level audit logging (database access logs, which should be enabled and monitored at the hosting layer per DEPLOYMENT.md). A true append-only ledger (each record embedding a hash of the prior one) is the real fix, scoped for the roadmap rather than retrofitted without proper migration design.
+- **What a `false` verification result means**: per `verify_evidence`'s own docstring, a failed verification is a P1 operational signal — evidence of tampering or corruption — and must be treated as an incident by any caller, not logged as a routine negative result.
+
+## Dependency and supply-chain posture
+
+Checked directly as part of this pass, not assumed:
+
+- **Frontend** (`npm audit`): found 3 vulnerabilities (1 critical — `tar`, 2 high — `react-router`, `vite`) at the start of this pass. **Fixed in this pass** by bumping `react-router` 7.13.0 → 7.18.1 and `vite` 6.3.5 → 6.4.3 (both same-major-version bumps, rebuilt and route-tested afterward — see the V3 execution notes for the verification transcript). `npm audit` now reports zero vulnerabilities.
+- **Backend** (`pip-audit`): zero vulnerabilities found in any of the actual runtime dependencies (FastAPI, SQLAlchemy, psycopg, pynacl, httpx, anthropic, pypdf). The only advisories found were against `pip` itself (the packaging tool, not a runtime dependency of the deployed app) — noted, not treated as a real finding.
+- **Dependency footprint**: kept deliberately small (9 direct frontend dependencies after the V2 pass, 12 backend dependencies) — a smaller dependency graph is a smaller attack surface, and this was a real design constraint during the V2 rebuild, not incidental.
+
+## Transport and headers
+
+- **HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy** — all added in this pass (`server/app/security.py::observability_middleware`). Previously none were set at all, meaning every response was missing basic clickjacking/MIME-sniffing/referrer-leak protection.
+- **CORS**: a single explicit allowed origin (from `CORS_ORIGIN`), not a wildcard, with an explicit method allowlist (`GET, POST, PATCH`) and header allowlist — tightened in this pass from `allow_methods=["*"], allow_headers=["*"]`.
+- **TLS**: terminated at the hosting platform (Vercel for the frontend already; Render or equivalent for the backend per DEPLOYMENT.md) — not something this application handles itself, correctly.
+
+## Error handling and information disclosure
+
+**Fixed a real bug in this pass**: the original three-middleware design lost unhandled exceptions between layers (a documented Starlette `BaseHTTPMiddleware` interaction), producing an *empty* 500 response body instead of a clean error — confusing, but not itself a leak. Collapsing to one middleware (`observability_middleware`) fixed this and made the guarantee explicit: every unhandled exception is caught, logged server-side with a `X-Request-ID` for correlation, and returned to the caller as a bare `{"detail": "internal_error"}` — no stack trace, no internal path, no library version ever reaches the client.
+
+## What would make this materially stronger next (see VERSION_3_ROADMAP.md for sequencing)
+
+1. Real human authentication + RBAC, replacing the shared operator key.
+2. Evidence signing key registry with rotation support.
+3. Hash-chained Evidence for true append-only tamper-evidence.
+4. Rate limiting backed by shared state once there's more than one backend instance.
+5. A secrets manager (not env vars) once there's a real production account provisioned.
