@@ -17,6 +17,7 @@ from app.schemas.intent import (
     SubmitIntentRequest,
     SubmitIntentResponse,
 )
+from app.security import verify_operator_key
 from app.services import intent_service, resolution_service
 from app.services.intent_service import AgentRevokedError, ReplayDetectedError
 from app.services.resolution_service import (
@@ -117,14 +118,18 @@ def get_decision(decision_id: UUID, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/decisions/{decision_id}/resolve", response_model=ResolveDecisionResponse)
+@router.post(
+    "/decisions/{decision_id}/resolve",
+    response_model=ResolveDecisionResponse,
+    dependencies=[Depends(verify_operator_key)],
+)
 def resolve_decision(
     decision_id: UUID, body: ResolveDecisionRequest, db: Session = Depends(get_db)
 ):
     """The Phase 1 addition (see plan's 'The one addition: resolving
-    HUMAN_REVIEW'). Session-authenticated in a real deployment; Phase 1 has
-    no login system yet, so resolved_by is a free-text field the caller
-    supplies directly."""
+    HUMAN_REVIEW'). Gated by the shared operator key (app.security) so not
+    anyone can resolve a review; resolved_by is still a free-text identity
+    string until the real human RBAC system in the V3 roadmap replaces it."""
     if body.resolution not in ("approved", "denied"):
         raise HTTPException(status_code=422, detail="invalid_resolution")
 

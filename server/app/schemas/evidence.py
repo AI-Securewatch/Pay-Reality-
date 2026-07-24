@@ -36,3 +36,13 @@ class VerifyEvidenceResponse(BaseModel):
     valid: bool
     verified_at: datetime
     key_id: str
+
+
+class VerificationKeyResponse(BaseModel):
+    """The public half of the ED25519 keypair Evidence is signed with, so a
+    third party can verify a signature without trusting this API's own
+    /verify result."""
+
+    key_id: str
+    algorithm: str
+    public_key_b64: str

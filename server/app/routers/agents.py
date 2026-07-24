@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.schemas.agent import AgentResponse, CreateAgentRequest
+from app.security import verify_operator_key
 from app.services import agent_service
 from app.services.agent_service import PrincipalNotFoundError
 
@@ -22,7 +23,9 @@ def _to_response(agent, certificate=None) -> AgentResponse:
     )
 
 
-@router.post("", response_model=AgentResponse, status_code=201)
+@router.post(
+    "", response_model=AgentResponse, status_code=201, dependencies=[Depends(verify_operator_key)]
+)
 def create_agent(body: CreateAgentRequest, db: Session = Depends(get_db)):
     try:
         agent, certificate = agent_service.create_agent(

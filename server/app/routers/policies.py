@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -16,6 +17,7 @@ from app.schemas.policy import (
     PolicyResponse,
     ReviewAuthorityRequest,
 )
+from app.security import verify_operator_key
 from app.services import document_service, policy_service, review_service
 from app.services.policy_service import (
     BundleHashMismatchError,
@@ -39,7 +41,12 @@ def list_documents(db: Session = Depends(get_db)):
     return [DocumentResponse.from_model(d) for d in document_service.list_documents(db)]
 
 
-@router.post("/documents", response_model=DocumentResponse, status_code=201)
+@router.post(
+    "/documents",
+    response_model=DocumentResponse,
+    status_code=201,
+    dependencies=[Depends(verify_operator_key)],
+)
 async def upload_document(file: UploadFile, db: Session = Depends(get_db)):
     """spec 19.1. Extraction (spec 12.4 Stage 2-3) runs synchronously here
     for Phase 1 simplicity -- a document transitions extraction_pending ->
@@ -55,7 +62,9 @@ async def upload_document(file: UploadFile, db: Session = Depends(get_db)):
     except Exception:
         # document.status is already extraction_failed at this point; the
         # caller may retry extraction without re-uploading (spec 12.4 Stage 2).
-        pass
+        logging.getLogger("payreality.extraction").exception(
+            "extraction_failed document_id=%s", document.id
+        )
 
     return DocumentResponse.from_model(document)
 
@@ -69,7 +78,11 @@ def list_authorities(
     return [AuthorityResponse.from_model(i.authority, i.validation_flags) for i in items]
 
 
-@router.patch("/authorities/{authority_id}", response_model=AuthorityResponse)
+@router.patch(
+    "/authorities/{authority_id}",
+    response_model=AuthorityResponse,
+    dependencies=[Depends(verify_operator_key)],
+)
 def review_authority(
     authority_id: UUID, body: ReviewAuthorityRequest, db: Session = Depends(get_db)
 ):
@@ -95,7 +108,11 @@ def review_authority(
     return AuthorityResponse.from_model(authority)
 
 
-@router.post("/{document_id}/compile", response_model=CompilePolicyResponse)
+@router.post(
+    "/{document_id}/compile",
+    response_model=CompilePolicyResponse,
+    dependencies=[Depends(verify_operator_key)],
+)
 def compile_policy(document_id: UUID, db: Session = Depends(get_db)):
     """spec 19.3."""
     try:
@@ -125,7 +142,11 @@ def compile_policy(document_id: UUID, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/{policy_id}/activate", response_model=ActivatePolicyResponse)
+@router.post(
+    "/{policy_id}/activate",
+    response_model=ActivatePolicyResponse,
+    dependencies=[Depends(verify_operator_key)],
+)
 def activate_policy(policy_id: UUID, db: Session = Depends(get_db)):
     """spec 19.3 + 14.4 (also used for rollback -- reactivating a retired
     version's id)."""

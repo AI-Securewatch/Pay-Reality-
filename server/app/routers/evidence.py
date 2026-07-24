@@ -4,12 +4,29 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.session import get_db
-from app.schemas.evidence import EvidenceResponse, VerifyEvidenceResponse
+from app.domain.evidence.signing import public_key_b64_from_signing_key_b64
+from app.schemas.evidence import EvidenceResponse, VerificationKeyResponse, VerifyEvidenceResponse
 from app.services import evidence_service
 from app.services.evidence_service import EvidenceNotFoundError
 
 router = APIRouter(prefix="/v1/evidence", tags=["evidence"])
+
+
+@router.get("/verification-key", response_model=VerificationKeyResponse)
+def get_verification_key():
+    """Publishes the current ED25519 public key so a regulator, insurer, or
+    auditor can verify an Evidence signature independently -- offline, with
+    no access to this server or its private key -- rather than only being
+    able to trust this API's own POST /verify result. See SECURITY.md's
+    evidence-architecture section for what this does and doesn't cover yet
+    (single active key, no historical key registry for rotation)."""
+    return VerificationKeyResponse(
+        key_id=settings.evidence_signing_key_id,
+        algorithm="ed25519",
+        public_key_b64=public_key_b64_from_signing_key_b64(settings.evidence_signing_key_b64),
+    )
 
 
 @router.get("/{evidence_id}", response_model=EvidenceResponse)
