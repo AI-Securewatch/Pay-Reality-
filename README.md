@@ -62,6 +62,7 @@ Set `VITE_API_URL` (see `.env.example`) to point at the backend above.
 * [DOMAIN_ABSTRACTION.md](DOMAIN_ABSTRACTION.md): which parts of the engine are already domain-agnostic versus financial-specific, and the target adapter model for future domains without touching Financial Services as the GTM focus
 * [DOMAIN_REFACTOR_PLAN.md](DOMAIN_REFACTOR_PLAN.md): the itemized, sequenced plan for that abstraction, with risk and priority per item, not yet executed
 * [AUTHORING_ARCHITECTURE.md](AUTHORING_ARCHITECTURE.md): the canonical Runtime Policy model, and how the three authoring modes (guided wizard, manual, AI builder) all produce it; design only, not yet built
+* [RUNTIME_POLICY_LANGUAGE.md](RUNTIME_POLICY_LANGUAGE.md): the `RuntimePolicy` domain model itself (`server/app/domain/runtime_policy/`), built and tested, fully isolated, not wired into anything yet
 * [POLICY_LANGUAGE_SPEC.md](POLICY_LANGUAGE_SPEC.md): the small condition language Policy Studio's manual authoring mode uses instead of exposing Rego
 * [POLICY_COMPILER_V2.md](POLICY_COMPILER_V2.md): what compiling an arbitrary Runtime Policy into Rego actually requires, including the honest finding that today's compiler doesn't enforce most conditions at all
 * [POLICY_STUDIO.md](POLICY_STUDIO.md): the manual policy-authoring editor's design, Monaco integration, validation, and versioning
