@@ -61,6 +61,10 @@ Set `VITE_API_URL` (see `.env.example`) to point at the backend above.
 * [ARCHITECTURE.md](ARCHITECTURE.md): system design, data flow, and the decision/evidence pipeline in detail
 * [DOMAIN_ABSTRACTION.md](DOMAIN_ABSTRACTION.md): which parts of the engine are already domain-agnostic versus financial-specific, and the target adapter model for future domains without touching Financial Services as the GTM focus
 * [DOMAIN_REFACTOR_PLAN.md](DOMAIN_REFACTOR_PLAN.md): the itemized, sequenced plan for that abstraction, with risk and priority per item, not yet executed
+* [AUTHORING_ARCHITECTURE.md](AUTHORING_ARCHITECTURE.md): the canonical Runtime Policy model, and how the three authoring modes (guided wizard, manual, AI builder) all produce it; design only, not yet built
+* [POLICY_LANGUAGE_SPEC.md](POLICY_LANGUAGE_SPEC.md): the small condition language Policy Studio's manual authoring mode uses instead of exposing Rego
+* [POLICY_COMPILER_V2.md](POLICY_COMPILER_V2.md): what compiling an arbitrary Runtime Policy into Rego actually requires, including the honest finding that today's compiler doesn't enforce most conditions at all
+* [POLICY_STUDIO.md](POLICY_STUDIO.md): the manual policy-authoring editor's design, Monaco integration, validation, and versioning
 * [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md): every real endpoint, its auth requirement, and its schema (`openapi.json` is the machine-readable source)
 * [DEPLOYMENT.md](DEPLOYMENT.md): hosting recommendation, environment variables, CI/CD, rollback, monitoring
 * [GO_LIVE.md](GO_LIVE.md): the literal step-by-step procedure to take the backend from packaged to actually live
