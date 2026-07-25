@@ -86,6 +86,6 @@ Every item below is either genuinely done (checked, with where to verify it), or
 
 ## Overall
 
-**Live**: the backend is deployed and reachable at `https://payreality-api.onrender.com`, and the full Runtime Authority pipeline (Principal, Agent, signed Intent, Decision, signed Evidence, verification) has been exercised end-to-end against that live instance, 9/9 stages passed (see `GO_LIVE.md`). The custom domain `api.aisecurewatch.com` is registered on the Render service and waiting on one DNS record before it resolves.
+**Live**: the backend is deployed and reachable at its production custom domain, `https://api.aisecurewatch.com`, with a verified TLS certificate (Google Trust Services, valid through October 2026), and the full Runtime Authority pipeline (Principal, Agent, signed Intent, Decision, signed Evidence, verification) has been exercised end-to-end against that domain directly, 9/9 stages passed (see `GO_LIVE.md`). The frontend's production build is confirmed pointing at it.
 
 This platform is functionally ready for demonstrations and enterprise pilot conversations today. It is not ready for a real paying pilot's production data (the Postgres instance is free-tier and expires in 30 days) or multi-tenant production or a compliance audit until the unchecked items above are closed, most urgently human authentication, the evidence key registry, and upgrading off the free-tier database and web service, all already scoped with a specific roadmap phase rather than left open-ended.
