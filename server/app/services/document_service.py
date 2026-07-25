@@ -1,6 +1,5 @@
 import io
 import uuid
-from pathlib import Path
 
 from pypdf import PdfReader
 from sqlalchemy import select
@@ -8,8 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Authority, Document, Principal
 from app.domain.extraction.provider import ExtractionProvider
-
-STORAGE_DIR = Path(__file__).resolve().parent.parent.parent / "storage" / "documents"
 
 
 def _extract_text_by_page(pdf_bytes: bytes) -> list[str]:
@@ -23,15 +20,10 @@ def store_document(db: Session, name: str, pdf_bytes: bytes) -> Document:
     extraction happens as a separate step (run_extraction) so an upload
     always succeeds/fails independently of the (possibly flaky) model call.
     """
-    document_id = uuid.uuid4()
-    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-    storage_path = STORAGE_DIR / f"{document_id}.pdf"
-    storage_path.write_bytes(pdf_bytes)
-
     document = Document(
-        id=document_id,
+        id=uuid.uuid4(),
         name=name,
-        storage_uri=str(storage_path),
+        content=pdf_bytes,
         status="extraction_pending",
     )
     db.add(document)
@@ -59,8 +51,7 @@ def run_extraction(db: Session, document: Document, provider: ExtractionProvider
     12.4 Stage 2's recovery strategy); callers should not let an exception
     here propagate as a 500 without first persisting that transition."""
     try:
-        pdf_bytes = Path(document.storage_uri).read_bytes()
-        pages = _extract_text_by_page(pdf_bytes)
+        pages = _extract_text_by_page(document.content)
         candidates = provider.extract(pages)
     except Exception:
         document.status = "extraction_failed"

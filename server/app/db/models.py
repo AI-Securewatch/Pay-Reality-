@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, LargeBinary, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -39,7 +39,13 @@ class Document(Base):
 
     id: Mapped[uuid.UUID] = uuid_pk()
     name: Mapped[str] = mapped_column(Text, nullable=False)
-    storage_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    # spec 12.4 Stage 1: store the byte-identical artifact, never
+    # transformed. In the database, not local disk: a container's local
+    # filesystem doesn't survive a redeploy or restart, and on the
+    # zero-cost pilot deployment it's also owned by root and unwritable
+    # by the app's non-root user regardless. Both hit for real running
+    # this in production, not theoretical.
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False)
     uploaded_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
