@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -64,9 +65,19 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health():
-        """Liveness only: process is up and serving. No dependency calls --
+        """Liveness only: process is up and serving. No dependency calls,
         see /health/ready for database and OPA reachability."""
         return {"status": "ok"}
+
+    @app.get("/version")
+    def version():
+        """Which build is actually running. RENDER_GIT_COMMIT is set
+        automatically by Render on every deploy; falls back to 'unknown'
+        outside Render (e.g. running via docker-compose)."""
+        return {
+            "version": app.version,
+            "commit": os.environ.get("RENDER_GIT_COMMIT", "unknown"),
+        }
 
     @app.get("/health/ready")
     def health_ready():
