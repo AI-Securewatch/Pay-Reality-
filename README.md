@@ -59,6 +59,8 @@ Set `VITE_API_URL` (see `.env.example`) to point at the backend above.
 
 * [PRODUCT.md](PRODUCT.md): what PayReality is, is not, and how a customer derives value from it
 * [ARCHITECTURE.md](ARCHITECTURE.md): system design, data flow, and the decision/evidence pipeline in detail
+* [DOMAIN_ABSTRACTION.md](DOMAIN_ABSTRACTION.md): which parts of the engine are already domain-agnostic versus financial-specific, and the target adapter model for future domains without touching Financial Services as the GTM focus
+* [DOMAIN_REFACTOR_PLAN.md](DOMAIN_REFACTOR_PLAN.md): the itemized, sequenced plan for that abstraction, with risk and priority per item, not yet executed
 * [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md): every real endpoint, its auth requirement, and its schema (`openapi.json` is the machine-readable source)
 * [DEPLOYMENT.md](DEPLOYMENT.md): hosting recommendation, environment variables, CI/CD, rollback, monitoring
 * [GO_LIVE.md](GO_LIVE.md): the literal step-by-step procedure to take the backend from packaged to actually live
