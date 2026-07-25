@@ -38,6 +38,20 @@ _passed = []
 _failed = []
 
 
+def _parse_body(raw: bytes) -> dict:
+    """A hosting edge (e.g. Render free tier cold-starting an instance) can
+    return a plain-text error page instead of the app's own JSON response;
+    surface that as data instead of crashing the whole run on a
+    JSONDecodeError, since it's a real, observed condition of this
+    deployment's zero-cost topology, not a hypothetical one."""
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return {"_non_json_body": raw.decode("utf-8", errors="replace")}
+
+
 def _request(method: str, path: str, body: bytes | None = None, headers: dict | None = None) -> tuple[int, dict]:
     req = urllib.request.Request(f"{BASE_URL}{path}", data=body, method=method)
     req.add_header("Content-Type", "application/json")
@@ -45,9 +59,9 @@ def _request(method: str, path: str, body: bytes | None = None, headers: dict | 
         req.add_header(k, v)
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            return resp.status, json.loads(resp.read() or b"{}")
+            return resp.status, _parse_body(resp.read())
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read() or b"{}")
+        return e.code, _parse_body(e.read())
 
 
 def step(name: str):
@@ -68,9 +82,18 @@ def step(name: str):
 
 @step("liveness: GET /health")
 def check_health():
-    status, body = _request("GET", "/health")
-    assert status == 200, f"status {status}"
-    assert body.get("status") == "ok", body
+    # A handful of retries absorbs a cold-starting free-tier instance or a
+    # transient edge blip (both observed in practice against Render's free
+    # plan) without masking a genuinely down backend, which would still
+    # fail every one of these attempts.
+    last_status, last_body = None, None
+    for attempt in range(5):
+        last_status, last_body = _request("GET", "/health")
+        if last_status == 200 and last_body.get("status") == "ok":
+            return
+        time.sleep(2 * (attempt + 1))
+    assert last_status == 200, f"status {last_status}, body {last_body}"
+    assert last_body.get("status") == "ok", last_body
 
 
 @step("readiness: GET /health/ready (database + OPA both reachable)")
