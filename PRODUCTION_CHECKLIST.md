@@ -33,7 +33,7 @@ Every item below is either genuinely done (checked, with where to verify it), or
 
 - [x] Liveness and readiness endpoints (`/health`, `/health/ready`).
 - [x] Readiness check bounded to a hard deadline (fixed during this pass: an unbounded connect timeout meant an unreachable database could take 14.7 seconds to report unready; now bounded to 4.6 seconds via a worker-thread timeout, see `DEPLOYMENT.md`).
-- [x] Synthetic end-to-end monitor available (`scripts/smoke_test.py`), not yet wired to run on a schedule (see `OPERATIONS_RUNBOOK.md`, do this once the platform is actually deployed).
+- [x] Synthetic end-to-end monitor available (`scripts/smoke_test.py`) and run against the actual live production backend, 9/9 stages passed (see `GO_LIVE.md`); not yet wired to run on a schedule (see `OPERATIONS_RUNBOOK.md`).
 - [ ] Real alerting (PagerDuty/Opsgenie-style paging on the conditions in `OPERATIONS_RUNBOOK.md`'s "what to actually watch"). Not wired yet; proportionate to add once there's an on-call rotation to page.
 
 ## Database migrations
@@ -86,4 +86,6 @@ Every item below is either genuinely done (checked, with where to verify it), or
 
 ## Overall
 
-This platform is ready for a controlled enterprise pilot once `GO_LIVE.md` is executed and its acceptance-criteria checklist is checked off for real. It is not ready for multi-tenant production or a compliance audit until the unchecked items above are closed, most urgently human authentication and the evidence key registry, both already scoped with a specific roadmap phase rather than left open-ended.
+**Live**: the backend is deployed and reachable at `https://payreality-api.onrender.com`, and the full Runtime Authority pipeline (Principal, Agent, signed Intent, Decision, signed Evidence, verification) has been exercised end-to-end against that live instance, 9/9 stages passed (see `GO_LIVE.md`). The custom domain `api.aisecurewatch.com` is registered on the Render service and waiting on one DNS record before it resolves.
+
+This platform is functionally ready for demonstrations and enterprise pilot conversations today. It is not ready for a real paying pilot's production data (the Postgres instance is free-tier and expires in 30 days) or multi-tenant production or a compliance audit until the unchecked items above are closed, most urgently human authentication, the evidence key registry, and upgrading off the free-tier database and web service, all already scoped with a specific roadmap phase rather than left open-ended.
