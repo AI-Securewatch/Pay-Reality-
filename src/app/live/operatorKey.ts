@@ -11,6 +11,11 @@ export function getOperatorKey(): string {
 }
 
 export function setOperatorKey(key: string): void {
-  if (key) localStorage.setItem(STORAGE_KEY, key);
+  // Trimmed defensively: a copy-pasted key picking up a leading/trailing
+  // newline or space looks identical in the input field but fails the
+  // backend's exact byte comparison (hmac.compare_digest), producing a
+  // confusing invalid_operator_key for what looks like the right key.
+  const trimmed = key.trim();
+  if (trimmed) localStorage.setItem(STORAGE_KEY, trimmed);
   else localStorage.removeItem(STORAGE_KEY);
 }
