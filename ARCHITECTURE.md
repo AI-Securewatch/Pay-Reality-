@@ -26,7 +26,7 @@ This describes the system as it actually exists in this repository, not the aspi
         └────────────────┘                └────────────────┘
 ```
 
-The backend is a single FastAPI process. It is the only thing that talks to Postgres or OPA; the frontend never does. OPA has no auth of its own (see SECURITY.md); it must never be reachable from outside the backend's private network.
+The backend is a single FastAPI process. It is the only thing that talks to Postgres or OPA; the frontend never does. OPA has no auth of its own (see SECURITY.md); it must never be reachable from outside the backend's private network, or, in the current zero-cost pilot deployment, it runs embedded in the same container bound to loopback only, which is never reachable from any other service at all (see DEPLOYMENT.md).
 
 ## The Runtime Authority pipeline
 
@@ -87,7 +87,7 @@ React 18 + Vite 6 + react-router 7, no server-side rendering (that's the marketi
 
 ## Deployment architecture
 
-See DEPLOYMENT.md for the full recommendation and rationale. In short: frontend stays on Vercel (already working); backend is containerized (`server/Dockerfile`) for a managed-Postgres-plus-Docker host (Render recommended for the pilot phase), with OPA as a second container reachable only on the private network between the two.
+See DEPLOYMENT.md for the full recommendation and rationale. In short: frontend stays on Vercel (already working); backend is containerized (`server/Dockerfile`) for a Docker host (Render). In the current zero-cost pilot deployment, OPA runs embedded in the same container (loopback-only) and the existing free-tier Postgres is reused; once billing exists, the recommended topology reverts to OPA as its own private service and a paid, persistent Postgres.
 
 ## Known architectural gaps (by design, not oversight)
 

@@ -8,19 +8,31 @@ The intended production API domain is `https://api.aisecurewatch.com`. As of thi
 
 ## Hosting recommendation
 
-### Now (pilot phase): Render
+### Now (zero-cost pilot/demo phase): Render, single free web service
 
-| Requirement | Why Render fits |
+Render's private services (needed for a separate OPA sidecar) have no free tier at all, confirmed directly by attempting to create one (`402 Payment Required`). For demonstrations and enterprise pilot conversations before there's billing set up, the deployed topology is instead:
+
+| Requirement | How it's met at zero cost |
 |---|---|
-| Managed Postgres | Render's managed Postgres handles backups, point-in-time recovery, and connection pooling without separate provisioning. |
-| Docker web service | `server/Dockerfile` deploys as-is: no adaptation needed. |
-| Private networking | OPA deploys as a second private service, reachable only from the API service, never from the public internet (see SECURITY.md; this matters because OPA's HTTP API has no auth of its own). |
-| Ops overhead proportionate to stage | A single named pilot customer doesn't justify a multi-AZ, VPC-segmented, Kubernetes-orchestrated deployment yet. Render's git-push-to-deploy model keeps iteration fast without a dedicated DevOps hire. |
-| Enterprise-credible | Established, audited (SOC 2 Type II), used in production by companies of comparable and larger stage. A CIO diligence-checking the hosting choice won't flag it. |
+| Docker web service | `server/Dockerfile` on Render's `free` plan. |
+| Policy evaluation (OPA) | Embedded in the same container as a loopback-only process (`server/entrypoint.sh` starts `opa run --server --addr 127.0.0.1:8181` alongside `uvicorn`), not a separate service. This is arguably *more* isolated than a private-service sidecar, not less: OPA is unreachable from any other service or the public internet outright, not just unreachable unless a security group is misconfigured (see SECURITY.md). |
+| Database | The existing free-tier `payreality-db` Postgres instance, reused rather than provisioning a new one. |
+| Cost | $0. |
+
+**The real tradeoffs of this topology, stated plainly:**
+- Render's free Postgres **expires 30 days after creation**. Fine for demos and pilot conversations happening within that window; not something to build a real customer's production data on. Re-provision or upgrade to a paid plan before that matters.
+- Render's free web service **spins down after inactivity and cold-starts on the next request** (tens of seconds). A live demo hitting a cold instance is a real, visible risk, not a hypothetical one; if a demo is scheduled, hit `/health` a minute beforehand to warm it up.
+- Both processes (OPA and uvicorn) share the free tier's memory/CPU limit. Adequate for pilot-conversation traffic volumes; not a load-bearing assumption at any real scale.
+
+This is the deliberately simplest deployment that preserves the actual Runtime Authority architecture (real OPA, real Rego evaluation, nothing mocked), not a permanent architecture decision. Once billing is set up, moving OPA back out to its own private service (`SECURITY.md`'s original recommendation) is a Dockerfile/entrypoint revert, not a redesign.
 
 **Alternatives considered:** Railway (comparable simplicity, historically less production-track-record for enterprise diligence); Fly.io (better for globally-distributed low-latency needs this product doesn't have yet); a bare AWS/Azure VM (more control, no matching increase in value at this stage: pure overhead).
 
-`render.yaml` at the repo root is a ready-to-apply Blueprint: the FastAPI service, OPA as a private (non-public) service, and a managed Postgres database, wired together exactly as described above. It has not been applied against a real Render account (none was available while writing it), so treat the first `Apply` in Render's dashboard as the actual validation of the file, not this description. `GO_LIVE.md` is the step-by-step procedure for that first apply, including the custom-domain and DNS steps Render's Blueprint format doesn't cover.
+`render.yaml` at the repo root reflects this zero-cost topology: one free web service, no separate OPA service, no `databases:` block (the existing free Postgres is adopted via a manually-set `DATABASE_URL`, not blueprint-managed). The actual deploy in this pass was done directly against Render's REST API rather than a Blueprint import, since Blueprint import requires the Render GitHub App to already have repository access; `render.yaml` stays here as the documented, re-appliable equivalent. `GO_LIVE.md` covers both paths.
+
+### Once billing exists: Render, back to a separate OPA service
+
+The original recommendation, unchanged in spirit: FastAPI web service + a private (non-public) OPA service + managed (paid, persistent) Postgres, all on Render's `starter` plan. Revert `server/Dockerfile`/`entrypoint.sh` to call out to `OPA_URL` instead of embedding OPA, and re-add the `payreality-opa` private service. Worth doing once there's a real pilot customer, since the free Postgres's 30-day expiry and the free web service's cold starts stop being acceptable the moment someone outside the company is relying on this.
 
 ### Series A / scale: AWS or Azure
 
