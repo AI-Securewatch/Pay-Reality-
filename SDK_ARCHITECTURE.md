@@ -1,0 +1,59 @@
+# SDK Architecture
+
+## What this phase is, and isn't
+
+This is the first official PayReality SDK: a Python package (`sdk-python/payreality/`) that wraps the existing HTTP API (`docs/API_SPECIFICATION.md`) so a developer never has to hand-implement ED25519 signing, certificate management, request headers, or retry logic. It consumes `POST /v1/principals`, `POST /v1/agents`, `POST /v1/intents`, `GET /v1/decisions/{id}`, `GET /health`, and `GET /version` exactly as they exist today. Nothing in the Runtime Engine, Compiler V2, OPA, Evidence, Policy Studio, or either AI Policy Builder changed to make this possible; this SDK is a client, not a platform change.
+
+## Package layout
+
+```
+sdk-python/
+  payreality/
+    __init__.py       public exports: Agent, Decision, RegisteredAgent, exceptions
+    agent.py           Agent: register(), authorize(), get_decision(), health(), version()
+    auth.py            nonce/timestamp generation, header assembly
+    client.py           the one place that makes an HTTP request; owns retries and exception mapping
+    crypto.py           ED25519 keygen and signing (PyNaCl)
+    exceptions.py       the exception hierarchy
+    models.py           Decision, Resolution, RegisteredAgent (plain dataclasses)
+    retry.py             retry policy: what's retryable, backoff schedule
+    configuration.py     Configuration + the local credential store
+  tests/               56 tests, all mocked (no network), see SDK_REFERENCE.md's testing note
+  examples/            4 runnable scripts
+```
+
+This layout is deliberately generic where it can be: `client.py`'s retry/exception-mapping logic and `configuration.py`'s credential store are not PayReality-specific ideas, and a future Node/Java/Go/.NET SDK (explicitly out of scope for this phase) can follow the same shape without needing to invent its own design from scratch.
+
+## The four real gaps between the requested interface and today's API
+
+The requested public interface is deliberately expressed in PayReality's target universal vocabulary (`UNIVERSAL_RUNTIME_AUTHORITY.md`: Principal, Operation, Resource), not in today's actual wire format (`docs/API_SPECIFICATION.md`'s `SubmitIntentRequest`: `agent_id`, `action`, `amount`, `currency`, `counterparty`, `context`). `MIGRATION_PLAN_V4.md` Phase B (introducing `operation`/`resource_type` as real, additive fields on `Scope`) has not shipped yet. This SDK cannot pretend it has; instead, `agent.py::authorize()` maps the nice interface onto the real one honestly, in four specific ways:
+
+1. **`resource` becomes `action`.** `"Vendor Payment"` is normalized (lowercased, spaces to underscores) to `"vendor_payment"`, which the Decision Engine's known-action vocabulary actually recognizes. A `resource` that doesn't normalize to a known action is not an SDK error: the request still gets sent, and the Decision Engine's own existing, correct behavior is to escalate an unrecognized action to `HUMAN_REVIEW` rather than silently allow it (`examples/approve_invoice.py` demonstrates this directly, on purpose, rather than only showing a happy path).
+
+2. **`operation` is recorded, not enforced.** There is no separate operation field in today's Intent schema; the verb ("Approve", "Release") is written into the Intent's `context` dict so it's preserved on the resulting Evidence record, but it does not currently change how the Decision Engine evaluates the request; only the resource-derived `action` does. Once `MIGRATION_PLAN_V4.md` Phase B ships a real `operation` field server-side, this SDK's version can start sending it as a first-class field instead, without changing the public `authorize()` signature at all.
+
+3. **`principal` is a local safety check, not a request field.** `SubmitIntentRequest` has no `principal` field: the server already knows which principal a given agent's certificate acts for, resolved from `agent.acting_for_principal_id` at registration time (`server/app/services/intent_service.py::submit_intent` never takes a principal argument). Sending a redundant principal on every call would just be ignored by the server, so instead `authorize()` checks the passed `principal` against the principal this specific `Agent` was registered for, and raises `ConfigurationError` on a mismatch. This turns a parameter that would otherwise be pure decoration into a real guard against a wrong-agent mistake.
+
+4. **`resource_data` is decomposed into the wire's actual required fields.** `amount` is required (mirroring `SubmitIntentRequest.amount: float`, itself required); `currency` defaults to `"USD"` if not given (the SDK's own quickstart example never supplies one); `vendor`/`counterparty` (either key works) maps to the wire's `counterparty`; everything else, plus `operation` and any `metadata`, lands in `context`.
+
+## Identity and the local credential store
+
+An agent's `agent_id` and `certificate_id` are server-assigned identifiers a developer should never have to copy and paste (`configuration.py::CredentialStore`). Registration is idempotent per ED25519 key: the store is keyed by public key (deterministically derivable from a private key, so the SDK can recognize "have I registered this exact key before?" without a network call), and `register()` called a second time with the same key returns the cached identity instead of hitting the network again. This makes `register()` safe to call on every process start, matching how a real deployment would actually use it.
+
+## What `api_key` actually is today
+
+The requested `Agent(api_key=..., private_key=...)` constructor maps `api_key` onto the existing operator-key mechanism (`X-PayReality-Operator-Key`, the same shared administrative credential every other mutating action in this platform already uses). `register()` needs it (creating a new Agent or Principal is an administrative action); `authorize()` does not (it authenticates purely via the agent's own ED25519 signature, exactly like every other signed Intent submission today). `SDK_SECURITY.md` covers the operational implications of this directly and honestly, including that this is presently a single shared secret, not a per-developer credential.
+
+## Why sync-only, for now
+
+The requested example (`agent.authorize(...)` called directly, no `await`) is synchronous, and every SDK most developers compare this to for "feel" (Stripe, OpenAI, Supabase, Anthropic) ships a synchronous client as the default surface. Building only a sync client for this phase, with an async variant as a clearly-scoped future addition, keeps this phase's surface area matched to what was actually asked for.
+
+## What was actually verified, and what wasn't
+
+The 56-test suite in `sdk-python/tests/` runs against mocked HTTP (`unittest.mock`/`requests_mock`-style fixtures), never a real network call, and all 56 pass. That verifies the SDK's own logic: signature construction matches what the server's verification code expects (checked directly against `server/app/domain/auth/signature.py`'s verification function, not just re-implemented and trusted), retry/backoff behavior, header assembly, exception mapping, and the credential store's idempotency.
+
+A live end-to-end run against real production (`https://api.aisecurewatch.com`, using the stored admin operator key to register a real test agent and submit one real signed `authorize()` call) was not performed in this phase. That step was deliberately skipped rather than assumed to have passed, matching this project's established practice (see `POLICY_STUDIO_ARCHITECTURE.md`'s equivalent note on the Deploy action) of stating plainly when something is unit-tested but not live-verified, rather than implying a stronger guarantee than what was actually checked.
+
+## Retry and error mapping, one sentence each
+
+Retried: connection failures, timeouts, and 5xx responses, with capped exponential backoff (`retry.py`). Never retried: 401, 403, and any other 4xx (`422` validation failures included), since none of these can succeed by trying again unmodified. Every failure path, network or HTTP, is mapped onto one of the exceptions in `exceptions.py` before it reaches calling code (`client.py::_raise_for_response`); a developer using this SDK never sees a raw `requests` exception or a bare status code.
