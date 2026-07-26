@@ -46,3 +46,21 @@ class VerificationKeyResponse(BaseModel):
     key_id: str
     algorithm: str
     public_key_b64: str
+
+
+class SigningKeyHistoryEntry(BaseModel):
+    """One row from the signing-key registry (EVIDENCE_KEY_ROTATION.md):
+    every key ever used to sign Evidence/audit events, active or
+    retired. Needed for offline verification of a record signed under a
+    key that isn't the currently active one."""
+
+    key_id: str
+    algorithm: str
+    public_key_b64: str
+    created_at: datetime
+    retired_at: datetime | None
+    active: bool
+
+
+class VerificationKeyHistoryResponse(BaseModel):
+    keys: list[SigningKeyHistoryEntry]

@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -7,6 +8,9 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.models import Agent, AgentAuditEvent, Certificate, Principal
 from app.domain.evidence.signing import sign_payload, verify_payload, Signature
+from app.services import signing_key_service
+
+logger = logging.getLogger("payreality.agent_lifecycle")
 
 # Phase 9 (AGENT_LIFECYCLE.md): the full state machine. `registered` is the
 # entry state (exists, not operational); `active` can sign Intents;
@@ -488,13 +492,24 @@ def get_audit_event(db: Session, event_id: uuid.UUID) -> AgentAuditEvent:
 
 
 def verify_audit_event(db: Session, event_id: uuid.UUID) -> tuple[bool, str]:
-    """Mirrors evidence_service.verify_evidence: re-derive the signature
-    from the stored payload and check it against the current signing
-    key's public half, the same ED25519 primitive Decision Evidence uses."""
+    """Mirrors evidence_service.verify_evidence, including resolving the
+    public key through the signing-key registry by `event.key_id`
+    (EVIDENCE_KEY_ROTATION.md) rather than whatever key is currently
+    configured, so an audit event stays verifiable across a key
+    rotation. See evidence_service.verify_evidence's docstring for the
+    identical fallback/anomaly-logging reasoning."""
     event = get_audit_event(db, event_id)
     from app.domain.evidence.signing import public_key_b64_from_signing_key_b64
 
-    public_key_b64 = public_key_b64_from_signing_key_b64(settings.evidence_signing_key_b64)
+    public_key_b64 = signing_key_service.get_public_key_for_key_id(db, event.key_id)
+    if public_key_b64 is None:
+        logger.warning(
+            "signing_key_registry_miss audit_event_id=%s key_id=%s: falling back to the "
+            "currently configured key. This should not happen once the registry has "
+            "been seeded; investigate if it recurs.",
+            event_id, event.key_id,
+        )
+        public_key_b64 = public_key_b64_from_signing_key_b64(settings.evidence_signing_key_b64)
     valid = verify_payload(
         event.payload, Signature(algorithm="ed25519", key_id=event.key_id, value=event.signature), public_key_b64
     )

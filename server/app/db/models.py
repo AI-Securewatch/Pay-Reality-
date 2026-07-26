@@ -275,6 +275,32 @@ class AgentAuditEvent(Base):
     __table_args__ = (Index("idx_agent_audit_events_agent", "agent_id"),)
 
 
+class SigningKey(Base):
+    """A registry of every Ed25519 key ever used to sign Evidence and
+    Agent Lifecycle audit events. Before this table existed, every
+    verification checked the payload against whatever
+    EVIDENCE_SIGNING_KEY_B64 happened to be configured *right now*
+    (`evidence_service.verify_evidence`, `agent_service.verify_audit_event`),
+    which meant rotating that key would have silently made every
+    previously-signed record unverifiable -- a severe gap for a platform
+    whose entire pitch is independently verifiable evidence.
+
+    `key_id` is the natural primary key (it's already how a key is
+    identified everywhere else, `Evidence.key_id`/`AgentAuditEvent.key_id`),
+    not a surrogate UUID: there is nothing else this row could be looked
+    up by. Rows are never deleted, including retired ones, for the same
+    "nothing is deleted" reason every other evidentiary table in this
+    schema follows. See EVIDENCE_KEY_ROTATION.md for the operational
+    rotation flow this table enables."""
+
+    __tablename__ = "signing_keys"
+
+    key_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    public_key_b64: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    retired_at: Mapped[datetime | None]
+
+
 class Intent(Base):
     __tablename__ = "intents"
 

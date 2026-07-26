@@ -7,8 +7,14 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.session import get_db
 from app.domain.evidence.signing import public_key_b64_from_signing_key_b64
-from app.schemas.evidence import EvidenceResponse, VerificationKeyResponse, VerifyEvidenceResponse
-from app.services import evidence_service
+from app.schemas.evidence import (
+    EvidenceResponse,
+    SigningKeyHistoryEntry,
+    VerificationKeyHistoryResponse,
+    VerificationKeyResponse,
+    VerifyEvidenceResponse,
+)
+from app.services import evidence_service, signing_key_service
 from app.services.evidence_service import EvidenceNotFoundError
 
 router = APIRouter(prefix="/v1/evidence", tags=["evidence"])
@@ -16,16 +22,39 @@ router = APIRouter(prefix="/v1/evidence", tags=["evidence"])
 
 @router.get("/verification-key", response_model=VerificationKeyResponse)
 def get_verification_key():
-    """Publishes the current ED25519 public key so a regulator, insurer, or
-    auditor can verify an Evidence signature independently (offline, with
-    no access to this server or its private key) rather than only being
-    able to trust this API's own POST /verify result. See SECURITY.md's
-    evidence-architecture section for what this does and doesn't cover yet
-    (single active key, no historical key registry for rotation)."""
+    """Publishes the *currently active* ED25519 public key so a regulator,
+    insurer, or auditor can verify a recent Evidence signature
+    independently (offline, with no access to this server or its private
+    key) rather than only being able to trust this API's own POST
+    /verify result. If verifying a record signed under an older,
+    rotated key, use GET /verification-keys instead (EVIDENCE_KEY_ROTATION.md)."""
     return VerificationKeyResponse(
         key_id=settings.evidence_signing_key_id,
         algorithm="ed25519",
         public_key_b64=public_key_b64_from_signing_key_b64(settings.evidence_signing_key_b64),
+    )
+
+
+@router.get("/verification-keys", response_model=VerificationKeyHistoryResponse)
+def get_verification_key_history(db: Session = Depends(get_db)):
+    """The full signing-key history, active and retired
+    (EVIDENCE_KEY_ROTATION.md): what makes any Evidence or Agent
+    Lifecycle audit event independently verifiable offline regardless of
+    when it was signed, not just records signed under whichever key is
+    active today."""
+    keys = signing_key_service.list_signing_keys(db)
+    return VerificationKeyHistoryResponse(
+        keys=[
+            SigningKeyHistoryEntry(
+                key_id=k.key_id,
+                algorithm="ed25519",
+                public_key_b64=k.public_key_b64,
+                created_at=k.created_at,
+                retired_at=k.retired_at,
+                active=k.retired_at is None,
+            )
+            for k in keys
+        ]
     )
 
 

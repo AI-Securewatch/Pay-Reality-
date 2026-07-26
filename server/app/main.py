@@ -1,5 +1,6 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,44 @@ from app.security import observability_middleware
 
 configure_logging(level="INFO" if settings.environment == "production" else "DEBUG")
 logger = logging.getLogger("payreality.startup")
+
+
+def _register_current_signing_key() -> None:
+    """Seeds the signing-key registry (EVIDENCE_KEY_ROTATION.md) with
+    whatever key is currently configured. Idempotent and safe to run on
+    every boot: does nothing if this key_id is already registered, and
+    is what actually performs a rotation the moment a process starts
+    with a new EVIDENCE_SIGNING_KEY_B64/_ID.
+
+    Deliberately does not raise on failure (DB unreachable at boot,
+    etc.): this registry is what makes verification correct across a
+    future rotation, not something request-serving depends on right
+    now, so a transient failure here logs a warning and lets the app
+    boot rather than crash-looping the whole service. verify_evidence's
+    fallback path keeps working exactly as it did before this table
+    existed if the registry entry is ever missing."""
+    if not settings.evidence_signing_key_b64:
+        logger.warning("signing_key_not_configured: skipping signing-key registry startup check")
+        return
+    try:
+        from app.db.session import SessionLocal
+        from app.domain.evidence.signing import public_key_b64_from_signing_key_b64
+        from app.services.signing_key_service import ensure_current_key_registered
+
+        db = SessionLocal()
+        try:
+            public_key = public_key_b64_from_signing_key_b64(settings.evidence_signing_key_b64)
+            ensure_current_key_registered(db, settings.evidence_signing_key_id, public_key)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("signing_key_registration_failed_at_startup")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _register_current_signing_key()
+    yield
 
 
 def _validate_production_config() -> None:
@@ -55,6 +94,7 @@ def create_app() -> FastAPI:
             "financial actions. Full schema at /openapi.json, interactive "
             "docs at /docs."
         ),
+        lifespan=lifespan,
     )
 
     app.middleware("http")(observability_middleware)
