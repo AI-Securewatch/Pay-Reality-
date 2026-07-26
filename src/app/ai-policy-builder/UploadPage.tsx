@@ -28,7 +28,7 @@ export function AIPolicyBuilderUploadPage() {
     try {
       const upload = await aiPolicyBuilderApi.upload(file);
       if (upload.status === "extracted") {
-        navigate(`/ai-policy-builder/uploads/${upload.upload_id}`);
+        navigate(`/policy-studio/upload/${upload.upload_id}`);
       } else {
         setMessage(`Upload failed to extract (status: ${upload.status}). ${upload.error ?? ""}`);
         load();
@@ -81,7 +81,7 @@ export function AIPolicyBuilderUploadPage() {
           {uploads?.map((u) => (
             <tr key={u.upload_id} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
               <td className="py-2">
-                <Link to={`/ai-policy-builder/uploads/${u.upload_id}`} style={{ color: "var(--pr-authority-blue)" }}>
+                <Link to={`/policy-studio/upload/${u.upload_id}`} style={{ color: "var(--pr-authority-blue)" }}>
                   {u.filename}
                 </Link>
               </td>

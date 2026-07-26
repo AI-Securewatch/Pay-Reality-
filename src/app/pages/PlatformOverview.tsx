@@ -35,9 +35,9 @@ const WORKFLOW = [
   {
     step: "02",
     icon: FileText,
-    title: "Policy",
-    desc: "Upload a Delegation of Authority document. It's extracted into candidate authority mandates, reviewed by a human, and compiled into a deterministic, versioned policy.",
-    path: "/policy",
+    title: "Policy Studio",
+    desc: "Author a policy by hand, upload a document for AI extraction, or review a legacy delegation-of-authority document. All three converge on the same versioned, compiled policy.",
+    path: "/policy-studio",
     color: "var(--pr-evidence-cyan)",
   },
   {
@@ -119,7 +119,7 @@ export function PlatformOverview() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            to="/policy"
+            to="/policy-studio/upload"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-colors"
             style={{ borderColor: "rgba(255,255,255,0.12)", color: "var(--pr-text-primary)" }}
           >

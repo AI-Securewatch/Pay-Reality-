@@ -292,7 +292,7 @@ export function AIPolicyBuilderReviewPage() {
 
   return (
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
-      <Link to="/ai-policy-builder" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
+      <Link to="/policy-studio/upload" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
         &lt; Back to uploads
       </Link>
       <h1 className="mt-2 mb-6" style={{ color: "var(--pr-text-primary)" }}>

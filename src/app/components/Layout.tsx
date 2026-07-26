@@ -3,7 +3,6 @@ import { Outlet, Link, useLocation } from "react-router";
 import {
   Shield,
   Bot,
-  FileText,
   FlaskConical,
   Database,
   Building2,
@@ -11,7 +10,6 @@ import {
   Activity,
   Menu,
   ScrollText,
-  Sparkles,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 import { useIsMobile } from "./ui/use-mobile";
@@ -23,12 +21,10 @@ import { OperatorKeyField } from "../live/components/OperatorKeyField";
 const navItems = [
   { path: "/", label: "Overview", icon: Compass },
   { path: "/authority", label: "Authority", icon: Bot },
-  { path: "/policy", label: "Policy", icon: FileText },
+  { path: "/policy-studio", label: "Policy Studio", icon: ScrollText },
   { path: "/decisions", label: "Runtime Decisions", icon: FlaskConical },
   { path: "/evidence", label: "Evidence", icon: Database },
   { path: "/assurance", label: "Assurance", icon: Building2 },
-  { path: "/policy-studio", label: "Policy Studio", icon: ScrollText },
-  { path: "/ai-policy-builder", label: "AI Policy Builder", icon: Sparkles },
 ];
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
