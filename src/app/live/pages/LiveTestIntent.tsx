@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { CheckCircle2, Clock, Send, ShieldAlert, XCircle } from "lucide-react";
 import { apiClient } from "../apiClient";
 import { signBody } from "../crypto";
 import { getAgentPrivateKey } from "../agentKeyStore";
 import { describeApiError, formatStatus } from "../format";
+import { policyStudioApi } from "../../policy-studio/api";
 import type { LiveAgent, LiveDecision, SubmitIntentResult } from "../types";
-
-const KNOWN_SCOPES = ["vendor_payment", "purchase_order_create", "wire_transfer"];
 
 const OUTCOME_STYLE: Record<string, { bg: string; fg: string; icon: typeof CheckCircle2 }> = {
   ALLOW: { bg: "rgba(34,197,94,0.1)", fg: "var(--pr-trust-green)", icon: CheckCircle2 },
@@ -15,9 +15,10 @@ const OUTCOME_STYLE: Record<string, { bg: string; fg: string; icon: typeof Check
 };
 
 export function LiveTestIntent() {
-  const [agents, setAgents] = useState<LiveAgent[]>([]);
+  const [agents, setAgents] = useState<LiveAgent[] | null>(null);
+  const [actions, setActions] = useState<string[]>([]);
   const [agentId, setAgentId] = useState("");
-  const [action, setAction] = useState(KNOWN_SCOPES[0]);
+  const [action, setAction] = useState("");
   const [amount, setAmount] = useState("10000");
   const [currency, setCurrency] = useState("USD");
   const [result, setResult] = useState<SubmitIntentResult | null>(null);
@@ -29,12 +30,22 @@ export function LiveTestIntent() {
 
   useEffect(() => {
     apiClient.get<LiveAgent[]>("/v1/agents").then(setAgents);
+    // The same live vocabulary endpoint ScopeFields.tsx already uses,
+    // never a second hardcoded copy of the known actions (the exact
+    // drift bug DOMAIN_REFACTOR_PLAN.md's item 5 already named).
+    policyStudioApi
+      .getVocabulary()
+      .then((v) => {
+        setActions(v.actions);
+        setAction((current) => current || v.actions[0] || "");
+      })
+      .catch(() => setActions([]));
     return () => {
       if (pollRef.current) window.clearInterval(pollRef.current);
     };
   }, []);
 
-  const signableAgents = agents.filter((a) => getAgentPrivateKey(a.id) && a.certificate_id);
+  const signableAgents = (agents ?? []).filter((a) => getAgentPrivateKey(a.id) && a.certificate_id);
 
   const startPolling = (decisionId: string) => {
     let attempts = 0;
@@ -54,7 +65,7 @@ export function LiveTestIntent() {
     setDecision(null);
     if (pollRef.current) window.clearInterval(pollRef.current);
 
-    const agent = agents.find((a) => a.id === agentId);
+    const agent = agents?.find((a) => a.id === agentId);
     const privateKey = agentId ? getAgentPrivateKey(agentId) : null;
     if (!agent || !privateKey || !agent.certificate_id) {
       setError("Select an agent that was registered in this browser (Live Agents page).");
@@ -109,10 +120,10 @@ export function LiveTestIntent() {
   return (
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-8">
-        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Test a Decision</h1>
+        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Runtime Decisions</h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
           Submit a signed Intent to the real Decision Engine and watch it evaluate against the
-          active Policy.
+          active Policy: approve, deny, or escalate to human review.
         </p>
       </div>
 
@@ -120,9 +131,10 @@ export function LiveTestIntent() {
         className="p-6 rounded-xl border mb-6"
         style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
       >
-        {signableAgents.length === 0 && (
+        {agents !== null && signableAgents.length === 0 && (
           <p className="text-sm mb-4" style={{ color: "var(--pr-warning-amber)" }}>
-            No agents with a signing key in this browser yet. Register one on the Live Agents page first.
+            No agents with a signing key in this browser yet. Register one on the{" "}
+            <Link to="/authority" style={{ color: "var(--pr-authority-blue)" }}>Authority page</Link> first.
           </p>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -150,7 +162,7 @@ export function LiveTestIntent() {
               className="w-full px-3 py-2 rounded-lg border text-sm"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             >
-              {KNOWN_SCOPES.map((s) => (
+              {actions.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
@@ -180,8 +192,8 @@ export function LiveTestIntent() {
 
         <button
           onClick={handleSubmit}
-          disabled={!agentId}
-          className="px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-40"
+          disabled={!agentId || !action}
+          className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-40"
           style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
         >
           <Send className="w-4 h-4" /> Submit signed intent
@@ -194,9 +206,14 @@ export function LiveTestIntent() {
 
       {decision && style && (
         <div
+          role="status"
+          aria-live="polite"
           className="p-6 rounded-xl border"
           style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
         >
+          <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: "var(--pr-text-muted)" }}>
+            Decision
+          </p>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: style.bg }}>
               <style.icon className="w-5 h-5" style={{ color: style.fg }} />
@@ -257,8 +274,12 @@ export function LiveTestIntent() {
           )}
 
           {result && (
-            <p className="text-xs mt-4 font-mono" style={{ color: "var(--pr-text-muted)" }}>
-              evidence_id: {result.evidence_id}
+            <p className="text-xs mt-4" style={{ color: "var(--pr-text-muted)" }}>
+              <span className="font-mono">evidence_id: {result.evidence_id}</span>
+              {" "}
+              <Link to="/evidence" style={{ color: "var(--pr-authority-blue)" }}>
+                View in Evidence
+              </Link>
             </p>
           )}
         </div>
