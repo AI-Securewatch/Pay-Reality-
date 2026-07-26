@@ -8,15 +8,36 @@ export interface LivePrincipal {
   created_at: string;
 }
 
+// Phase 9 (AGENT_LIFECYCLE.md): status gained 'registered' (exists, not
+// yet operational) and 'retired' (terminal, permanently removed from
+// operational use) alongside the original three.
+export type AgentStatus = "registered" | "active" | "suspended" | "revoked" | "retired";
+export type AgentHealth = "healthy" | "warning" | "offline" | "unknown";
+
 export interface LiveAgent {
   id: string;
   certificate_id: string | null;
+  certificate_status: string | null;
   name: string;
   acting_for_principal_id: string;
-  status: "active" | "suspended" | "revoked";
+  status: AgentStatus;
   owner: string | null;
+  business_unit: string | null;
+  environment: string | null;
+  tags: string[];
   description: string | null;
+  purpose: string | null;
+  model: string | null;
+  version: string | null;
+  runtime: string | null;
+  platform: string | null;
+  labels: string[];
+  sdk_version: string | null;
+  last_seen_at: string | null;
+  health: AgentHealth;
+  rotation_requested_at: string | null;
   created_at: string;
+  updated_at: string | null;
 }
 
 export interface LiveDocument {

@@ -19,7 +19,12 @@ from app.schemas.intent import (
 )
 from app.security import verify_operator_key
 from app.services import intent_service, resolution_service
-from app.services.intent_service import AgentRevokedError, ReplayDetectedError
+from app.services.intent_service import (
+    AgentNotOperationalError,
+    AgentRetiredError,
+    AgentRevokedError,
+    ReplayDetectedError,
+)
 from app.services.resolution_service import (
     DecisionAlreadyResolvedError,
     DecisionNotFoundError,
@@ -62,6 +67,10 @@ def submit_intent(
         )
     except AgentRevokedError:
         raise HTTPException(status_code=403, detail="agent_revoked")
+    except AgentRetiredError:
+        raise HTTPException(status_code=403, detail="agent_retired")
+    except AgentNotOperationalError:
+        raise HTTPException(status_code=403, detail="agent_not_operational")
     except ReplayDetectedError:
         raise HTTPException(status_code=409, detail="replay_detected")
 

@@ -26,6 +26,9 @@ from .configuration import Configuration, CredentialStore
 from .exceptions import ApiError, ConfigurationError
 from .models import Decision, RegisteredAgent, Resolution
 
+_SDK_VERSION = "0.1.0"  # kept in sync with pyproject.toml / __init__.__version__ by hand;
+# not imported from there to avoid a circular import at package init time.
+
 
 class Agent:
     def __init__(
@@ -95,6 +98,17 @@ class Agent:
         Idempotent per key: calling this again with the same private
         key (e.g. on every process restart) returns the identity already
         on file instead of registering a second time.
+
+        As of Phase 9 (AGENT_LIFECYCLE.md), a newly created agent starts
+        in the "registered" state on the server, not "active": it isn't
+        operational (can't sign Intents) until a separate activation
+        step runs. This method still returns a ready-to-use identity in
+        one call by chaining that activation automatically -- the
+        alternative would have been a breaking change to this method's
+        contract from Phase 8 (see SDK_AGENT_GUIDE.md's design-decisions
+        section). Use the raw HTTP API directly, not this SDK, if you
+        want registration and activation to be two distinct, separately
+        reviewable steps (e.g. an approval gate between them).
         """
         if self._private_key is None:
             keypair = crypto.generate_keypair()
@@ -122,6 +136,9 @@ class Agent:
             },
             operator_auth=True,
         )
+        self._client.request(
+            "POST", f"/v1/agents/{response['id']}/activate", json={}, operator_auth=True
+        )
 
         identity = RegisteredAgent(
             agent_id=response["id"],
@@ -129,10 +146,109 @@ class Agent:
             principal_id=principal_id,
             principal_name=principal_name,
             name=name,
+            status="active",
         )
         self._store.save(public_key, identity.__dict__)
         self._identity = identity
         return identity
+
+    def rotate_keys(self) -> RegisteredAgent:
+        """Certificate rotation (CERTIFICATE_ROTATION.md), without the
+        caller ever touching a key directly: generates a new ED25519 key
+        pair locally, uploads only the new public key, and PayReality
+        marks the old certificate 'rotated' (never deleted) while the
+        new one becomes active. The old private key is discarded the
+        moment this returns -- this SDK never persists more than one
+        private key per Agent instance, matching SDK_SECURITY.md's "no
+        private keys are ever stored by PayReality" for the server side,
+        and simply not keeping old ones around on the client side either.
+
+        Past Decisions and Evidence tied to Intents signed with the old
+        key remain exactly as valid as they were before rotating; nothing
+        about them references a certificate directly (AGENT_LIFECYCLE.md).
+        """
+        if self._identity is None:
+            raise ConfigurationError(
+                "This Agent has no registered identity yet. Call agent.register(...) first."
+            )
+        old_public_key = crypto.public_key_from_private(self._private_key)
+        new_keypair = crypto.generate_keypair()
+
+        response = self._client.request(
+            "POST",
+            f"/v1/agents/{self._identity.agent_id}/rotate",
+            json={"new_public_key": crypto.encode_public_key_for_wire(new_keypair.public_key_b64)},
+            operator_auth=True,
+        )
+
+        new_identity = RegisteredAgent(
+            agent_id=self._identity.agent_id,
+            certificate_id=response["id"],
+            principal_id=self._identity.principal_id,
+            principal_name=self._identity.principal_name,
+            name=self._identity.name,
+            status=self._identity.status,
+        )
+        self._private_key = new_keypair.private_key_b64
+        self._identity = new_identity
+        self._store.save(new_keypair.public_key_b64, new_identity.__dict__)
+        self._store.delete(old_public_key)
+        return new_identity
+
+    def heartbeat(
+        self,
+        version: str | None = None,
+        sdk_version: str | None = None,
+        runtime: str | None = None,
+    ) -> dict[str, Any]:
+        """Reports this agent as alive (AGENT_LIFECYCLE.md's Agent
+        Heartbeat). Signed the same way an Intent is, with this agent's
+        own certificate -- not the shared operator key -- since a
+        heartbeat is the agent asserting its own liveness, not an
+        administrative action. `sdk_version` defaults to this package's
+        own version if not given."""
+        if self._identity is None:
+            raise ConfigurationError(
+                "This Agent has no registered identity yet. Call agent.register(...) first."
+            )
+        body = {
+            "version": version,
+            "sdk_version": sdk_version or f"payreality-python/{_SDK_VERSION}",
+            "runtime": runtime,
+        }
+        body_bytes = json.dumps(body).encode("utf-8")
+        headers = auth.signed_headers(body_bytes, self._identity.certificate_id, self._private_key)
+        return self._client.request(
+            "POST", f"/v1/agents/{self._identity.agent_id}/heartbeat",
+            signed_body=body_bytes, headers=headers,
+        )
+
+    def retire(self, reason: str | None = None) -> RegisteredAgent:
+        """Permanently removes this agent from operational use
+        (AGENT_LIFECYCLE.md's Retired state, terminal). Historical
+        Evidence is unaffected; this agent can no longer submit Intents
+        or heartbeats afterward, from any Agent instance, not just this
+        one -- retirement is a server-side, not local, action."""
+        if self._identity is None:
+            raise ConfigurationError(
+                "This Agent has no registered identity yet. Call agent.register(...) first."
+            )
+        self._client.request(
+            "POST", f"/v1/agents/{self._identity.agent_id}/retire",
+            json={"reason": reason}, operator_auth=True,
+        )
+        retired_identity = RegisteredAgent(
+            agent_id=self._identity.agent_id,
+            certificate_id=self._identity.certificate_id,
+            principal_id=self._identity.principal_id,
+            principal_name=self._identity.principal_name,
+            name=self._identity.name,
+            status="retired",
+        )
+        self._identity = retired_identity
+        public_key = crypto.public_key_from_private(self._private_key)
+        self._store.save(public_key, retired_identity.__dict__)
+        return retired_identity
 
     # -- authorization --------------------------------------------------
 
@@ -170,6 +286,11 @@ class Agent:
             raise ConfigurationError(
                 "This Agent has no registered identity yet. Call agent.register(...) once, "
                 "or construct Agent(private_key=...) with a private key that was already registered."
+            )
+        if self._identity.status in ("retired", "revoked"):
+            raise ConfigurationError(
+                f"This agent is locally recorded as '{self._identity.status}' and cannot authorize "
+                "actions. This is a terminal state (AGENT_LIFECYCLE.md); register a new Agent instead."
             )
         if principal != self._identity.principal_name:
             raise ConfigurationError(

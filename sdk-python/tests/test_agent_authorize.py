@@ -13,6 +13,7 @@ def _registered_agent(credentials_path, fake_http_client):
     agent._client = fake_http_client
     fake_http_client.queue_response([{"id": "p-1", "name": "Finance Manager"}])
     fake_http_client.queue_response({"id": "a-1", "certificate_id": "c-1"})
+    fake_http_client.queue_response({})  # POST /v1/agents/a-1/activate
     agent.register(name="AP Bot", principal="Finance Manager")
     return agent
 

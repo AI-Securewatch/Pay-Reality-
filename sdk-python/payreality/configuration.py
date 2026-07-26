@@ -79,3 +79,12 @@ class CredentialStore:
             os.chmod(self._path, 0o600)
         except OSError:
             pass  # best-effort on platforms without POSIX permissions (e.g. Windows)
+
+    def delete(self, public_key_b64: str) -> None:
+        """Phase 9: used by Agent.rotate_keys() to drop the entry keyed
+        by the old (now-rotated-away) public key once the new one is
+        saved. Not an error if the key was never stored."""
+        data = self._read()
+        if public_key_b64 in data:
+            del data[public_key_b64]
+            self._path.write_text(json.dumps(data, indent=2), encoding="utf-8")

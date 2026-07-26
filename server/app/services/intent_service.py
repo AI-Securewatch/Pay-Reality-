@@ -20,6 +20,20 @@ class AgentRevokedError(Exception):
     Evidence record is created."""
 
 
+class AgentRetiredError(Exception):
+    """Phase 9 (AGENT_LIFECYCLE.md): Retired is terminal, "cannot submit
+    new Intents" -- treated the same as revoked: rejected before an
+    Intent row is even inserted, no Decision/Evidence record created."""
+
+
+class AgentNotOperationalError(Exception):
+    """Phase 9: a 'registered' agent is not yet operational (Active is
+    required to sign Intents). In practice verify_agent_signature already
+    blocks this earlier, since a registered agent's only certificate is
+    'issued', not 'active' -- this is defense in depth for any direct
+    (non-HTTP) caller of submit_intent, not a path real traffic reaches."""
+
+
 class ReplayDetectedError(Exception):
     """spec 21.2: the (agent_id, nonce) pair has already been used."""
 
@@ -151,8 +165,18 @@ def submit_intent(
     nonce: str,
     correlation_id: str | None,
 ) -> tuple[Intent, Decision, Evidence]:
+    # Phase 9 (AGENT_LIFECYCLE.md "Runtime Behaviour"): revoked and retired
+    # agents are rejected before an Intent row even exists, no evidentiary
+    # trail at all -- these are terminal states with no standing to act,
+    # unlike a temporary suspension (handled below, after the Intent is
+    # recorded). 'registered' is unreachable via real HTTP traffic (see
+    # AgentNotOperationalError's docstring) but checked anyway.
     if agent.status == "revoked":
         raise AgentRevokedError(str(agent.id))
+    if agent.status == "retired":
+        raise AgentRetiredError(str(agent.id))
+    if agent.status == "registered":
+        raise AgentNotOperationalError(str(agent.id))
 
     intent = Intent(
         agent_id=agent.id,
@@ -172,16 +196,19 @@ def submit_intent(
         db.rollback()
         raise ReplayDetectedError(f"{agent.id}:{nonce}") from e
 
-    # spec 10.4: a suspended Agent's intents resolve to HUMAN_REVIEW with a
-    # fixed reason: OPA is never even queried in this case, but a Decision
-    # + Evidence record IS still created (preserves the evidentiary trail of
-    # what was attempted while suspended).
+    # spec 10.4 / Phase 9 AGENT_LIFECYCLE.md "Runtime Behaviour": a
+    # suspended Agent's intents resolve to HUMAN_REVIEW with a fixed
+    # reason (AGENT_SUSPENDED, the spec's literal required return value):
+    # OPA is never even queried, but a Decision + Evidence record IS still
+    # created (preserves the evidentiary trail of what was attempted
+    # while suspended -- suspension is temporary and reviewable, unlike
+    # revoked/retired above).
     if agent.status == "suspended":
         decision = Decision(
             intent_id=intent.id,
             policy_id=None,
             outcome="HUMAN_REVIEW",
-            reason="agent_suspended",
+            reason="AGENT_SUSPENDED",
             evaluated_mandates=[],
         )
         db.add(decision)
@@ -265,3 +292,33 @@ def submit_intent(
 
 def get_decision(db: Session, decision_id: uuid.UUID) -> Decision | None:
     return db.get(Decision, decision_id)
+
+
+def list_decisions_for_agent(db: Session, agent_id: uuid.UUID, limit: int = 20) -> list[Decision]:
+    """Agent Detail Page's "Decision History" section: joined through
+    Intent since Decision itself only references intent_id, not agent_id
+    directly."""
+    return list(
+        db.scalars(
+            select(Decision)
+            .join(Intent, Decision.intent_id == Intent.id)
+            .where(Intent.agent_id == agent_id)
+            .order_by(Decision.created_at.desc())
+            .limit(limit)
+        )
+    )
+
+
+def list_evidence_for_agent(db: Session, agent_id: uuid.UUID, limit: int = 20) -> list[Evidence]:
+    """Agent Detail Page's "Evidence" section: joined through Decision ->
+    Intent, the same two-hop path list_decisions_for_agent uses."""
+    return list(
+        db.scalars(
+            select(Evidence)
+            .join(Decision, Evidence.decision_id == Decision.id)
+            .join(Intent, Decision.intent_id == Intent.id)
+            .where(Intent.agent_id == agent_id)
+            .order_by(Evidence.created_at.desc())
+            .limit(limit)
+        )
+    )

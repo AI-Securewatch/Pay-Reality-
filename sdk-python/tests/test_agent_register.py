@@ -13,6 +13,7 @@ def test_register_creates_principal_if_it_does_not_exist(credentials_path, fake_
     fake_http_client.queue_response([])  # GET /v1/principals: none exist yet
     fake_http_client.queue_response({"id": "p-1", "name": "Finance Manager"})  # POST /v1/principals
     fake_http_client.queue_response({"id": "a-1", "certificate_id": "c-1"})  # POST /v1/agents
+    fake_http_client.queue_response({})  # POST /v1/agents/a-1/activate
 
     result = agent.register(name="AP Bot", principal="Finance Manager")
 
@@ -20,6 +21,7 @@ def test_register_creates_principal_if_it_does_not_exist(credentials_path, fake_
     assert result.certificate_id == "c-1"
     assert result.principal_id == "p-1"
     assert result.principal_name == "Finance Manager"
+    assert result.status == "active"
     assert agent.is_registered is True
 
     principal_create_call = fake_http_client.calls[1]
@@ -32,23 +34,29 @@ def test_register_creates_principal_if_it_does_not_exist(credentials_path, fake_
     assert agent_create_call["json"]["public_key"].startswith("ed25519:base64:")
     assert agent_create_call["operator_auth"] is True
 
+    activate_call = fake_http_client.calls[3]
+    assert activate_call["path"] == "/v1/agents/a-1/activate"
+    assert activate_call["operator_auth"] is True
+
 
 def test_register_reuses_existing_principal_by_name(credentials_path, fake_http_client):
     agent = _agent(credentials_path, fake_http_client)
     fake_http_client.queue_response([{"id": "p-9", "name": "Finance Manager"}])  # already exists
     fake_http_client.queue_response({"id": "a-1", "certificate_id": "c-1"})
+    fake_http_client.queue_response({})  # activate
 
     result = agent.register(name="AP Bot", principal="Finance Manager")
 
     assert result.principal_id == "p-9"
-    # only 2 calls: list principals, then create agent (no principal creation)
-    assert len(fake_http_client.calls) == 2
+    # 3 calls: list principals, create agent, activate (no principal creation)
+    assert len(fake_http_client.calls) == 3
 
 
 def test_register_persists_private_key_locally_never_sends_it(credentials_path, fake_http_client):
     agent = _agent(credentials_path, fake_http_client)
     fake_http_client.queue_response([{"id": "p-1", "name": "Finance Manager"}])
     fake_http_client.queue_response({"id": "a-1", "certificate_id": "c-1"})
+    fake_http_client.queue_response({})  # activate
 
     agent.register(name="AP Bot", principal="Finance Manager")
 
@@ -68,6 +76,7 @@ def test_register_is_idempotent_for_the_same_key(credentials_path, fake_http_cli
     agent = _agent(credentials_path, fake_http_client)
     fake_http_client.queue_response([{"id": "p-1", "name": "Finance Manager"}])
     fake_http_client.queue_response({"id": "a-1", "certificate_id": "c-1"})
+    fake_http_client.queue_response({})  # activate
     first = agent.register(name="AP Bot", principal="Finance Manager")
 
     calls_after_first = len(fake_http_client.calls)
@@ -83,6 +92,7 @@ def test_constructing_agent_with_a_previously_registered_private_key_loads_ident
     first_agent = _agent(credentials_path, fake_http_client)
     fake_http_client.queue_response([{"id": "p-1", "name": "Finance Manager"}])
     fake_http_client.queue_response({"id": "a-1", "certificate_id": "c-1"})
+    fake_http_client.queue_response({})  # activate
     registered = first_agent.register(name="AP Bot", principal="Finance Manager")
 
     # A brand new Agent instance, constructed with the same private key,

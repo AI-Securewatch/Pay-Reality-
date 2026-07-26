@@ -63,11 +63,11 @@ export function PlatformOverview() {
 
   useEffect(() => {
     Promise.all([
-      apiClient.get<LiveAgent[]>("/v1/agents"),
+      apiClient.get<{ agents: LiveAgent[]; total: number }>("/v1/agents"),
       apiClient.get<LivePolicy[]>("/v1/policies"),
     ])
-      .then(([agents, policies]) => {
-        setAgentCount(agents.length);
+      .then(([agentPage, policies]) => {
+        setAgentCount(agentPage.total);
         setActivePolicy(policies.find((p) => p.status === "active") ?? null);
         setReachable(true);
       })

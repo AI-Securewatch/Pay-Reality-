@@ -72,10 +72,19 @@ class RegisteredAgent:
     """What `agent.register()` returns: the identifiers the server
     assigned. These are also what gets persisted locally so a later
     `Agent(private_key=...)` using the same key doesn't need to
-    register again."""
+    register again.
+
+    `status` (added in Phase 9, AGENT_LIFECYCLE.md) mirrors the agent's
+    server-side lifecycle status locally, so `authorize()` can refuse a
+    known-retired or known-revoked identity immediately, without a
+    network round trip, the same way `authorize()` already refuses a
+    principal mismatch locally. Defaults to "active" so credential files
+    written by an older SDK version (with no status key at all) still
+    load correctly via `RegisteredAgent(**record)`."""
 
     agent_id: str
     certificate_id: str
     principal_id: str
     principal_name: str
     name: str
+    status: str = "active"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Building2, Bot, ShieldCheck, ShieldAlert, ShieldX, FileCheck } from "lucide-react";
 import { apiClient } from "../apiClient";
-import type { LiveAgent, LivePolicy, LiveEvidence } from "../types";
+import type { LivePolicy, LiveEvidence } from "../types";
 
 interface EvidencePayload {
   authority_outcome?: "ALLOW" | "DENY" | "HUMAN_REVIEW";
@@ -9,19 +9,26 @@ interface EvidencePayload {
 }
 
 export function LiveAssurance() {
-  const [agents, setAgents] = useState<LiveAgent[]>([]);
+  const [agentTotal, setAgentTotal] = useState(0);
+  const [activeAgentTotal, setActiveAgentTotal] = useState(0);
   const [policies, setPolicies] = useState<LivePolicy[]>([]);
   const [evidence, setEvidence] = useState<LiveEvidence[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Two separate totals, not a client-side filter over one page: at
+    // Phase 9 scale (AGENT_DIRECTORY.md, "10,000+ agents") a single page
+    // of /v1/agents no longer represents every agent, so this rollup
+    // reads each count directly from the paginated envelope's `total`.
     Promise.all([
-      apiClient.get<LiveAgent[]>("/v1/agents"),
+      apiClient.get<{ total: number }>("/v1/agents?limit=1"),
+      apiClient.get<{ total: number }>("/v1/agents?status=active&limit=1"),
       apiClient.get<LivePolicy[]>("/v1/policies"),
       apiClient.get<LiveEvidence[]>("/v1/evidence"),
     ])
-      .then(([a, p, e]) => {
-        setAgents(a);
+      .then(([agentPage, activeAgentPage, p, e]) => {
+        setAgentTotal(agentPage.total);
+        setActiveAgentTotal(activeAgentPage.total);
         setPolicies(p);
         setEvidence(e);
       })
@@ -29,7 +36,7 @@ export function LiveAssurance() {
   }, []);
 
   const activePolicy = policies.find((p) => p.status === "active");
-  const activeAgents = agents.filter((a) => a.status === "active").length;
+  const activeAgents = activeAgentTotal;
 
   const outcomeCounts = evidence.reduce(
     (acc, e) => {
@@ -43,7 +50,7 @@ export function LiveAssurance() {
   const verifiedCount = evidence.filter((e) => e.status === "VERIFIED").length;
 
   const cards = [
-    { icon: Bot, label: "Active agents", value: activeAgents, total: agents.length, color: "var(--pr-authority-blue)" },
+    { icon: Bot, label: "Active agents", value: activeAgents, total: agentTotal, color: "var(--pr-authority-blue)" },
     {
       icon: FileCheck,
       label: "Active policy",

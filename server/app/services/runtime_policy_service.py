@@ -82,6 +82,20 @@ def list_latest_policies(db: Session, status: str | None = None) -> list[Runtime
     return results
 
 
+def list_policies_for_principal(db: Session, principal_name: str) -> list[RuntimePolicyRecord]:
+    """Agent Detail Page's "Runtime Policies" section (AGENT_LIFECYCLE.md):
+    a policy applies to an agent via its acting-for Principal's name,
+    stored as scope.principal inside RuntimePolicyRecord.content (there is
+    no direct agent<->policy foreign key, matching this codebase's
+    no-ORM-relationship, plain-FK style -- filtered in Python rather than
+    a JSONB query, same approach list_latest_policies itself already
+    takes and consistent at today's scale)."""
+    return [
+        row for row in list_latest_policies(db)
+        if row.content.get("scope", {}).get("principal") == principal_name
+    ]
+
+
 def get_latest(db: Session, policy_key: uuid.UUID) -> RuntimePolicyRecord:
     row = _latest_version_row(db, policy_key)
     if row is None:

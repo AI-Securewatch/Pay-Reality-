@@ -14,7 +14,10 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, lazy: () => import("./pages/PlatformOverview").then((m) => ({ Component: m.PlatformOverview })) },
-      { path: "authority", lazy: () => import("./live/pages/LiveAgents").then((m) => ({ Component: m.LiveAgents })) },
+      // Phase 9 (AGENT_LIFECYCLE.md): the Agent Directory + Detail pages
+      // replaced the earlier flat Live Agents list/register-only page.
+      { path: "authority", lazy: () => import("./agents/AgentDirectoryPage").then((m) => ({ Component: m.AgentDirectoryPage })) },
+      { path: "authority/:agentId", lazy: () => import("./agents/AgentDetailPage").then((m) => ({ Component: m.AgentDetailPage })) },
       { path: "decisions", lazy: () => import("./live/pages/LiveTestIntent").then((m) => ({ Component: m.LiveTestIntent })) },
       { path: "evidence", lazy: () => import("./live/pages/LiveEvidence").then((m) => ({ Component: m.LiveEvidence })) },
       { path: "assurance", lazy: () => import("./live/pages/LiveAssurance").then((m) => ({ Component: m.LiveAssurance })) },

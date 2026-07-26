@@ -165,6 +165,13 @@ class Constraint(Base):
 
 
 class Agent(Base):
+    """Phase 9 (AGENT_LIFECYCLE.md): an Agent is now a full enterprise
+    identity with a lifecycle, not a static record. `status` gained two
+    new values (`registered`, `retired`) alongside the original three;
+    every other column below is additive metadata/ownership, all
+    nullable so existing rows (and the existing create_agent flow other
+    callers may still rely on) are unaffected without a data backfill."""
+
     __tablename__ = "agents"
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -173,19 +180,38 @@ class Agent(Base):
         UUID(as_uuid=True), ForeignKey("principals.id"), nullable=False
     )
     owner: Mapped[str | None] = mapped_column(Text)
+    business_unit: Mapped[str | None] = mapped_column(Text)
+    environment: Mapped[str | None] = mapped_column(Text)
+    tags: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
     description: Mapped[str | None] = mapped_column(Text)
+    purpose: Mapped[str | None] = mapped_column(Text)
+    model: Mapped[str | None] = mapped_column(Text)
+    version: Mapped[str | None] = mapped_column(Text)
+    runtime: Mapped[str | None] = mapped_column(Text)
+    platform: Mapped[str | None] = mapped_column(Text)
+    labels: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
+    sdk_version: Mapped[str | None] = mapped_column(Text)
+    last_seen_at: Mapped[datetime | None]
+    rotation_requested_at: Mapped[datetime | None]
     status: Mapped[str] = mapped_column(Text, nullable=False, server_default="active")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('active','suspended','revoked')", name="ck_agents_status"
+            "status IN ('registered','active','suspended','revoked','retired')",
+            name="ck_agents_status",
         ),
     )
 
 
 class Certificate(Base):
+    """Phase 9 (CERTIFICATE_ROTATION.md): status gained `issued` (a
+    certificate provisioned at registration but not yet activated) and
+    `expired` (set when its agent retires). `activated_at`/`rotated_at`/
+    `expires_at` are additive and nullable; existing certificate rows
+    (all created directly as `active`) are unaffected."""
+
     __tablename__ = "certificates"
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -195,14 +221,58 @@ class Certificate(Base):
     public_key: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False)
     issued_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    activated_at: Mapped[datetime | None]
+    rotated_at: Mapped[datetime | None]
+    expires_at: Mapped[datetime | None]
     revoked_at: Mapped[datetime | None]
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('active','rotated','revoked')", name="ck_certificates_status"
+            "status IN ('issued','active','rotated','expired','revoked')",
+            name="ck_certificates_status",
         ),
         Index("idx_certificates_agent", "agent_id"),
+        # Phase 9: "Only ONE active certificate allowed" was previously only a
+        # code-comment convention (agent_service.py), not enforced. A partial
+        # unique index closes that gap at the database level, following the
+        # same pattern as Policy's idx_policies_single_active.
+        Index(
+            "idx_certificates_single_active",
+            "agent_id",
+            unique=True,
+            postgresql_where="status = 'active'",
+        ),
     )
+
+
+class AgentAuditEvent(Base):
+    """Phase 9 (AGENT_LIFECYCLE.md): the lifecycle audit ledger. Every
+    lifecycle transition (created, activated, suspended, reactivated,
+    revoked, retired, certificate rotated, owner changed) becomes one
+    signed, immutable row here, following the exact same canonicalize +
+    ED25519-sign pattern as Decision Evidence (domain/evidence/signing.py,
+    reused unchanged). Deliberately a separate table from `evidence`
+    rather than relaxing evidence.decision_id to nullable: Evidence is
+    specifically the record of an Intent's evaluation, and the Agent
+    Detail Page's own spec already lists "Decision History", "Evidence",
+    and "Audit" as three distinct sections, not one. Heartbeats do NOT
+    produce a row here (they'd flood this ledger at 10,000+-agent scale
+    for no auditing value); they only update Agent.last_seen_at."""
+
+    __tablename__ = "agent_audit_events"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    agent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("agents.id"), nullable=False
+    )
+    event_type: Mapped[str] = mapped_column(Text, nullable=False)
+    actor: Mapped[str | None] = mapped_column(Text)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    key_id: Mapped[str] = mapped_column(Text, nullable=False)
+    signature: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (Index("idx_agent_audit_events_agent", "agent_id"),)
 
 
 class Intent(Base):

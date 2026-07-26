@@ -30,7 +30,7 @@ export function LiveTestIntent() {
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
-    apiClient.get<LiveAgent[]>("/v1/agents").then(setAgents);
+    apiClient.get<{ agents: LiveAgent[] }>("/v1/agents").then((r) => setAgents(r.agents));
     // The same live vocabulary endpoint ScopeFields.tsx already uses,
     // never a second hardcoded copy of the known actions (the exact
     // drift bug DOMAIN_REFACTOR_PLAN.md's item 5 already named).
