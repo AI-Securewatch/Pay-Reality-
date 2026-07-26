@@ -26,6 +26,7 @@ export function LiveTestIntent() {
   const [error, setError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
   const [resolverName, setResolverName] = useState("");
+  const [resolveError, setResolveError] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -102,6 +103,7 @@ export function LiveTestIntent() {
   const handleResolve = async (resolution: "approved" | "denied") => {
     if (!decision) return;
     setResolving(true);
+    setResolveError(null);
     try {
       await apiClient.post(`/v1/decisions/${decision.id}/resolve`, {
         resolution,
@@ -110,6 +112,8 @@ export function LiveTestIntent() {
       });
       const latest = await apiClient.get<LiveDecision>(`/v1/decisions/${decision.id}`);
       setDecision(latest);
+    } catch (e) {
+      setResolveError(describeApiError(e, "Resolution"));
     } finally {
       setResolving(false);
     }
@@ -264,6 +268,9 @@ export function LiveTestIntent() {
                   <XCircle className="w-4 h-4" /> Deny
                 </button>
               </div>
+              {resolveError && (
+                <p role="alert" className="text-sm mt-3" style={{ color: "var(--pr-critical-red)" }}>{resolveError}</p>
+              )}
             </div>
           )}
 

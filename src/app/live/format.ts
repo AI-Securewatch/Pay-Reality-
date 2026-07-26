@@ -7,6 +7,9 @@ import { ApiError } from "./apiClient";
 // decision is made now.
 export function describeApiError(e: unknown, action: string): string {
   if (e instanceof ApiError) {
+    if (e.status === 401 || e.status === 403) {
+      return `${action} failed: this action needs the Operator Key set in the sidebar (bottom left). Enter it there and try again.`;
+    }
     return `${action} failed. Please try again, or contact support if this continues.`;
   }
   return `${action} failed. Check your connection and try again.`;
