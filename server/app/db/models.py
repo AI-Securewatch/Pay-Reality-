@@ -338,3 +338,70 @@ class RuntimePolicyRecord(Base):
         Index("idx_runtime_policy_records_policy_key", "policy_key"),
         Index("idx_runtime_policy_records_status", "status"),
     )
+
+
+class PolicyExtractionUpload(Base):
+    """AI Policy Builder (AI_POLICY_BUILDER_ARCHITECTURE.md): one row per
+    uploaded document. `content` stores the byte-identical original in
+    Postgres, the same reason `documents.content` already does: local
+    disk does not survive a redeploy and is root-owned in this
+    container. Independent of `documents`/`authorities`: that pipeline
+    extracts Authority claims for the legacy Mandate model; this one
+    extracts RuntimePolicy candidates. Conflating the two tables would
+    couple two independent domains for no benefit."""
+
+    __tablename__ = "policy_extraction_uploads"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    format: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    error: Mapped[str | None] = mapped_column(Text)
+    uploaded_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "format IN ('pdf','docx','xlsx','csv','text')",
+            name="ck_policy_extraction_uploads_format",
+        ),
+        CheckConstraint(
+            "status IN ('uploaded','extracted','failed')",
+            name="ck_policy_extraction_uploads_status",
+        ),
+    )
+
+
+class PolicyExtractionCandidate(Base):
+    """One row per candidate RuntimePolicy extracted from one upload
+    (AI_EXTRACTION_PIPELINE.md Stage 4). `content` is stored in exactly
+    schemas/runtime_policy.py's RuntimePolicyRequest JSON shape
+    (RUNTIME_POLICY_MAPPING.md), directly editable, directly promotable
+    into a real RuntimePolicy via the unmodified
+    runtime_policy_service.create_policy. `confidence`/`missing_fields`
+    describe the extraction, not the policy, so they live here, not in
+    `content`."""
+
+    __tablename__ = "policy_extraction_candidates"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    upload_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("policy_extraction_uploads.id"), nullable=False
+    )
+    content: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    confidence: Mapped[float] = mapped_column(nullable=False)
+    missing_fields: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
+    source_excerpt: Mapped[str | None] = mapped_column(Text)
+    source_location: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    promoted_policy_key: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending_review','promoted','dismissed')",
+            name="ck_policy_extraction_candidates_status",
+        ),
+        Index("idx_policy_extraction_candidates_upload", "upload_id"),
+        Index("idx_policy_extraction_candidates_status", "status"),
+    )

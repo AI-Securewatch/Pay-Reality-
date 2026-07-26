@@ -15,6 +15,8 @@ import { VersionHistoryPage } from "./policy-studio/VersionHistoryPage";
 import { PolicyDiffPage } from "./policy-studio/PolicyDiffPage";
 import { ReviewQueuePage } from "./policy-studio/ReviewQueuePage";
 import { DeploymentPage } from "./policy-studio/DeploymentPage";
+import { AIPolicyBuilderUploadPage } from "./ai-policy-builder/UploadPage";
+import { AIPolicyBuilderReviewPage } from "./ai-policy-builder/ReviewPage";
 
 export const router = createBrowserRouter([
   {
@@ -37,6 +39,9 @@ export const router = createBrowserRouter([
       { path: "policy-studio/:policyKey/compile", Component: CompilePage },
       { path: "policy-studio/:policyKey/dry-run", Component: DryRunPage },
       { path: "policy-studio/:policyKey/deploy", Component: DeploymentPage },
+
+      { path: "ai-policy-builder", Component: AIPolicyBuilderUploadPage },
+      { path: "ai-policy-builder/uploads/:uploadId", Component: AIPolicyBuilderReviewPage },
 
       // Legacy paths from the pre-consolidation app, kept as redirects so
       // no external link or bookmark 404s. See audit/EXECUTION_REPORT.md.

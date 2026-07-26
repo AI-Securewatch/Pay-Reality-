@@ -11,6 +11,7 @@ import {
   Activity,
   Menu,
   ScrollText,
+  Sparkles,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 import { useIsMobile } from "./ui/use-mobile";
@@ -27,6 +28,7 @@ const navItems = [
   { path: "/evidence", label: "Evidence", icon: Database },
   { path: "/assurance", label: "Assurance", icon: Building2 },
   { path: "/policy-studio", label: "Policy Studio", icon: ScrollText },
+  { path: "/ai-policy-builder", label: "AI Policy Builder", icon: Sparkles },
 ];
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {

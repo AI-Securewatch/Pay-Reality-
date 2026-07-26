@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import agents, evidence, intents, policies, principals, runtime_policies
+from app.routers import agents, ai_policy_builder, evidence, intents, policies, principals, runtime_policies
 from app.security import observability_middleware
 
 configure_logging(level="INFO" if settings.environment == "production" else "DEBUG")
@@ -149,6 +149,7 @@ def create_app() -> FastAPI:
     app.include_router(intents.router)
     app.include_router(evidence.router)
     app.include_router(runtime_policies.router)
+    app.include_router(ai_policy_builder.router)
 
     return app
 
