@@ -5,6 +5,7 @@ import type { Candidate, PromoteResult, Upload } from "./types";
 const BASE = "/v1/ai-policy-builder";
 
 export const aiPolicyBuilderApi = {
+  getStatus: () => apiClient.get<{ ai_enabled: boolean }>(`${BASE}/status`),
   upload: (file: File) => {
     const form = new FormData();
     form.append("file", file);

@@ -5,6 +5,7 @@ import { aiPolicyBuilderApi } from "../ai-policy-builder/api";
 import type { Candidate } from "../ai-policy-builder/types";
 import { CandidateCard } from "../ai-policy-builder/components/CandidateCard";
 import { ConfidenceBadge } from "../ai-policy-builder/components/ConfidenceBadge";
+import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
 import type {
   Conflict,
   Corpus,
@@ -93,6 +94,11 @@ export function AIAuthorityBuilderCorpusReviewPage() {
   const [gaps, setGaps] = useState<Gap[] | null>(null);
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
+  const [aiEnabled, setAiEnabled] = useState(true);
+
+  useEffect(() => {
+    aiAuthorityBuilderApi.getStatus().then((s) => setAiEnabled(s.ai_enabled));
+  }, []);
 
   function loadAll() {
     if (!corpusId) return;
@@ -128,6 +134,8 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         auto-deployed. Only Runtime Policies can be promoted into Policy Studio; everything else is
         informational discovery about this organisation's authority structure.
       </p>
+
+      {!aiEnabled && <AiComingSoonBanner />}
 
       {summary && (
         <div

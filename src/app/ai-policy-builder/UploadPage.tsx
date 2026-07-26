@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { aiPolicyBuilderApi } from "./api";
 import type { Upload } from "./types";
 import { describeApiError, formatStatus } from "../live/format";
+import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
 
 const STATUS_COLOR: Record<string, string> = {
   uploaded: "var(--pr-text-muted)",
@@ -15,12 +16,16 @@ export function AIPolicyBuilderUploadPage() {
   const [uploads, setUploads] = useState<Upload[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(true);
 
   function load() {
     aiPolicyBuilderApi.listUploads().then(setUploads);
   }
 
   useEffect(load, []);
+  useEffect(() => {
+    aiPolicyBuilderApi.getStatus().then((s) => setAiEnabled(s.ai_enabled));
+  }, []);
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -48,6 +53,8 @@ export function AIPolicyBuilderUploadPage() {
         into candidate Runtime Policies, each with a confidence score and any fields the model could
         not determine highlighted. Nothing is created until you review and promote a candidate.
       </p>
+
+      {!aiEnabled && <AiComingSoonBanner />}
 
       <label
         className="flex flex-col items-center justify-center gap-2 p-8 rounded-xl border-2 border-dashed cursor-pointer mb-8"

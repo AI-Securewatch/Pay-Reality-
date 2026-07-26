@@ -3,6 +3,14 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class ProviderStatusResponse(BaseModel):
+    """Whether extraction is currently backed by a real LLM (Claude) or
+    the deterministic fake provider, so the frontend can be honest about
+    which one a given deployment is running."""
+
+    ai_enabled: bool
+
+
 class CorpusResponse(BaseModel):
     corpus_id: str
     name: str

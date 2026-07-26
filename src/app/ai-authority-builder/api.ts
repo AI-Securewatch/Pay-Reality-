@@ -14,6 +14,7 @@ import type {
 const BASE = "/v1/ai-authority-builder";
 
 export const aiAuthorityBuilderApi = {
+  getStatus: () => apiClient.get<{ ai_enabled: boolean }>(`${BASE}/status`),
   createCorpus: (name: string, files: File[]) => {
     const form = new FormData();
     form.append("name", name);

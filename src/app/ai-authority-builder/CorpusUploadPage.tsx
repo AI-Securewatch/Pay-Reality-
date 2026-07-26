@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { aiAuthorityBuilderApi } from "./api";
 import type { Corpus } from "./types";
 import { describeApiError, formatStatus } from "../live/format";
+import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
 
 const STATUS_COLOR: Record<string, string> = {
   uploaded: "var(--pr-text-muted)",
@@ -18,12 +19,16 @@ export function AIAuthorityBuilderUploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(true);
 
   function load() {
     aiAuthorityBuilderApi.listCorpora().then(setCorpora);
   }
 
   useEffect(load, []);
+  useEffect(() => {
+    aiAuthorityBuilderApi.getStatus().then((s) => setAiEnabled(s.ai_enabled));
+  }, []);
 
   function addFiles(newFiles: FileList | null) {
     if (!newFiles) return;
@@ -66,6 +71,8 @@ export function AIAuthorityBuilderUploadPage() {
         limit stated in one file and contradicted in another is reported as a conflict, not silently
         dropped. Nothing is created until you review and promote a finding.
       </p>
+
+      {!aiEnabled && <AiComingSoonBanner />}
 
       <div
         style={{

@@ -13,6 +13,7 @@ from app.domain.ai_policy_builder.text_extraction import UnsupportedFormatError,
 from app.schemas.ai_policy_builder import (
     CandidateResponse,
     EditCandidateRequest,
+    ProviderStatusResponse,
     PromoteCandidateResponse,
     UploadResponse,
     ValidationErrorSchema,
@@ -60,6 +61,14 @@ def candidate_to_response(candidate: PolicyExtractionCandidate) -> CandidateResp
         promoted_policy_key=str(candidate.promoted_policy_key) if candidate.promoted_policy_key else None,
         created_at=candidate.created_at,
     )
+
+
+@router.get("/status", response_model=ProviderStatusResponse)
+def get_status():
+    """Whether this deployment currently has a real Anthropic key
+    configured, so the frontend can be honest with users about whether
+    they're looking at real extraction or illustrative sample output."""
+    return ProviderStatusResponse(ai_enabled=bool(settings.anthropic_api_key))
 
 
 @router.post(

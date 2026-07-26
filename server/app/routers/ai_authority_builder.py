@@ -27,6 +27,7 @@ from app.schemas.ai_authority_builder import (
     GraphSummaryResponse,
     OperationResponse,
     PrincipalResponse,
+    ProviderStatusResponse,
     QuestionResponse,
     RelationshipResponse,
     ResourceResponse,
@@ -97,6 +98,14 @@ def _gap_to_response(g: AuthorityGap) -> GapResponse:
 
 def _question_to_response(q: AuthorityQuestion) -> QuestionResponse:
     return QuestionResponse(id=str(q.id), question=q.question, context=q.context, answered=q.answered, answer=q.answer)
+
+
+@router.get("/status", response_model=ProviderStatusResponse)
+def get_status():
+    """Whether this deployment currently has a real Anthropic key
+    configured, so the frontend can be honest with users about whether
+    they're looking at real extraction or illustrative sample output."""
+    return ProviderStatusResponse(ai_enabled=bool(settings.anthropic_api_key))
 
 
 @router.post("/corpora", response_model=CorpusResponse, status_code=201, dependencies=[Depends(verify_operator_key)])

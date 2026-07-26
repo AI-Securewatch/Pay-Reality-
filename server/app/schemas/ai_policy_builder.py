@@ -6,6 +6,14 @@ from pydantic import BaseModel
 from app.schemas.runtime_policy import ConditionSchema, ConstraintsSchema, MetadataSchema, ScopeSchema
 
 
+class ProviderStatusResponse(BaseModel):
+    """Whether extraction is currently backed by a real LLM (Claude) or
+    the deterministic fake provider, so the frontend can be honest about
+    which one a given deployment is running."""
+
+    ai_enabled: bool
+
+
 class CandidateContentSchema(BaseModel):
     """The RuntimePolicyRequest-shaped content stored on a candidate
     (RUNTIME_POLICY_MAPPING.md); reuses Policy Studio's own field schemas
