@@ -17,6 +17,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
+      # Same pinned version as server/Dockerfile, so a real opa binary is
+      # on PATH for tests/integration/ (compiler_v2's OPA integration
+      # suite): without this they'd silently skip in CI instead of
+      # actually running, see tests/integration/conftest.py.
+      - name: Install OPA
+        run: |
+          curl -fsSL -o /usr/local/bin/opa \
+            "https://openpolicyagent.org/downloads/v1.7.1/opa_linux_amd64_static"
+          chmod +x /usr/local/bin/opa
       - run: pytest -q
 
   server-image:

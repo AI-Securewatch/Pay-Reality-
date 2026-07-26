@@ -24,6 +24,14 @@ class Operator(str, Enum):
     LT = "<"
     GT = ">"
     IN = "in"
+    # Added for Compiler V2 (COMPILER_V2_ARCHITECTURE.md): purely additive,
+    # no existing member's value changed. CONTAINS is a substring/element
+    # check distinct from IN (IN checks "value is one of these literals";
+    # CONTAINS checks "the input field's own value contains this"). EXISTS
+    # is a presence check, always compared against a boolean literal
+    # (`field exists true` / `field exists false`), not a value comparison.
+    CONTAINS = "contains"
+    EXISTS = "exists"
 
 
 @dataclass(frozen=True)

@@ -65,6 +65,7 @@ Set `VITE_API_URL` (see `.env.example`) to point at the backend above.
 * [RUNTIME_POLICY_LANGUAGE.md](RUNTIME_POLICY_LANGUAGE.md): the `RuntimePolicy` domain model itself (`server/app/domain/runtime_policy/`), built and tested, fully isolated, not wired into anything yet
 * [POLICY_LANGUAGE_SPEC.md](POLICY_LANGUAGE_SPEC.md): the small condition language Policy Studio's manual authoring mode uses instead of exposing Rego
 * [POLICY_COMPILER_V2.md](POLICY_COMPILER_V2.md): what compiling an arbitrary Runtime Policy into Rego actually requires, including the honest finding that today's compiler doesn't enforce most conditions at all
+* [COMPILER_V2_ARCHITECTURE.md](COMPILER_V2_ARCHITECTURE.md): Compiler V2 itself (`server/app/domain/compiler_v2/`), built and verified against a real OPA server, including proof that the unmodified Decision Engine can consume its output
 * [POLICY_STUDIO.md](POLICY_STUDIO.md): the manual policy-authoring editor's design, Monaco integration, validation, and versioning
 * [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md): every real endpoint, its auth requirement, and its schema (`openapi.json` is the machine-readable source)
 * [DEPLOYMENT.md](DEPLOYMENT.md): hosting recommendation, environment variables, CI/CD, rollback, monitoring
