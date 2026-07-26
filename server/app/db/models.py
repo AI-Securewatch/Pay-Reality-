@@ -300,3 +300,41 @@ class DecisionResolution(Base):
             "resolution IN ('approved','denied')", name="ck_decision_resolutions_resolution"
         ),
     )
+
+
+class RuntimePolicyRecord(Base):
+    """Persistence for domain/runtime_policy/runtime_policy.py's
+    RuntimePolicy (Policy Studio, POLICY_STUDIO_ARCHITECTURE.md). One row
+    per version, never mutated after creation, matching RuntimePolicy's
+    own immutability: editing produces a new row with an incremented
+    version, not an update to an existing one.
+
+    `content` stores the full RuntimePolicy via
+    domain/runtime_policy/schema.py's to_dict()/from_dict(), the single
+    source of truth for that shape; this table does not re-declare
+    RuntimePolicy's fields as separate columns; policy_key/version/status
+    are pulled out only because they're what the Policy List, Review
+    Queue, and version-history queries actually filter and sort on."""
+
+    __tablename__ = "runtime_policy_records"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    policy_key: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    version: Mapped[int] = mapped_column(nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    bundle_id: Mapped[str | None] = mapped_column(Text)
+    bundle_hash: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('draft','pending_review','approved','rejected','compiled','active','retired')",
+            name="ck_runtime_policy_records_status",
+        ),
+        UniqueConstraint(
+            "policy_key", "version", name="uq_runtime_policy_records_key_version"
+        ),
+        Index("idx_runtime_policy_records_policy_key", "policy_key"),
+        Index("idx_runtime_policy_records_status", "status"),
+    )

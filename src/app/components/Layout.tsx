@@ -10,6 +10,7 @@ import {
   Compass,
   Activity,
   Menu,
+  ScrollText,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 import { useIsMobile } from "./ui/use-mobile";
@@ -25,6 +26,7 @@ const navItems = [
   { path: "/decisions", label: "Runtime Decisions", icon: FlaskConical },
   { path: "/evidence", label: "Evidence", icon: Database },
   { path: "/assurance", label: "Assurance", icon: Building2 },
+  { path: "/policy-studio", label: "Policy Studio", icon: ScrollText },
 ];
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
@@ -32,7 +34,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
-    return location.pathname.startsWith(path);
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
   return (

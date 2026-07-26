@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.logging_config import configure_logging
-from app.routers import agents, evidence, intents, policies, principals
+from app.routers import agents, evidence, intents, policies, principals, runtime_policies
 from app.security import observability_middleware
 
 configure_logging(level="INFO" if settings.environment == "production" else "DEBUG")
@@ -54,7 +54,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=[settings.cors_origin],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH"],
+        allow_methods=["GET", "POST", "PATCH", "PUT"],
         allow_headers=[
             "Content-Type",
             "X-PayReality-Key-Id",
@@ -148,6 +148,7 @@ def create_app() -> FastAPI:
     app.include_router(policies.router)
     app.include_router(intents.router)
     app.include_router(evidence.router)
+    app.include_router(runtime_policies.router)
 
     return app
 

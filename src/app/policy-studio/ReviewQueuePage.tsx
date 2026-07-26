@@ -1,0 +1,110 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
+import { policyStudioApi } from "./api";
+import type { RuntimePolicy } from "./types";
+import { ApiError } from "../live/apiClient";
+
+export function ReviewQueuePage() {
+  const [pending, setPending] = useState<RuntimePolicy[] | null>(null);
+  const [approver, setApprover] = useState("");
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState<string | null>(null);
+
+  function load() {
+    policyStudioApi.list("pending_review").then(setPending);
+  }
+
+  useEffect(load, []);
+
+  async function handleApprove(policyKey: string) {
+    if (!approver.trim()) {
+      setMessage("Enter your name before approving.");
+      return;
+    }
+    try {
+      await policyStudioApi.approve(policyKey, approver);
+      load();
+    } catch (e) {
+      setMessage(e instanceof ApiError ? `Approve failed: ${JSON.stringify(e.body)}` : "Approve failed.");
+    }
+  }
+
+  async function handleReject(policyKey: string) {
+    const reason = rejectReason[policyKey];
+    if (!approver.trim() || !reason?.trim()) {
+      setMessage("Enter your name and a rejection reason.");
+      return;
+    }
+    try {
+      await policyStudioApi.reject(policyKey, approver, reason);
+      load();
+    } catch (e) {
+      setMessage(e instanceof ApiError ? `Reject failed: ${JSON.stringify(e.body)}` : "Reject failed.");
+    }
+  }
+
+  return (
+    <div className="p-8 max-w-2xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
+      <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Review Queue</h1>
+      <p style={{ color: "var(--pr-text-disabled)", fontSize: 12, marginBottom: 16 }}>
+        No per-person login exists yet (see SECURITY.md); type your name to record who approved or
+        rejected each policy.
+      </p>
+
+      <input
+        placeholder="Your name"
+        value={approver}
+        onChange={(e) => setApprover(e.target.value)}
+        style={{
+          backgroundColor: "var(--pr-bg-hover)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          color: "var(--pr-text-primary)",
+          borderRadius: 6,
+          padding: "6px 8px",
+          fontSize: 13,
+          marginBottom: 16,
+          width: 260,
+        }}
+      />
+
+      {message && <p style={{ color: "var(--pr-warning-amber)", marginBottom: 12 }}>{message}</p>}
+
+      {pending?.length === 0 && <p style={{ color: "var(--pr-text-disabled)" }}>Nothing pending review.</p>}
+
+      {pending?.map((p) => (
+        <div
+          key={p.policy_key}
+          style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: 16, marginBottom: 12 }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>
+              {p.name} (v{p.version})
+            </Link>
+            <div className="flex gap-2">
+              <button onClick={() => handleApprove(p.policy_key)} style={{ color: "var(--pr-trust-green)", fontSize: 13 }}>
+                Approve
+              </button>
+              <button onClick={() => handleReject(p.policy_key)} style={{ color: "var(--pr-critical-red)", fontSize: 13 }}>
+                Reject
+              </button>
+            </div>
+          </div>
+          <input
+            placeholder="Reason (required to reject)"
+            value={rejectReason[p.policy_key] ?? ""}
+            onChange={(e) => setRejectReason((prev) => ({ ...prev, [p.policy_key]: e.target.value }))}
+            style={{
+              backgroundColor: "var(--pr-bg-hover)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              color: "var(--pr-text-primary)",
+              borderRadius: 6,
+              padding: "6px 8px",
+              fontSize: 13,
+              width: "100%",
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
