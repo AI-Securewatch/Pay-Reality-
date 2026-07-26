@@ -17,7 +17,7 @@ const WORKFLOW = [
   {
     step: "01",
     icon: Shield,
-    title: "Authority",
+    title: "Agents",
     desc: "Register the AI agents operating in your enterprise and the identity each one acts under.",
     path: "/authority",
     color: "var(--pr-authority-blue)",
@@ -25,16 +25,16 @@ const WORKFLOW = [
   {
     step: "02",
     icon: FileText,
-    title: "Policy Studio",
-    desc: "Author a policy by hand, upload a document for AI extraction, or review a legacy delegation-of-authority document. All three converge on the same versioned, compiled policy.",
+    title: "Governance",
+    desc: "Upload your existing governance documents and let AI find the rules for you, or write one by hand.",
     path: "/policy-studio",
     color: "var(--pr-evidence-cyan)",
   },
   {
     step: "03",
     icon: FlaskConical,
-    title: "Runtime Decisions",
-    desc: "Submit a real intent (an agent requesting to act) and watch the Runtime Authority Engine evaluate it against the active policy: approve, deny, or escalate to human review.",
+    title: "Decisions",
+    desc: "See what happens when an agent tries to act: approved, blocked, or sent to a human, evaluated against your rules in real time.",
     path: "/decisions",
     color: "var(--pr-warning-amber)",
   },
@@ -42,7 +42,7 @@ const WORKFLOW = [
     step: "04",
     icon: Database,
     title: "Evidence",
-    desc: "Every decision produces a cryptographically signed Evidence record. Verify any record's signature independently, right here.",
+    desc: "Every decision produces a cryptographically signed record. Verify any record's signature independently, right here.",
     path: "/evidence",
     color: "var(--pr-verification-purple)",
   },
@@ -101,19 +101,19 @@ export function PlatformOverview() {
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
-            to="/decisions"
+            to="/policy-studio/authority-builder"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-90"
             style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
           >
-            Test a real decision
+            Show me what your agents are allowed to do
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            to="/policy-studio/upload"
+            to="/decisions"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-colors"
             style={{ borderColor: "rgba(255,255,255,0.12)", color: "var(--pr-text-primary)" }}
           >
-            Upload a policy document
+            Test a decision now
           </Link>
         </div>
       </div>
@@ -143,7 +143,7 @@ export function PlatformOverview() {
                 {activePolicy ? `v${activePolicy.version}` : "None"}
               </div>
               <div className="text-xs" style={{ color: "var(--pr-text-muted)" }}>
-                Active policy version
+                Active rule
               </div>
             </div>
             <div className="flex items-center gap-2 ml-auto text-xs" style={{ color: "var(--pr-text-muted)" }}>
@@ -160,7 +160,7 @@ export function PlatformOverview() {
           One workflow, not a dashboard
         </h2>
         <p className="text-sm mb-8" style={{ color: "var(--pr-text-muted)" }}>
-          Authority → Policy → Runtime Decisions → Evidence → Assurance. Every stage feeds the next.
+          Agents → Governance → Decisions → Evidence → Assurance. Every stage feeds the next.
         </p>
       </div>
       <div className="grid gap-4">

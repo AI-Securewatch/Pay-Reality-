@@ -6,6 +6,7 @@ import { PolicyStatusBadge } from "./components/PolicyStatusBadge";
 import { ConditionRow } from "./components/ConditionRow";
 import { ScopeFields } from "./components/ScopeFields";
 import { describeApiError } from "../live/format";
+import { describePolicy, EFFECT_LABEL } from "./describePolicy";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -124,7 +125,7 @@ export function PolicyWorkspacePage() {
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-4 flex items-center justify-between">
         <Link to="/policy-studio" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
-          &lt; Back to Policy List
+          &lt; Back to Governance
         </Link>
         <button
           onClick={handleSave}
@@ -137,7 +138,7 @@ export function PolicyWorkspacePage() {
       </div>
 
       <div className="mb-6 flex items-center gap-3">
-        <h1 style={{ color: "var(--pr-text-primary)" }}>{form.name || "New Policy"}</h1>
+        <h1 style={{ color: "var(--pr-text-primary)" }}>{form.name || "New Rule"}</h1>
         {existing && (
           <>
             <span style={{ color: "var(--pr-text-muted)" }}>v{existing.version}</span>
@@ -153,30 +154,25 @@ export function PolicyWorkspacePage() {
       {existing && (
         <div className="mb-4 flex gap-3 text-sm">
           <Link to={`/policy-studio/${policyKey}/versions`} style={{ color: "var(--pr-authority-blue)" }}>
-            Version History
+            History
           </Link>
           {existing.status === "draft" && (
             <button onClick={handleSubmitForReview} disabled={saving} style={{ color: "var(--pr-authority-blue)" }}>
               Submit for review
             </button>
           )}
-          {existing.status === "approved" && (
-            <Link to={`/policy-studio/${policyKey}/compile`} style={{ color: "var(--pr-authority-blue)" }}>
-              Compile
-            </Link>
-          )}
-          {(existing.status === "compiled" || existing.status === "active") && (
-            <Link to={`/policy-studio/${policyKey}/dry-run`} style={{ color: "var(--pr-authority-blue)" }}>
-              Dry Run
-            </Link>
-          )}
-          {existing.status === "compiled" && (
-            <Link to={`/policy-studio/${policyKey}/deploy`} style={{ color: "var(--pr-authority-blue)" }}>
-              Deploy
+          {(existing.status === "approved" || existing.status === "compiled" || existing.status === "active") && (
+            <Link to={`/policy-studio/${policyKey}/publish`} style={{ color: "var(--pr-authority-blue)" }}>
+              Publish
             </Link>
           )}
         </div>
       )}
+
+      <div style={{ ...sectionStyle, borderColor: "rgba(77,124,254,0.25)" }}>
+        <h2 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-muted)" }}>In plain English</h2>
+        <p style={{ color: "var(--pr-text-primary)", fontSize: 15 }}>{describePolicy(form)}</p>
+      </div>
 
       <div style={sectionStyle}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Identity</h2>
@@ -197,7 +193,7 @@ export function PolicyWorkspacePage() {
       </div>
 
       <div style={sectionStyle}>
-        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Scope</h2>
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Who, what, and when</h2>
         <ScopeFields scope={form.scope} onChange={updateScope} />
       </div>
 
@@ -257,12 +253,12 @@ export function PolicyWorkspacePage() {
       </div>
 
       <div style={sectionStyle}>
-        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Effect</h2>
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>What should happen</h2>
         <div className="flex gap-4">
           {(["allow", "deny", "require_human_review"] as Effect[]).map((eff) => (
             <label key={eff} className="flex items-center gap-2" style={{ fontSize: 13, color: "var(--pr-text-secondary)" }}>
               <input type="radio" checked={form.effect === eff} onChange={() => setForm((f) => ({ ...f, effect: eff }))} />
-              {eff}
+              {EFFECT_LABEL[eff]}
             </label>
           ))}
         </div>

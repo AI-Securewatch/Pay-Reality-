@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { policyStudioApi } from "./api";
 import type { RuntimePolicy } from "./types";
 import { describeApiError } from "../live/format";
+import { describePolicy } from "./describePolicy";
 
 export function ReviewQueuePage() {
   const [pending, setPending] = useState<RuntimePolicy[] | null>(null);
@@ -45,9 +46,9 @@ export function ReviewQueuePage() {
 
   return (
     <div className="p-8 max-w-2xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
-      <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Review Queue</h1>
+      <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Approvals</h1>
       <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 16 }}>
-        Enter your name to record who reviewed each policy below.
+        Enter your name to record who reviewed each rule below.
       </p>
 
       <label htmlFor="reviewer-name" className="sr-only">Your name</label>
@@ -100,6 +101,12 @@ export function ReviewQueuePage() {
               </button>
             </div>
           </div>
+          <p style={{ color: "var(--pr-text-secondary)", fontSize: 13, marginBottom: 10 }}>
+            {describePolicy(p)}
+            {p.constraints.risk_level && (
+              <span style={{ color: "var(--pr-warning-amber)" }}> &middot; {p.constraints.risk_level} risk</span>
+            )}
+          </p>
           <label htmlFor={`reject-reason-${p.policy_key}`} className="sr-only">Rejection reason</label>
           <input
             id={`reject-reason-${p.policy_key}`}

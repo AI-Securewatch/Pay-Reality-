@@ -40,27 +40,24 @@ export function PolicyListPage() {
   return (
     <div className="p-8" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-6 flex items-center justify-between">
-        <h1 style={{ color: "var(--pr-text-primary)" }}>Policy Studio</h1>
+        <h1 style={{ color: "var(--pr-text-primary)" }}>Governance</h1>
         <div className="flex items-center gap-3">
-          <Link to="/policy-studio/legacy-review" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
-            Legacy DoA Review
-          </Link>
           <Link to="/policy-studio/review-queue" style={{ color: "var(--pr-authority-blue)", fontSize: 13 }}>
-            Review Queue
-          </Link>
-          <Link
-            to="/policy-studio/authority-builder"
-            className="px-4 py-2 rounded-lg text-sm font-medium border"
-            style={{ borderColor: "var(--pr-authority-blue)", color: "var(--pr-authority-blue)" }}
-          >
-            AI Authority Builder
+            Approvals
           </Link>
           <Link
             to="/policy-studio/new"
+            className="px-4 py-2 rounded-lg text-sm font-medium border"
+            style={{ borderColor: "var(--pr-authority-blue)", color: "var(--pr-authority-blue)" }}
+          >
+            + Write a rule
+          </Link>
+          <Link
+            to="/policy-studio/authority-builder"
             className="px-4 py-2 rounded-lg text-sm font-medium"
             style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
           >
-            + New Policy
+            Discover from documents
           </Link>
         </div>
       </div>

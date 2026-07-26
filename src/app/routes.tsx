@@ -1,7 +1,19 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter, Navigate, useParams } from "react-router";
 import { Layout } from "./components/Layout";
 import { NotFound } from "./pages/NotFound";
 import { RouteErrorBoundary } from "./pages/RouteErrorBoundary";
+
+// Compile/Dry Run/Deploy and Diff were merged into Publish and Versions
+// respectively (PAYREALITY_UX_REVIEW.md); these keep the old URLs from
+// 404ing for anyone with a bookmark or an external link.
+function RedirectToPublish() {
+  const { policyKey } = useParams();
+  return <Navigate to={`/policy-studio/${policyKey}/publish`} replace />;
+}
+function RedirectToVersions() {
+  const { policyKey } = useParams();
+  return <Navigate to={`/policy-studio/${policyKey}/versions`} replace />;
+}
 
 // Every real page is code-split by route: the initial bundle only needs
 // the shell (Layout) and whichever single page a visitor actually
@@ -38,11 +50,15 @@ export const router = createBrowserRouter([
       { path: "policy-studio/authority-builder/:corpusId", lazy: () => import("./ai-authority-builder/CorpusReviewPage").then((m) => ({ Component: m.AIAuthorityBuilderCorpusReviewPage })) },
       { path: "policy-studio/legacy-review", lazy: () => import("./live/pages/LiveDocuments").then((m) => ({ Component: m.LiveDocuments })) },
       { path: "policy-studio/:policyKey", lazy: () => import("./policy-studio/PolicyWorkspacePage").then((m) => ({ Component: m.PolicyWorkspacePage })) },
-      { path: "policy-studio/:policyKey/versions", lazy: () => import("./policy-studio/VersionHistoryPage").then((m) => ({ Component: m.VersionHistoryPage })) },
-      { path: "policy-studio/:policyKey/diff", lazy: () => import("./policy-studio/PolicyDiffPage").then((m) => ({ Component: m.PolicyDiffPage })) },
-      { path: "policy-studio/:policyKey/compile", lazy: () => import("./policy-studio/CompilePage").then((m) => ({ Component: m.CompilePage })) },
-      { path: "policy-studio/:policyKey/dry-run", lazy: () => import("./policy-studio/DryRunPage").then((m) => ({ Component: m.DryRunPage })) },
-      { path: "policy-studio/:policyKey/deploy", lazy: () => import("./policy-studio/DeploymentPage").then((m) => ({ Component: m.DeploymentPage })) },
+      // Version History + Diff merged into one page (PAYREALITY_UX_REVIEW.md);
+      // Compile + Dry Run + Deploy merged into one Publish page, same reason.
+      { path: "policy-studio/:policyKey/versions", lazy: () => import("./policy-studio/VersionsPage").then((m) => ({ Component: m.VersionsPage })) },
+      { path: "policy-studio/:policyKey/publish", lazy: () => import("./policy-studio/PublishPage").then((m) => ({ Component: m.PublishPage })) },
+      // Old separate URLs redirect rather than 404 for anyone with a bookmark.
+      { path: "policy-studio/:policyKey/diff", element: <RedirectToVersions /> },
+      { path: "policy-studio/:policyKey/compile", element: <RedirectToPublish /> },
+      { path: "policy-studio/:policyKey/dry-run", element: <RedirectToPublish /> },
+      { path: "policy-studio/:policyKey/deploy", element: <RedirectToPublish /> },
 
       // Legacy paths from the pre-consolidation app, kept as redirects so
       // no external link or bookmark 404s. See audit/EXECUTION_REPORT.md.

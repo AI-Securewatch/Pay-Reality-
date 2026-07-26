@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, Send, ShieldAlert, XCircle } from "lucide-react";
 import { apiClient } from "../apiClient";
 import { signBody } from "../crypto";
 import { getAgentPrivateKey } from "../agentKeyStore";
-import { describeApiError, formatStatus } from "../format";
+import { describeApiError, describeReason, formatStatus } from "../format";
 import { policyStudioApi } from "../../policy-studio/api";
 import type { LiveAgent, LiveDecision, SubmitIntentResult } from "../types";
 
@@ -124,10 +124,10 @@ export function LiveTestIntent() {
   return (
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-8">
-        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Runtime Decisions</h1>
+        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Decisions</h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
-          Submit a signed Intent to the real Decision Engine and watch it evaluate against the
-          active Policy: approve, deny, or escalate to human review.
+          See what happens when an agent tries to act: watch it get checked against your active
+          rules in real time and come back approved, blocked, or sent to a human.
         </p>
       </div>
 
@@ -224,7 +224,7 @@ export function LiveTestIntent() {
             </div>
             <div>
               <p className="font-semibold" style={{ color: style.fg }}>{formatStatus(decision.outcome)}</p>
-              <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{decision.reason}</p>
+              <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{describeReason(decision.reason)}</p>
             </div>
           </div>
 

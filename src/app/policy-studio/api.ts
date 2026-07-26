@@ -1,4 +1,5 @@
 import { apiClient } from "../live/apiClient";
+import type { LivePrincipal } from "../live/types";
 import type {
   CompileResult,
   DeployResult,
@@ -12,6 +13,11 @@ const BASE = "/v1/runtime-policies";
 
 export const policyStudioApi = {
   getVocabulary: () => apiClient.get<{ actions: string[] }>(`${BASE}/vocabulary`),
+  // A rule's Scope.principal used to be a free-text field the author had
+  // to type an exact ID into by hand (PAYREALITY_UX_REVIEW.md, usability
+  // problem #6). Reuses the same /v1/principals list the Agent Directory
+  // already shows, so the picker always reflects real principals.
+  listPrincipals: () => apiClient.get<LivePrincipal[]>("/v1/principals"),
   list: (status?: string) =>
     apiClient.get<RuntimePolicy[]>(`${BASE}${status ? `?status=${encodeURIComponent(status)}` : ""}`),
   get: (policyKey: string) => apiClient.get<RuntimePolicy>(`${BASE}/${policyKey}`),

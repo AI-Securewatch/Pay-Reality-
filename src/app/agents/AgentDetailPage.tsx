@@ -203,8 +203,8 @@ export function AgentDetailPage() {
       </div>
 
       <div style={cardStyle}>
-        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Runtime Policies</h2>
-        {detail.policies.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No Runtime Policies target this agent's principal yet.</p>}
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Rules</h2>
+        {detail.policies.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No rules target this agent's principal yet.</p>}
         {detail.policies.map((p) => (
           <div key={p.policy_key} className="flex items-center justify-between py-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 13 }}>
             <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>{p.name || p.policy_key}</Link>

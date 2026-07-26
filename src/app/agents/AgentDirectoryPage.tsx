@@ -140,7 +140,7 @@ export function AgentDirectoryPage() {
   return (
     <div className="p-8" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-6">
-        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Authority</h1>
+        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Agents</h1>
         <p style={{ color: "var(--pr-text-muted)", fontSize: 13, maxWidth: 640 }}>
           Every AI agent operating under this platform, managed the same way an enterprise manages a
           human workforce identity: registered, activated, suspended, rotated, retired, or revoked,

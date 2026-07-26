@@ -131,7 +131,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
       <h1 className="mt-2 mb-1" style={{ color: "var(--pr-text-primary)" }}>{corpus?.name ?? "Authority Graph"}</h1>
       <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 20 }}>
         Every finding below is a reviewable claim, cited to its source document and location, never
-        auto-deployed. Only Runtime Policies can be promoted into Policy Studio; everything else is
+        published automatically. Only Rules can be promoted into Governance; everything else is
         informational discovery about this organisation's authority structure.
       </p>
 
@@ -143,7 +143,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
           style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
         >
           {[
-            ["Runtime Policies", summary.policy_count],
+            ["Rules", summary.policy_count],
             ["Principals", summary.principal_count],
             ["Resources", summary.resource_count],
             ["Operations", summary.operation_count],
@@ -160,7 +160,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         </div>
       )}
 
-      <Section title="Runtime Policies" count={policies?.length ?? 0} emptyLabel="No Runtime Policies were found in this corpus.">
+      <Section title="Rules" count={policies?.length ?? 0} emptyLabel="No rules were found in this corpus.">
         <div style={{ padding: 20 }}>
           {policies?.map((c) => (
             <CandidateCard key={c.candidate_id} candidate={c} onChanged={loadAll} />

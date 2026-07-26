@@ -15,14 +15,17 @@ import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 import { useIsMobile } from "./ui/use-mobile";
 import { OperatorKeyField } from "../live/components/OperatorKeyField";
 
-// One workflow, in order: Authority -> Policy -> Runtime Decisions ->
-// Evidence -> Assurance. No department-shaped groups, no duplicate
-// "real" vs "demo" sections: see audit/EXECUTION_REPORT.md.
+// One workflow, in order: Agents -> Governance -> Decisions -> Evidence
+// -> Assurance. No department-shaped groups, no duplicate "real" vs
+// "demo" sections: see audit/EXECUTION_REPORT.md. Renamed from
+// Authority/Policy Studio/Runtime Decisions per the product simplification
+// review (PAYREALITY_UX_REVIEW.md): "Authority" collided with three other
+// unrelated uses of the same word elsewhere in the product.
 const navItems = [
   { path: "/", label: "Overview", icon: Compass },
-  { path: "/authority", label: "Authority", icon: Bot },
-  { path: "/policy-studio", label: "Policy Studio", icon: ScrollText },
-  { path: "/decisions", label: "Runtime Decisions", icon: FlaskConical },
+  { path: "/authority", label: "Agents", icon: Bot },
+  { path: "/policy-studio", label: "Governance", icon: ScrollText },
+  { path: "/decisions", label: "Decisions", icon: FlaskConical },
   { path: "/evidence", label: "Evidence", icon: Database },
   { path: "/assurance", label: "Assurance", icon: Building2 },
 ];

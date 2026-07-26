@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { policyStudioApi } from "../api";
+import type { LivePrincipal } from "../../live/types";
 import type { Scope } from "../types";
 
 const inputStyle: React.CSSProperties = {
@@ -25,6 +26,7 @@ const labelStyle: React.CSSProperties = {
 // Runtime Decisions page.
 export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next: Scope) => void }) {
   const [actions, setActions] = useState<string[]>([]);
+  const [principals, setPrincipals] = useState<LivePrincipal[]>([]);
   const formId = useId();
 
   useEffect(() => {
@@ -32,19 +34,30 @@ export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next
       .getVocabulary()
       .then((v) => setActions(v.actions))
       .catch(() => setActions([]));
+    policyStudioApi
+      .listPrincipals()
+      .then(setPrincipals)
+      .catch(() => setPrincipals([]));
   }, []);
 
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <label htmlFor={`${formId}-principal`} style={labelStyle}>Principal</label>
-        <input
+        <label htmlFor={`${formId}-principal`} style={labelStyle}>Who this applies to</label>
+        <select
           id={`${formId}-principal`}
           style={inputStyle}
           value={scope.principal}
           onChange={(e) => onChange({ ...scope, principal: e.target.value })}
-          placeholder="Principal ID"
-        />
+        >
+          <option value="">Select a principal...</option>
+          {principals.map((p) => (
+            <option key={p.id} value={p.name}>{p.name}</option>
+          ))}
+          {scope.principal && !principals.some((p) => p.name === scope.principal) && (
+            <option value={scope.principal}>{scope.principal} (not in the current list)</option>
+          )}
+        </select>
       </div>
       <div>
         <label htmlFor={`${formId}-action`} style={labelStyle}>Action</label>

@@ -4,9 +4,17 @@ import { apiClient } from "../apiClient";
 import { formatStatus } from "../format";
 import type { LiveEvidence as LiveEvidenceType } from "../types";
 
+const FIELD_LABEL: Record<string, string> = {
+  action: "Action",
+  amount: "Amount",
+  authority_outcome: "Outcome",
+  risk_classification: "Risk level",
+};
+
 export function LiveEvidence() {
   const [records, setRecords] = useState<LiveEvidenceType[] | null>(null);
   const [verifyResults, setVerifyResults] = useState<Record<string, boolean>>({});
+  const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     apiClient.get<LiveEvidenceType[]>("/v1/evidence").then(setRecords);
@@ -23,12 +31,12 @@ export function LiveEvidence() {
         <div className="flex items-center gap-2 mb-1">
           <Database className="w-5 h-5" style={{ color: "var(--pr-authority-blue)" }} />
           <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--pr-authority-blue)" }}>
-            Live Evidence Vault
+            Evidence Vault
           </span>
         </div>
-        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Live Evidence</h1>
+        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Evidence</h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
-          Every decision produces a cryptographically signed, immutable Evidence record. Verify a
+          Every decision produces a cryptographically signed, unchangeable record. Verify a
           signature to detect any tampering.
         </p>
       </div>
@@ -36,7 +44,7 @@ export function LiveEvidence() {
       <div className="space-y-3">
         {records?.length === 0 && (
           <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
-            No evidence yet. Submit an Intent from the Test a Decision page.
+            No evidence yet. Go to Decisions and test one.
           </p>
         )}
         {records?.map((e) => {
@@ -51,7 +59,7 @@ export function LiveEvidence() {
                 <div>
                   <p className="text-sm font-mono" style={{ color: "var(--pr-authority-blue)" }}>{e.evidence_id}</p>
                   <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>
-                    {new Date(e.created_at).toLocaleString()} · key {e.key_id}
+                    {new Date(e.created_at).toLocaleString()}
                   </p>
                 </div>
                 <span
@@ -68,13 +76,13 @@ export function LiveEvidence() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-xs">
                 {["action", "amount", "authority_outcome", "risk_classification"].map((k) => (
                   <div key={k}>
-                    <p style={{ color: "var(--pr-text-muted)" }}>{k}</p>
+                    <p style={{ color: "var(--pr-text-muted)" }}>{FIELD_LABEL[k] ?? k}</p>
                     <p style={{ color: "var(--pr-text-primary)" }}>{String(e.payload[k] ?? "N/A")}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-2">
                 <button
                   onClick={() => verify(e.evidence_id)}
                   className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 border transition-all"
@@ -92,7 +100,26 @@ export function LiveEvidence() {
                     <ShieldX className="w-3.5 h-3.5" /> Tampered or corrupted
                   </span>
                 )}
+                <button
+                  onClick={() =>
+                    setExpandedDetails((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(e.evidence_id)) next.delete(e.evidence_id);
+                      else next.add(e.evidence_id);
+                      return next;
+                    })
+                  }
+                  className="text-xs ml-auto"
+                  style={{ color: "var(--pr-text-disabled)" }}
+                >
+                  {expandedDetails.has(e.evidence_id) ? "Hide" : "Show"} cryptographic details
+                </button>
               </div>
+              {expandedDetails.has(e.evidence_id) && (
+                <p className="text-xs font-mono" style={{ color: "var(--pr-text-disabled)" }}>
+                  Signing key: {e.key_id}
+                </p>
+              )}
             </div>
           );
         })}
