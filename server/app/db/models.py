@@ -385,8 +385,17 @@ class PolicyExtractionCandidate(Base):
     __tablename__ = "policy_extraction_candidates"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    upload_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("policy_extraction_uploads.id"), nullable=False
+    # Nullable, plus corpus_id below: a candidate belongs to exactly one of
+    # a single-document upload (the original AI Policy Builder) or a
+    # multi-document corpus (AI Authority Builder,
+    # AI_AUTHORITY_BUILDER_ARCHITECTURE.md), never both, never neither,
+    # enforced by the CHECK constraint below. Every row created by the
+    # original AI Policy Builder still always sets upload_id, unaffected.
+    upload_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("policy_extraction_uploads.id")
+    )
+    corpus_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id")
     )
     content: Mapped[dict] = mapped_column(JSONB, nullable=False)
     confidence: Mapped[float] = mapped_column(nullable=False)
@@ -402,6 +411,213 @@ class PolicyExtractionCandidate(Base):
             "status IN ('pending_review','promoted','dismissed')",
             name="ck_policy_extraction_candidates_status",
         ),
+        CheckConstraint(
+            "(upload_id IS NOT NULL) != (corpus_id IS NOT NULL)",
+            name="ck_policy_extraction_candidates_exactly_one_owner",
+        ),
         Index("idx_policy_extraction_candidates_upload", "upload_id"),
+        Index("idx_policy_extraction_candidates_corpus", "corpus_id"),
         Index("idx_policy_extraction_candidates_status", "status"),
     )
+
+
+class AuthorityCorpus(Base):
+    """AI Authority Builder (AI_AUTHORITY_BUILDER_ARCHITECTURE.md): one or
+    many documents, uploaded and analyzed together as a single body of
+    evidence about one organisation's authority structure. Independent of
+    `policy_extraction_uploads` (the original, still-unmodified AI Policy
+    Builder's single-document table)."""
+
+    __tablename__ = "authority_corpora"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('uploaded','extracted','failed')",
+            name="ck_authority_corpora_status",
+        ),
+    )
+
+
+class AuthorityCorpusDocument(Base):
+    """One uploaded file within a corpus. `content` stored in Postgres for
+    the same reason every other document/upload table in this platform
+    already does (documents.content, policy_extraction_uploads.content)."""
+
+    __tablename__ = "authority_corpus_documents"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    corpus_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id"), nullable=False
+    )
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    format: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "format IN ('pdf','docx','xlsx','csv','text')",
+            name="ck_authority_corpus_documents_format",
+        ),
+        Index("idx_authority_corpus_documents_corpus", "corpus_id"),
+    )
+
+
+class AuthorityPrincipal(Base):
+    """A discovered authority holder (AI_AUTHORITY_BUILDER_ARCHITECTURE.md's
+    Authority Graph). Informational: there is no first-class Principal
+    table this promotes into; a reviewer references it by name directly
+    in a promoted RuntimePolicy's scope.principal, which is already a
+    free-form string."""
+
+    __tablename__ = "authority_principals"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    corpus_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    role: Mapped[str | None] = mapped_column(Text)
+    reports_to: Mapped[str | None] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(nullable=False)
+    source_excerpt: Mapped[str | None] = mapped_column(Text)
+    source_location: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (Index("idx_authority_principals_corpus", "corpus_id"),)
+
+
+class AuthorityResource(Base):
+    """A discovered business object (a Resource, in the universal
+    vocabulary sense of RESOURCE_MODEL.md). Informational only in this
+    phase: see AI_AUTHORITY_BUILDER_ARCHITECTURE.md."""
+
+    __tablename__ = "authority_resources"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    corpus_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(nullable=False)
+    source_excerpt: Mapped[str | None] = mapped_column(Text)
+    source_location: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (Index("idx_authority_resources_corpus", "corpus_id"),)
+
+
+class AuthorityOperation(Base):
+    """A discovered verb (an Operation, in the universal vocabulary sense
+    of OPERATION_MODEL.md). Informational only in this phase."""
+
+    __tablename__ = "authority_operations"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    corpus_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(nullable=False)
+    source_excerpt: Mapped[str | None] = mapped_column(Text)
+    source_location: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (Index("idx_authority_operations_corpus", "corpus_id"),)
+
+
+class AuthorityRelationship(Base):
+    """A discovered link between two named principals: delegation,
+    escalation, or inheritance. Model-reported, reviewed by a human, not
+    a formally verified graph edge."""
+
+    __tablename__ = "authority_relationships"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    corpus_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(Text, nullable=False)
+    from_principal: Mapped[str] = mapped_column(Text, nullable=False)
+    to_principal: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(nullable=False)
+    source_excerpt: Mapped[str | None] = mapped_column(Text)
+    source_location: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('delegation','escalation','inheritance')",
+            name="ck_authority_relationships_kind",
+        ),
+        Index("idx_authority_relationships_corpus", "corpus_id"),
+    )
+
+
+class AuthorityConflict(Base):
+    """A contradiction or duplication the model noticed across the
+    corpus. Model-reported (AI_AUTHORITY_BUILDER_ARCHITECTURE.md: "never
+    oversell a heuristic"), never a formal constraint-satisfaction
+    proof; always surfaced for human review, never auto-resolved."""
+
+    __tablename__ = "authority_conflicts"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    corpus_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id"), nullable=False
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    reasoning: Mapped[str | None] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (Index("idx_authority_conflicts_corpus", "corpus_id"),)
+
+
+class AuthorityGap(Base):
+    """Missing information the model expected to find and didn't: an
+    undefined approver, an unstated limit, a resource mentioned but
+    never scoped."""
+
+    __tablename__ = "authority_gaps"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    corpus_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id"), nullable=False
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(nullable=False)
+    source_excerpt: Mapped[str | None] = mapped_column(Text)
+    source_location: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (Index("idx_authority_gaps_corpus", "corpus_id"),)
+
+
+class AuthorityQuestion(Base):
+    """A clarification question generated for a human reviewer. Not
+    confidence-scored: a question is a request for information, not a
+    claim to be confident or unconfident about."""
+
+    __tablename__ = "authority_questions"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    corpus_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id"), nullable=False
+    )
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    context: Mapped[str | None] = mapped_column(Text)
+    answered: Mapped[bool] = mapped_column(nullable=False, server_default="false")
+    answer: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (Index("idx_authority_questions_corpus", "corpus_id"),)

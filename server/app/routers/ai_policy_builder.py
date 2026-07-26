@@ -46,10 +46,11 @@ def _upload_to_response(upload: PolicyExtractionUpload) -> UploadResponse:
     )
 
 
-def _candidate_to_response(candidate: PolicyExtractionCandidate) -> CandidateResponse:
+def candidate_to_response(candidate: PolicyExtractionCandidate) -> CandidateResponse:
     return CandidateResponse(
         candidate_id=str(candidate.id),
-        upload_id=str(candidate.upload_id),
+        upload_id=str(candidate.upload_id) if candidate.upload_id else None,
+        corpus_id=str(candidate.corpus_id) if candidate.corpus_id else None,
         content=candidate.content,
         confidence=candidate.confidence,
         missing_fields=list(candidate.missing_fields),
@@ -107,12 +108,20 @@ def get_upload(upload_id: uuid.UUID, db: Session = Depends(get_db)):
 
 @router.get("/uploads/{upload_id}/candidates", response_model=list[CandidateResponse])
 def list_candidates_for_upload(upload_id: uuid.UUID, db: Session = Depends(get_db)):
-    return [_candidate_to_response(c) for c in svc.list_candidates(db, upload_id=upload_id)]
+    return [candidate_to_response(c) for c in svc.list_candidates(db, upload_id=upload_id)]
 
 
 @router.get("/candidates", response_model=list[CandidateResponse])
-def list_candidates(status: str | None = None, db: Session = Depends(get_db)):
-    return [_candidate_to_response(c) for c in svc.list_candidates(db, status=status)]
+def list_candidates(
+    status: str | None = None,
+    upload_id: uuid.UUID | None = None,
+    corpus_id: uuid.UUID | None = None,
+    db: Session = Depends(get_db),
+):
+    return [
+        candidate_to_response(c)
+        for c in svc.list_candidates(db, upload_id=upload_id, corpus_id=corpus_id, status=status)
+    ]
 
 
 @router.get("/candidates/{candidate_id}", response_model=CandidateResponse)
@@ -121,7 +130,7 @@ def get_candidate(candidate_id: uuid.UUID, db: Session = Depends(get_db)):
         row = svc.get_candidate(db, candidate_id)
     except CandidateNotFoundError:
         raise HTTPException(status_code=404, detail="candidate_not_found")
-    return _candidate_to_response(row)
+    return candidate_to_response(row)
 
 
 @router.put(
@@ -136,7 +145,7 @@ def edit_candidate(candidate_id: uuid.UUID, body: EditCandidateRequest, db: Sess
         raise HTTPException(status_code=404, detail="candidate_not_found")
     except CandidateNotPendingReviewError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    return _candidate_to_response(row)
+    return candidate_to_response(row)
 
 
 @router.post(
@@ -151,7 +160,7 @@ def dismiss_candidate(candidate_id: uuid.UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="candidate_not_found")
     except CandidateNotPendingReviewError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    return _candidate_to_response(row)
+    return candidate_to_response(row)
 
 
 @router.post(

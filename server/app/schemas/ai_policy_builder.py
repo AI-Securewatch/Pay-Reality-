@@ -31,7 +31,8 @@ class UploadResponse(BaseModel):
 
 class CandidateResponse(BaseModel):
     candidate_id: str
-    upload_id: str
+    upload_id: str | None = None
+    corpus_id: str | None = None
     content: CandidateContentSchema
     confidence: float
     missing_fields: list[str]

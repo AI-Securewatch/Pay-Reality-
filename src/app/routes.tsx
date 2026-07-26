@@ -17,6 +17,8 @@ import { ReviewQueuePage } from "./policy-studio/ReviewQueuePage";
 import { DeploymentPage } from "./policy-studio/DeploymentPage";
 import { AIPolicyBuilderUploadPage } from "./ai-policy-builder/UploadPage";
 import { AIPolicyBuilderReviewPage } from "./ai-policy-builder/ReviewPage";
+import { AIAuthorityBuilderUploadPage } from "./ai-authority-builder/CorpusUploadPage";
+import { AIAuthorityBuilderCorpusReviewPage } from "./ai-authority-builder/CorpusReviewPage";
 
 export const router = createBrowserRouter([
   {
@@ -30,14 +32,19 @@ export const router = createBrowserRouter([
       { path: "assurance", Component: LiveAssurance },
 
       // Policy Studio is the single entry point for all policy work: manual
-      // authoring, AI document extraction, and the legacy delegation-of-
-      // authority review flow, all nested here rather than as separate
-      // top-level nav items (see PolicyListPage's own entry-point links).
+      // authoring, the AI Authority Builder (multi-document corpus
+      // analysis), the single-document AI Policy Builder it superseded as
+      // the primary surface (kept mounted for backward compatibility), and
+      // the legacy delegation-of-authority review flow, all nested here
+      // rather than as separate top-level nav items (see PolicyListPage's
+      // own entry-point links).
       { path: "policy-studio", Component: PolicyListPage },
       { path: "policy-studio/review-queue", Component: ReviewQueuePage },
       { path: "policy-studio/new", Component: PolicyWorkspacePage },
       { path: "policy-studio/upload", Component: AIPolicyBuilderUploadPage },
       { path: "policy-studio/upload/:uploadId", Component: AIPolicyBuilderReviewPage },
+      { path: "policy-studio/authority-builder", Component: AIAuthorityBuilderUploadPage },
+      { path: "policy-studio/authority-builder/:corpusId", Component: AIAuthorityBuilderCorpusReviewPage },
       { path: "policy-studio/legacy-review", Component: LiveDocuments },
       { path: "policy-studio/:policyKey", Component: PolicyWorkspacePage },
       { path: "policy-studio/:policyKey/versions", Component: VersionHistoryPage },
@@ -59,7 +66,7 @@ export const router = createBrowserRouter([
       { path: "policy", element: <Navigate to="/policy-studio/legacy-review" replace /> },
       { path: "policy-library", element: <Navigate to="/policy-studio/legacy-review" replace /> },
       { path: "policy-center", element: <Navigate to="/policy-studio/legacy-review" replace /> },
-      { path: "ai-policy-builder", element: <Navigate to="/policy-studio/upload" replace /> },
+      { path: "ai-policy-builder", element: <Navigate to="/policy-studio/authority-builder" replace /> },
       { path: "governance-simulation", element: <Navigate to="/decisions" replace /> },
       { path: "approvals", element: <Navigate to="/decisions" replace /> },
       { path: "assurance-center", element: <Navigate to="/assurance" replace /> },

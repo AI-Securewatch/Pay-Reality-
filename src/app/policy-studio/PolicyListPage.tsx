@@ -49,11 +49,11 @@ export function PolicyListPage() {
             Review Queue
           </Link>
           <Link
-            to="/policy-studio/upload"
+            to="/policy-studio/authority-builder"
             className="px-4 py-2 rounded-lg text-sm font-medium border"
             style={{ borderColor: "var(--pr-authority-blue)", color: "var(--pr-authority-blue)" }}
           >
-            Upload Document
+            AI Authority Builder
           </Link>
           <Link
             to="/policy-studio/new"

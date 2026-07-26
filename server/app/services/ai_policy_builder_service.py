@@ -144,11 +144,19 @@ def get_upload(db: Session, upload_id: uuid.UUID) -> PolicyExtractionUpload:
 
 
 def list_candidates(
-    db: Session, upload_id: uuid.UUID | None = None, status: str | None = None
+    db: Session,
+    upload_id: uuid.UUID | None = None,
+    corpus_id: uuid.UUID | None = None,
+    status: str | None = None,
 ) -> list[PolicyExtractionCandidate]:
+    """corpus_id filters to candidates discovered by the AI Authority
+    Builder (AI_AUTHORITY_BUILDER_ARCHITECTURE.md); this function has no
+    other knowledge of corpora, it just filters on the column."""
     stmt = select(PolicyExtractionCandidate).order_by(PolicyExtractionCandidate.created_at.desc())
     if upload_id is not None:
         stmt = stmt.where(PolicyExtractionCandidate.upload_id == upload_id)
+    if corpus_id is not None:
+        stmt = stmt.where(PolicyExtractionCandidate.corpus_id == corpus_id)
     if status is not None:
         stmt = stmt.where(PolicyExtractionCandidate.status == status)
     return list(db.scalars(stmt))

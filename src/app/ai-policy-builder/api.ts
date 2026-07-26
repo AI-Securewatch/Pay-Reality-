@@ -14,6 +14,8 @@ export const aiPolicyBuilderApi = {
   getUpload: (uploadId: string) => apiClient.get<Upload>(`${BASE}/uploads/${uploadId}`),
   listCandidatesForUpload: (uploadId: string) =>
     apiClient.get<Candidate[]>(`${BASE}/uploads/${uploadId}/candidates`),
+  listCandidatesForCorpus: (corpusId: string) =>
+    apiClient.get<Candidate[]>(`${BASE}/candidates?corpus_id=${encodeURIComponent(corpusId)}`),
   listCandidates: (status?: string) =>
     apiClient.get<Candidate[]>(`${BASE}/candidates${status ? `?status=${encodeURIComponent(status)}` : ""}`),
   editCandidate: (candidateId: string, content: RuntimePolicyRequest) =>

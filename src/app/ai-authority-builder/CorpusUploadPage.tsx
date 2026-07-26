@@ -1,0 +1,174 @@
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { aiAuthorityBuilderApi } from "./api";
+import type { Corpus } from "./types";
+import { ApiError } from "../live/apiClient";
+
+const STATUS_COLOR: Record<string, string> = {
+  uploaded: "var(--pr-text-disabled)",
+  extracted: "var(--pr-trust-green)",
+  failed: "var(--pr-critical-red)",
+};
+
+export function AIAuthorityBuilderUploadPage() {
+  const navigate = useNavigate();
+  const [corpora, setCorpora] = useState<Corpus[] | null>(null);
+  const [name, setName] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function load() {
+    aiAuthorityBuilderApi.listCorpora().then(setCorpora);
+  }
+
+  useEffect(load, []);
+
+  function addFiles(newFiles: FileList | null) {
+    if (!newFiles) return;
+    setFiles((prev) => [...prev, ...Array.from(newFiles)]);
+  }
+
+  function removeFile(index: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleSubmit() {
+    if (files.length === 0) {
+      setMessage("Select at least one document.");
+      return;
+    }
+    setUploading(true);
+    setMessage(null);
+    try {
+      const corpus = await aiAuthorityBuilderApi.createCorpus(name.trim() || "Untitled corpus", files);
+      if (corpus.status === "extracted") {
+        navigate(`/policy-studio/authority-builder/${corpus.corpus_id}`);
+      } else {
+        setMessage(`Corpus failed to extract (status: ${corpus.status}). ${corpus.error ?? ""}`);
+        load();
+      }
+    } catch (e) {
+      setMessage(e instanceof ApiError ? `Upload failed: ${JSON.stringify(e.body)}` : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
+      <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>AI Authority Builder</h1>
+      <p style={{ color: "var(--pr-text-muted)", fontSize: 13, marginBottom: 16, maxWidth: 620 }}>
+        Upload one or many governance documents together (delegation of authority, approval matrix,
+        procurement policy, HR policy, risk policy, security policy, standard operating procedures, or
+        similar). They are analyzed as a single Authority Corpus, never document by document, so a
+        limit stated in one file and contradicted in another is reported as a conflict, not silently
+        dropped. Nothing is created until you review and promote a finding.
+      </p>
+
+      <div
+        style={{
+          backgroundColor: "var(--pr-bg-card)",
+          border: "1px solid rgba(255,255,255,0.05)",
+          borderRadius: 12,
+          padding: 20,
+          marginBottom: 24,
+        }}
+      >
+        <label style={{ fontSize: 12, color: "var(--pr-text-muted)", display: "block", marginBottom: 4 }}>
+          Corpus name
+        </label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. 2026 Delegation of Authority Refresh"
+          style={{
+            backgroundColor: "var(--pr-bg-hover)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "var(--pr-text-primary)",
+            borderRadius: 6,
+            padding: "6px 8px",
+            fontSize: 13,
+            width: "100%",
+            marginBottom: 16,
+          }}
+        />
+
+        <label
+          className="flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 border-dashed cursor-pointer mb-3"
+          style={{ borderColor: "rgba(77,124,254,0.25)" }}
+        >
+          <span className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>
+            Add documents (.pdf, .docx, .xlsx, .csv, .txt)
+          </span>
+          <input
+            type="file"
+            multiple
+            accept=".pdf,.docx,.xlsx,.xls,.csv,.txt"
+            className="hidden"
+            onChange={(e) => addFiles(e.target.files)}
+          />
+        </label>
+
+        {files.length > 0 && (
+          <div className="mb-4">
+            {files.map((f, i) => (
+              <div key={i} className="flex items-center justify-between py-1" style={{ fontSize: 13, color: "var(--pr-text-secondary)" }}>
+                <span>{f.name}</span>
+                <button onClick={() => removeFile(i)} style={{ color: "var(--pr-critical-red)", fontSize: 12 }}>
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={uploading}
+          className="px-4 py-2 rounded-lg text-sm font-medium"
+          style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
+        >
+          {uploading ? "Uploading and analyzing corpus..." : `Analyze corpus (${files.length} file(s))`}
+        </button>
+
+        {message && <p style={{ color: "var(--pr-warning-amber)", marginTop: 12 }}>{message}</p>}
+      </div>
+
+      <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Past corpora</h2>
+      <table className="w-full text-sm" style={{ color: "var(--pr-text-primary)" }}>
+        <thead>
+          <tr style={{ color: "var(--pr-text-muted)", textAlign: "left", fontSize: 12 }}>
+            <th className="pb-2">Name</th>
+            <th className="pb-2">Documents</th>
+            <th className="pb-2">Status</th>
+            <th className="pb-2">Uploaded</th>
+          </tr>
+        </thead>
+        <tbody>
+          {corpora?.map((c) => (
+            <tr key={c.corpus_id} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              <td className="py-2">
+                <Link to={`/policy-studio/authority-builder/${c.corpus_id}`} style={{ color: "var(--pr-authority-blue)" }}>
+                  {c.name}
+                </Link>
+              </td>
+              <td className="py-2" style={{ color: "var(--pr-text-muted)" }}>{c.document_count}</td>
+              <td className="py-2" style={{ color: STATUS_COLOR[c.status] }}>{c.status}</td>
+              <td className="py-2" style={{ color: "var(--pr-text-muted)" }}>
+                {new Date(c.created_at).toLocaleString()}
+              </td>
+            </tr>
+          ))}
+          {corpora?.length === 0 && (
+            <tr>
+              <td colSpan={4} className="py-6 text-center" style={{ color: "var(--pr-text-disabled)" }}>
+                No corpora yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
