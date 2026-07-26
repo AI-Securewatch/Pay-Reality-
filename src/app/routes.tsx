@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { Layout } from "./components/Layout";
 import { NotFound } from "./pages/NotFound";
+import { RouteErrorBoundary } from "./pages/RouteErrorBoundary";
 
 // Every real page is code-split by route: the initial bundle only needs
 // the shell (Layout) and whichever single page a visitor actually
@@ -10,6 +11,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     Component: Layout,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, lazy: () => import("./pages/PlatformOverview").then((m) => ({ Component: m.PlatformOverview })) },
       { path: "authority", lazy: () => import("./live/pages/LiveAgents").then((m) => ({ Component: m.LiveAgents })) },
