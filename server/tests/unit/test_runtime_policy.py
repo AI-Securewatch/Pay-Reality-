@@ -114,6 +114,23 @@ def test_serialization_round_trips():
     assert restored == original
 
 
+def test_from_dict_survives_a_partial_audit_merge():
+    """Regression test: runtime_policy_service.approve()/reject() merge a
+    dict like {"approved": ..., "approved_by": ...} onto whatever audit
+    dict to_dict() already produced, then the result is fed back through
+    from_dict(). If the policy was ever created with audit=None, that
+    merge produces a dict missing "created" and from_dict() raised
+    KeyError in production (found via a live end-to-end Policy Studio
+    verification). Callers must always seed AuditTrail(created=...) at
+    construction, and this must never regress silently."""
+    original = _policy(audit=AuditTrail(created=FIXED_NOW))
+    content = to_dict(original)
+    content["audit"] = {**content["audit"], "approved": FIXED_NOW.isoformat(), "approved_by": "alice"}
+    restored = from_dict(content)
+    assert restored.audit.created == FIXED_NOW
+    assert restored.audit.approved_by == "alice"
+
+
 def test_canonical_json_is_deterministic():
     policy = _policy()
     assert canonical_json(policy) == canonical_json(policy)

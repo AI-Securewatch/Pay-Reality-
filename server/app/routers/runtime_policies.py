@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,7 +11,7 @@ from app.domain.compiler_v2.compiler_v2 import FINANCIAL_VOCABULARY
 from app.domain.runtime_policy.conditions import Condition, ConditionSet, Operator
 from app.domain.runtime_policy.constraints import Constraints, RiskLevel
 from app.domain.runtime_policy.effects import Effect
-from app.domain.runtime_policy.metadata import Metadata
+from app.domain.runtime_policy.metadata import AuditTrail, Metadata
 from app.domain.runtime_policy.runtime_policy import PolicyStatus, RuntimePolicy, Scope
 from app.schemas.runtime_policy import (
     ApproveRequest,
@@ -45,7 +46,7 @@ def _opa_url() -> str:
 
 
 def _build_runtime_policy(
-    req: RuntimePolicyRequest, policy_id: str, version: int, status: PolicyStatus
+    req: RuntimePolicyRequest, policy_id: str, version: int, status: PolicyStatus, audit: AuditTrail
 ) -> RuntimePolicy:
     try:
         conditions = tuple(
@@ -87,6 +88,7 @@ def _build_runtime_policy(
             created_by=req.metadata.created_by,
             tags=tuple(req.metadata.tags),
         ),
+        audit=audit,
     )
 
 
@@ -152,7 +154,10 @@ def get_version(policy_key: uuid.UUID, version: int, db: Session = Depends(get_d
 
 @router.post("", response_model=RuntimePolicyResponse, status_code=201, dependencies=[Depends(verify_operator_key)])
 def create_policy(body: RuntimePolicyRequest, db: Session = Depends(get_db)):
-    policy = _build_runtime_policy(body, policy_id=str(uuid.uuid4()), version=1, status=PolicyStatus.DRAFT)
+    audit = AuditTrail(created=datetime.now(timezone.utc))
+    policy = _build_runtime_policy(
+        body, policy_id=str(uuid.uuid4()), version=1, status=PolicyStatus.DRAFT, audit=audit
+    )
     row = svc.create_policy(db, policy)
     return _record_to_response(row)
 
@@ -163,8 +168,16 @@ def edit_policy(policy_key: uuid.UUID, body: RuntimePolicyRequest, db: Session =
         latest = svc.get_latest(db, policy_key)
     except RuntimePolicyNotFoundError:
         raise HTTPException(status_code=404, detail="runtime_policy_not_found")
+
+    now = datetime.now(timezone.utc)
+    prior_audit = latest.content.get("audit") or {}
+    original_created = prior_audit.get("created")
+    audit = AuditTrail(
+        created=datetime.fromisoformat(original_created) if original_created else now,
+        modified=now,
+    )
     policy = _build_runtime_policy(
-        body, policy_id=str(policy_key), version=latest.version + 1, status=PolicyStatus.DRAFT
+        body, policy_id=str(policy_key), version=latest.version + 1, status=PolicyStatus.DRAFT, audit=audit
     )
     row = svc.edit_policy(db, policy_key, policy)
     return _record_to_response(row)
