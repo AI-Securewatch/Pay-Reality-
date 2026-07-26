@@ -15,6 +15,7 @@
   --pr-warning-amber: #F59E0B;
   --pr-critical-red: #EF4444;
   --pr-verification-purple: #8B5CF6;
+  --pr-logo-gradient-end: #7C3AED;
   
   --pr-text-primary: #F8FAFC;
   --pr-text-secondary: #CBD5E1;
@@ -203,6 +204,57 @@
   .font-mono {
     font-family: 'IBM Plex Mono', 'Courier New', monospace;
   }
+
+  /* Every interactive element gets the same restrained hover/state
+     transition, so nothing in the app feels abrupt. Kept short (150ms)
+     and limited to color-ish properties: this is a state change, not an
+     entrance animation. */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease;
+  }
+
+  /* One visible, on-brand focus ring everywhere, replacing the browser
+     default rather than removing it. Applies to every interactive
+     element so keyboard users can always see where they are
+     (WCAG 2.4.7). :focus-visible skips the ring for mouse/touch clicks,
+     matching how Stripe/Linear/GitHub-style products already do this. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--pr-authority-blue);
+    outline-offset: 2px;
+  }
+}
+
+/* Visually hidden until it receives keyboard focus: the skip-to-content
+   link WCAG 2.4.1 (Bypass Blocks) asks for, without adding a visible
+   element for mouse/touch users who don't need it. */
+.pr-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  z-index: 100;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: var(--pr-authority-blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: top 150ms ease;
+}
+
+.pr-skip-link:focus {
+  top: 8px;
 }
 
 /* PayReality Scrollbar Styling - Force dark theme scrollbars */

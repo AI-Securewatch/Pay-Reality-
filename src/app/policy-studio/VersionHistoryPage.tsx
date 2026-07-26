@@ -29,6 +29,7 @@ export function VersionHistoryPage() {
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
+              aria-label={`Select version ${v.version} for comparison`}
               checked={!!selected && selected.includes(v.version)}
               onChange={(e) => {
                 setSelected((prev) => {
@@ -44,7 +45,7 @@ export function VersionHistoryPage() {
             <span style={{ color: "var(--pr-text-muted)" }}>{new Date(v.created_at).toLocaleString()}</span>
           </div>
           {v.status !== "active" && (
-            <span style={{ color: "var(--pr-text-disabled)" }}>
+            <span style={{ color: "var(--pr-text-muted)" }}>
               (rollback: edit and redeploy this version via Deploy once compiled)
             </span>
           )}

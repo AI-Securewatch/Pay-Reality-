@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { policyStudioApi } from "./api";
 import type { RuntimePolicy } from "./types";
-import { ApiError } from "../live/apiClient";
+import { describeApiError } from "../live/format";
 
 export function ReviewQueuePage() {
   const [pending, setPending] = useState<RuntimePolicy[] | null>(null);
@@ -25,7 +25,7 @@ export function ReviewQueuePage() {
       await policyStudioApi.approve(policyKey, approver);
       load();
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Approve failed: ${JSON.stringify(e.body)}` : "Approve failed.");
+      setMessage(describeApiError(e, "Approve"));
     }
   }
 
@@ -39,19 +39,20 @@ export function ReviewQueuePage() {
       await policyStudioApi.reject(policyKey, approver, reason);
       load();
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Reject failed: ${JSON.stringify(e.body)}` : "Reject failed.");
+      setMessage(describeApiError(e, "Reject"));
     }
   }
 
   return (
     <div className="p-8 max-w-2xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Review Queue</h1>
-      <p style={{ color: "var(--pr-text-disabled)", fontSize: 12, marginBottom: 16 }}>
-        No per-person login exists yet (see SECURITY.md); type your name to record who approved or
-        rejected each policy.
+      <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 16 }}>
+        Enter your name to record who reviewed each policy below.
       </p>
 
+      <label htmlFor="reviewer-name" className="sr-only">Your name</label>
       <input
+        id="reviewer-name"
         placeholder="Your name"
         value={approver}
         onChange={(e) => setApprover(e.target.value)}
@@ -67,9 +68,11 @@ export function ReviewQueuePage() {
         }}
       />
 
-      {message && <p style={{ color: "var(--pr-warning-amber)", marginBottom: 12 }}>{message}</p>}
+      {message && (
+        <p role="alert" style={{ color: "var(--pr-warning-amber)", marginBottom: 12 }}>{message}</p>
+      )}
 
-      {pending?.length === 0 && <p style={{ color: "var(--pr-text-disabled)" }}>Nothing pending review.</p>}
+      {pending?.length === 0 && <p style={{ color: "var(--pr-text-muted)" }}>Nothing pending review.</p>}
 
       {pending?.map((p) => (
         <div
@@ -81,15 +84,25 @@ export function ReviewQueuePage() {
               {p.name} (v{p.version})
             </Link>
             <div className="flex gap-2">
-              <button onClick={() => handleApprove(p.policy_key)} style={{ color: "var(--pr-trust-green)", fontSize: 13 }}>
+              <button
+                onClick={() => handleApprove(p.policy_key)}
+                className="rounded-lg border"
+                style={{ color: "var(--pr-trust-green)", fontSize: 13, padding: "6px 12px", borderColor: "rgba(34,197,94,0.3)" }}
+              >
                 Approve
               </button>
-              <button onClick={() => handleReject(p.policy_key)} style={{ color: "var(--pr-critical-red)", fontSize: 13 }}>
+              <button
+                onClick={() => handleReject(p.policy_key)}
+                className="rounded-lg border"
+                style={{ color: "var(--pr-critical-red)", fontSize: 13, padding: "6px 12px", borderColor: "rgba(239,68,68,0.3)" }}
+              >
                 Reject
               </button>
             </div>
           </div>
+          <label htmlFor={`reject-reason-${p.policy_key}`} className="sr-only">Rejection reason</label>
           <input
+            id={`reject-reason-${p.policy_key}`}
             placeholder="Reason (required to reject)"
             value={rejectReason[p.policy_key] ?? ""}
             onChange={(e) => setRejectReason((prev) => ({ ...prev, [p.policy_key]: e.target.value }))}

@@ -67,6 +67,7 @@ export function PolicyListPage() {
 
       <div className="flex gap-3 mb-4">
         <input
+          aria-label="Search policies by name"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name"
@@ -81,6 +82,7 @@ export function PolicyListPage() {
           }}
         />
         <select
+          aria-label="Filter by status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           style={{
@@ -102,6 +104,7 @@ export function PolicyListPage() {
           <option value="retired">Retired</option>
         </select>
         <select
+          aria-label="Sort by"
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value as SortKey)}
           style={{
@@ -122,7 +125,7 @@ export function PolicyListPage() {
       </div>
 
       {error && (
-        <p style={{ color: "var(--pr-warning-amber)" }}>Could not reach the Policy Studio backend.</p>
+        <p role="alert" style={{ color: "var(--pr-warning-amber)" }}>Could not reach the Policy Studio backend.</p>
       )}
 
       {policies && (
@@ -138,7 +141,13 @@ export function PolicyListPage() {
           </thead>
           <tbody>
             {visible.map((p) => (
-              <tr key={p.policy_key} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              <tr
+                key={p.policy_key}
+                className="transition-colors"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--pr-bg-hover)")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              >
                 <td className="py-2">
                   <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>
                     {p.name}
@@ -158,8 +167,8 @@ export function PolicyListPage() {
             ))}
             {visible.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-center" style={{ color: "var(--pr-text-disabled)" }}>
-                  No policies match.
+                <td colSpan={5} className="py-6 text-center" style={{ color: "var(--pr-text-muted)" }}>
+                  {policies.length === 0 ? "No policies yet." : "No policies match your filters."}
                 </td>
               </tr>
             )}

@@ -20,7 +20,7 @@ export function CompilerDiagnosticsList({ errors }: { errors: CompilerError[] })
           <div style={{ color: "var(--pr-critical-red)", fontFamily: "monospace" }}>{e.code}</div>
           <div style={{ color: "var(--pr-text-secondary)" }}>{e.message}</div>
           {e.path && (
-            <div style={{ color: "var(--pr-text-disabled)", fontSize: 12 }}>at {e.path}</div>
+            <div style={{ color: "var(--pr-text-muted)", fontSize: 12 }}>at {e.path}</div>
           )}
         </div>
       ))}

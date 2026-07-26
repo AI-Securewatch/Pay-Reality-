@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link, useParams } from "react-router";
 import { policyStudioApi } from "./api";
 import type { DryRunResult } from "./types";
-import { ApiError } from "../live/apiClient";
+import { describeApiError, formatStatus } from "../live/format";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -17,6 +17,7 @@ const labelStyle: React.CSSProperties = { fontSize: 12, color: "var(--pr-text-mu
 
 export function DryRunPage() {
   const { policyKey } = useParams();
+  const formId = useId();
   const [principal, setPrincipal] = useState("");
   const [action, setAction] = useState("");
   const [resource, setResource] = useState("");
@@ -41,7 +42,7 @@ export function DryRunPage() {
       const r = await policyStudioApi.dryRun(policyKey!, { principal, action, resource: resource || undefined, context });
       setResult(r);
     } catch (e) {
-      setError(e instanceof ApiError ? `Dry run failed: ${JSON.stringify(e.body)}` : "Dry run failed.");
+      setError(describeApiError(e, "Dry run"));
     } finally {
       setRunning(false);
     }
@@ -56,20 +57,21 @@ export function DryRunPage() {
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <label style={labelStyle}>Principal</label>
-          <input style={inputStyle} value={principal} onChange={(e) => setPrincipal(e.target.value)} />
+          <label htmlFor={`${formId}-principal`} style={labelStyle}>Principal</label>
+          <input id={`${formId}-principal`} style={inputStyle} value={principal} onChange={(e) => setPrincipal(e.target.value)} />
         </div>
         <div>
-          <label style={labelStyle}>Action</label>
-          <input style={inputStyle} value={action} onChange={(e) => setAction(e.target.value)} />
+          <label htmlFor={`${formId}-action`} style={labelStyle}>Action</label>
+          <input id={`${formId}-action`} style={inputStyle} value={action} onChange={(e) => setAction(e.target.value)} />
         </div>
         <div>
-          <label style={labelStyle}>Resource (optional)</label>
-          <input style={inputStyle} value={resource} onChange={(e) => setResource(e.target.value)} />
+          <label htmlFor={`${formId}-resource`} style={labelStyle}>Resource (optional)</label>
+          <input id={`${formId}-resource`} style={inputStyle} value={resource} onChange={(e) => setResource(e.target.value)} />
         </div>
       </div>
-      <label style={labelStyle}>Context (JSON)</label>
+      <label htmlFor={`${formId}-context`} style={labelStyle}>Context (JSON)</label>
       <textarea
+        id={`${formId}-context`}
         style={{ ...inputStyle, height: 80, fontFamily: "monospace", marginBottom: 12 }}
         value={contextText}
         onChange={(e) => setContextText(e.target.value)}
@@ -81,10 +83,10 @@ export function DryRunPage() {
         className="px-4 py-2 rounded-lg text-sm font-medium mb-6"
         style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
       >
-        {running ? "Running..." : "Run Dry Run"}
+        {running ? "Running..." : "Run dry run"}
       </button>
 
-      {error && <p style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
+      {error && <p role="alert" style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
 
       {result && (
         <div
@@ -96,15 +98,15 @@ export function DryRunPage() {
           }}
         >
           <p style={{ color: "var(--pr-text-primary)" }}>
-            Decision: <strong>{result.decision}</strong>
+            Decision: <strong>{formatStatus(result.decision)}</strong>
           </p>
           <p style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
-            Reason: {result.review_reason ?? result.deny_reason ?? "(none, matched cleanly)"}
+            Reason: {result.review_reason ?? result.deny_reason ?? "None, matched cleanly"}
           </p>
           <p style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
-            Evidence required: {result.evidence_required ? "yes" : "no"}
+            Evidence required: {result.evidence_required ? "Yes" : "No"}
           </p>
-          <p style={{ color: "var(--pr-text-disabled)", fontSize: 12, marginTop: 8 }}>
+          <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginTop: 8 }}>
             This does not affect the active bundle. Run as many times as needed.
           </p>
         </div>

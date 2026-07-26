@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { motion } from "motion/react";
 import {
   Shield,
   FileText,
@@ -13,15 +12,6 @@ import {
 } from "lucide-react";
 import { apiClient } from "../live/apiClient";
 import type { LiveAgent, LivePolicy } from "../live/types";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
-  }),
-};
 
 const WORKFLOW = [
   {
@@ -87,7 +77,7 @@ export function PlatformOverview() {
   return (
     <div className="p-8 max-w-5xl mx-auto" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       {/* Hero */}
-      <motion.div initial="hidden" animate="visible" custom={0} variants={fadeUp} className="mb-14 pt-8">
+      <div className="mb-14 pt-8">
         <div className="flex items-center gap-2 mb-4">
           <Shield className="w-4 h-4" style={{ color: "var(--pr-authority-blue)" }} />
           <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--pr-authority-blue)" }}>
@@ -126,22 +116,17 @@ export function PlatformOverview() {
             Upload a policy document
           </Link>
         </div>
-      </motion.div>
+      </div>
 
       {/* Live status strip */}
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        custom={1}
-        variants={fadeUp}
-        className="mb-14 p-5 rounded-2xl border flex flex-wrap items-center gap-6"
+      <div
+        className="mb-14 p-5 rounded-xl border flex flex-wrap items-center gap-6"
         style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
       >
         {reachable === false ? (
-          <div className="flex items-center gap-2 text-sm" style={{ color: "var(--pr-warning-amber)" }}>
+          <div role="alert" className="flex items-center gap-2 text-sm" style={{ color: "var(--pr-warning-amber)" }}>
             <ShieldCheck className="w-4 h-4" />
-            Backend not reachable from this build. The engine below runs against a real API;
-            it needs the server running to respond.
+            We couldn't reach the service. Please check your connection and try again.
           </div>
         ) : (
           <>
@@ -161,13 +146,13 @@ export function PlatformOverview() {
                 Active policy version
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-auto text-xs" style={{ color: "var(--pr-text-disabled)" }}>
+            <div className="flex items-center gap-2 ml-auto text-xs" style={{ color: "var(--pr-text-muted)" }}>
               <Lock className="w-3.5 h-3.5" />
               ED25519-signed evidence, verifiable independently of this app
             </div>
           </>
         )}
-      </motion.div>
+      </div>
 
       {/* The workflow */}
       <div className="mb-8">
@@ -179,38 +164,37 @@ export function PlatformOverview() {
         </p>
       </div>
       <div className="grid gap-4">
-        {WORKFLOW.map((item, i) => {
+        {WORKFLOW.map((item) => {
           const Icon = item.icon;
           return (
-            <motion.div key={item.title} initial="hidden" animate="visible" custom={i + 2} variants={fadeUp}>
-              <Link
-                to={item.path}
-                className="flex items-start gap-5 p-6 rounded-2xl border transition-colors group"
-                style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
+            <Link
+              key={item.title}
+              to={item.path}
+              className="flex items-start gap-5 p-6 rounded-xl border transition-colors group"
+              style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
+            >
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${item.color}1A`, border: `1px solid ${item.color}40` }}
               >
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${item.color}1A`, border: `1px solid ${item.color}40` }}
-                >
-                  <Icon className="w-5 h-5" style={{ color: item.color }} />
+                <Icon className="w-5 h-5" style={{ color: item.color }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-mono" style={{ color: "var(--pr-text-muted)" }}>
+                    {item.step}
+                  </span>
+                  <h3 className="font-medium" style={{ color: "var(--pr-text-primary)" }}>
+                    {item.title}
+                  </h3>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono" style={{ color: "var(--pr-text-disabled)" }}>
-                      {item.step}
-                    </span>
-                    <h3 className="font-medium" style={{ color: "var(--pr-text-primary)" }}>
-                      {item.title}
-                    </h3>
-                  </div>
-                  <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>{item.desc}</p>
-                </div>
-                <ArrowRight
-                  className="w-4 h-4 flex-shrink-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: item.color }}
-                />
-              </Link>
-            </motion.div>
+                <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>{item.desc}</p>
+              </div>
+              <ArrowRight
+                className="w-4 h-4 flex-shrink-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ color: item.color }}
+              />
+            </Link>
           );
         })}
       </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "react-router";
 import { aiPolicyBuilderApi } from "../api";
 import type { Candidate, ValidationErrorItem } from "../types";
@@ -7,6 +7,7 @@ import { ScopeFields } from "../../policy-studio/components/ScopeFields";
 import { ConditionRow } from "../../policy-studio/components/ConditionRow";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { ApiError } from "../../live/apiClient";
+import { describeApiError, formatStatus } from "../../live/format";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -30,6 +31,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
   const [message, setMessage] = useState<string | null>(null);
   const [errors, setErrors] = useState<ValidationErrorItem[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const formId = useId();
 
   const readOnly = candidate.status !== "pending_review";
 
@@ -40,7 +42,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
       await aiPolicyBuilderApi.editCandidate(candidate.candidate_id, content);
       setMessage("Saved.");
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Save failed: ${JSON.stringify(e.body)}` : "Save failed.");
+      setMessage(describeApiError(e, "Save"));
     } finally {
       setSaving(false);
     }
@@ -52,7 +54,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
       await aiPolicyBuilderApi.dismissCandidate(candidate.candidate_id);
       onChanged();
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Dismiss failed: ${JSON.stringify(e.body)}` : "Dismiss failed.");
+      setMessage(describeApiError(e, "Dismiss"));
     } finally {
       setSaving(false);
     }
@@ -71,7 +73,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
       if (e instanceof ApiError && e.body && typeof e.body === "object" && "errors" in (e.body as object)) {
         setErrors((e.body as { errors: ValidationErrorItem[] }).errors);
       } else {
-        setMessage(e instanceof ApiError ? `Promote failed: ${JSON.stringify(e.body)}` : "Promote failed.");
+        setMessage(describeApiError(e, "Promote"));
       }
     } finally {
       setSaving(false);
@@ -108,6 +110,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
     >
       <div className="flex items-center justify-between mb-2">
         <input
+          aria-label="Policy name"
           style={{ ...inputStyle, fontSize: 15, fontWeight: 500, maxWidth: 400 }}
           value={content.name}
           readOnly={readOnly}
@@ -115,7 +118,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
         />
         <div className="flex items-center gap-2">
           <ConfidenceBadge confidence={candidate.confidence} />
-          <span style={{ fontSize: 12, color: "var(--pr-text-disabled)" }}>{candidate.status}</span>
+          <span style={{ fontSize: 12, color: "var(--pr-text-muted)" }}>{formatStatus(candidate.status)}</span>
         </div>
       </div>
 
@@ -140,14 +143,14 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
             <span
               key={f}
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 color: "var(--pr-warning-amber)",
                 border: "1px solid var(--pr-warning-amber)",
                 borderRadius: 999,
                 padding: "1px 8px",
               }}
             >
-              missing: {f}
+              Missing: {f}
             </span>
           ))}
         </div>
@@ -175,8 +178,9 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
 
       <div className="grid grid-cols-3 gap-4 mb-3 mt-2">
         <div>
-          <label style={labelStyle}>Effect</label>
+          <label htmlFor={`${formId}-effect`} style={labelStyle}>Effect</label>
           <select
+            id={`${formId}-effect`}
             style={inputStyle}
             value={content.effect}
             disabled={readOnly}
@@ -188,8 +192,9 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Risk level</label>
+          <label htmlFor={`${formId}-risk`} style={labelStyle}>Risk level</label>
           <select
+            id={`${formId}-risk`}
             style={inputStyle}
             value={content.constraints.risk_level ?? ""}
             disabled={readOnly}
@@ -207,8 +212,9 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Owner</label>
+          <label htmlFor={`${formId}-owner`} style={labelStyle}>Owner</label>
           <input
+            id={`${formId}-owner`}
             style={inputStyle}
             value={content.metadata.owner ?? ""}
             readOnly={readOnly}
@@ -225,7 +231,11 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           >
             {t}
             {!readOnly && (
-              <button onClick={() => removeTag(t)} style={{ color: "var(--pr-critical-red)", marginLeft: 6 }}>
+              <button
+                onClick={() => removeTag(t)}
+                aria-label={`Remove tag ${t}`}
+                style={{ color: "var(--pr-critical-red)", marginLeft: 6, padding: "2px 4px" }}
+              >
                 x
               </button>
             )}
@@ -234,19 +244,22 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
         {!readOnly && (
           <>
             <input
+              aria-label="New tag"
               style={{ ...inputStyle, width: 120 }}
-              placeholder="add tag"
+              placeholder="Add tag"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTag()}
             />
-            <button onClick={addTag} style={{ color: "var(--pr-authority-blue)", fontSize: 12 }}>Add</button>
+            <button onClick={addTag} style={{ color: "var(--pr-authority-blue)", fontSize: 12, padding: "6px 8px" }}>
+              + Add tag
+            </button>
           </>
         )}
       </div>
 
       {errors.length > 0 && (
-        <div className="mb-3">
+        <div role="alert" className="mb-3">
           {errors.map((err, i) => (
             <p key={i} style={{ fontSize: 12, color: "var(--pr-critical-red)" }}>
               {err.field}: {err.message}
@@ -255,14 +268,26 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
         </div>
       )}
 
-      {message && <p style={{ fontSize: 13, color: "var(--pr-text-secondary)", marginBottom: 8 }}>{message}</p>}
+      {message && (
+        <p role="alert" style={{ fontSize: 13, color: "var(--pr-text-secondary)", marginBottom: 8 }}>{message}</p>
+      )}
 
       {candidate.status === "pending_review" ? (
         <div className="flex gap-2">
-          <button onClick={save} disabled={saving} style={{ color: "var(--pr-text-secondary)", fontSize: 13 }}>
-            Save
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-lg border"
+            style={{ color: "var(--pr-text-secondary)", fontSize: 13, padding: "8px 14px", borderColor: "rgba(255,255,255,0.1)" }}
+          >
+            Save draft
           </button>
-          <button onClick={dismiss} disabled={saving} style={{ color: "var(--pr-critical-red)", fontSize: 13 }}>
+          <button
+            onClick={dismiss}
+            disabled={saving}
+            className="rounded-lg border"
+            style={{ color: "var(--pr-critical-red)", fontSize: 13, padding: "8px 14px", borderColor: "rgba(239,68,68,0.3)" }}
+          >
             Dismiss
           </button>
           <button
@@ -276,10 +301,10 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
         </div>
       ) : candidate.status === "promoted" && candidate.promoted_policy_key ? (
         <Link to={`/policy-studio/${candidate.promoted_policy_key}`} style={{ color: "var(--pr-trust-green)", fontSize: 13 }}>
-          View in Policy Studio -&gt;
+          View in Policy Studio
         </Link>
       ) : (
-        <p style={{ fontSize: 13, color: "var(--pr-text-disabled)" }}>Dismissed.</p>
+        <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>Dismissed.</p>
       )}
     </div>
   );

@@ -43,7 +43,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{
-              background: "linear-gradient(135deg, var(--pr-authority-blue) 0%, #7C3AED 100%)",
+              background: "linear-gradient(135deg, var(--pr-authority-blue) 0%, var(--pr-logo-gradient-end) 100%)",
             }}
           >
             <Shield className="w-4 h-4 text-white" />
@@ -55,7 +55,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             >
               Pay<span style={{ color: "var(--pr-warning-amber)" }}>Reality</span>
             </h1>
-            <p className="text-[10px] leading-none" style={{ color: "var(--pr-text-disabled)" }}>
+            <p className="text-[10px] leading-none" style={{ color: "var(--pr-text-muted)" }}>
               Runtime Trust Platform
             </p>
           </div>
@@ -67,7 +67,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         <div className="mb-4">
           <p
             className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "var(--pr-text-disabled)" }}
+            style={{ color: "var(--pr-text-muted)" }}
           >
             The Workflow
           </p>
@@ -80,6 +80,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                   key={item.path}
                   to={item.path}
                   onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
                   className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-100 group relative"
                   style={{
                     backgroundColor: active ? "rgba(77,124,254,0.12)" : "transparent",
@@ -133,7 +134,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
               </span>
             </div>
           </div>
-          <p className="text-[10px]" style={{ color: "var(--pr-text-disabled)" }}>
+          <p className="text-[10px]" style={{ color: "var(--pr-text-muted)" }}>
             Deterministic. Fail-closed. Every decision signed.
           </p>
         </div>
@@ -157,6 +158,9 @@ function LayoutInner() {
       className="flex h-screen"
       style={{ backgroundColor: "var(--pr-bg-primary)" }}
     >
+      <a href="#pr-main-content" className="pr-skip-link">
+        Skip to main content
+      </a>
       {/* Sidebar (desktop) */}
       {!isMobile && (
         <aside
@@ -210,7 +214,7 @@ function LayoutInner() {
             <div
               className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
               style={{
-                background: "linear-gradient(135deg, var(--pr-authority-blue) 0%, #7C3AED 100%)",
+                background: "linear-gradient(135deg, var(--pr-authority-blue) 0%, var(--pr-logo-gradient-end) 100%)",
               }}
             >
               <Shield className="w-3.5 h-3.5 text-white" />
@@ -220,7 +224,7 @@ function LayoutInner() {
             </h1>
           </header>
         )}
-        <main className="flex-1 overflow-auto">
+        <main id="pr-main-content" className="flex-1 overflow-auto" tabIndex={-1}>
           <Outlet />
         </main>
       </div>

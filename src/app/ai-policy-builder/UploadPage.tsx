@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { aiPolicyBuilderApi } from "./api";
 import type { Upload } from "./types";
-import { ApiError } from "../live/apiClient";
+import { describeApiError, formatStatus } from "../live/format";
 
 const STATUS_COLOR: Record<string, string> = {
-  uploaded: "var(--pr-text-disabled)",
+  uploaded: "var(--pr-text-muted)",
   extracted: "var(--pr-trust-green)",
   failed: "var(--pr-critical-red)",
 };
@@ -34,7 +34,7 @@ export function AIPolicyBuilderUploadPage() {
         load();
       }
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Upload failed: ${JSON.stringify(e.body)}` : "Upload failed.");
+      setMessage(describeApiError(e, "Upload"));
     } finally {
       setUploading(false);
     }
@@ -65,7 +65,7 @@ export function AIPolicyBuilderUploadPage() {
         />
       </label>
 
-      {message && <p style={{ color: "var(--pr-warning-amber)", marginBottom: 16 }}>{message}</p>}
+      {message && <p role="alert" style={{ color: "var(--pr-warning-amber)", marginBottom: 16 }}>{message}</p>}
 
       <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Past uploads</h2>
       <table className="w-full text-sm" style={{ color: "var(--pr-text-primary)" }}>
@@ -79,14 +79,20 @@ export function AIPolicyBuilderUploadPage() {
         </thead>
         <tbody>
           {uploads?.map((u) => (
-            <tr key={u.upload_id} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            <tr
+              key={u.upload_id}
+              className="transition-colors"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--pr-bg-hover)")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            >
               <td className="py-2">
                 <Link to={`/policy-studio/upload/${u.upload_id}`} style={{ color: "var(--pr-authority-blue)" }}>
                   {u.filename}
                 </Link>
               </td>
               <td className="py-2 uppercase" style={{ color: "var(--pr-text-muted)", fontSize: 12 }}>{u.format}</td>
-              <td className="py-2" style={{ color: STATUS_COLOR[u.status] }}>{u.status}</td>
+              <td className="py-2" style={{ color: STATUS_COLOR[u.status] }}>{formatStatus(u.status)}</td>
               <td className="py-2" style={{ color: "var(--pr-text-muted)" }}>
                 {new Date(u.uploaded_at).toLocaleString()}
               </td>
@@ -94,7 +100,7 @@ export function AIPolicyBuilderUploadPage() {
           ))}
           {uploads?.length === 0 && (
             <tr>
-              <td colSpan={4} className="py-6 text-center" style={{ color: "var(--pr-text-disabled)" }}>
+              <td colSpan={4} className="py-6 text-center" style={{ color: "var(--pr-text-muted)" }}>
                 No uploads yet.
               </td>
             </tr>

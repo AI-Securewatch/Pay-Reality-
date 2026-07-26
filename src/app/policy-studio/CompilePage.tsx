@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import { policyStudioApi } from "./api";
 import type { CompileResult } from "./types";
 import { CompilerDiagnosticsList } from "./components/CompilerDiagnosticsList";
-import { ApiError } from "../live/apiClient";
+import { describeApiError } from "../live/format";
 
 export function CompilePage() {
   const { policyKey } = useParams();
@@ -19,7 +19,7 @@ export function CompilePage() {
       const r = await policyStudioApi.compile(policyKey!);
       setResult(r);
     } catch (e) {
-      setError(e instanceof ApiError ? `Compile failed: ${JSON.stringify(e.body)}` : "Compile failed.");
+      setError(describeApiError(e, "Compile"));
     } finally {
       setRunning(false);
     }
@@ -38,10 +38,10 @@ export function CompilePage() {
         className="px-4 py-2 rounded-lg text-sm font-medium mb-6"
         style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
       >
-        {running ? "Compiling..." : "Run Compile"}
+        {running ? "Compiling..." : "Compile"}
       </button>
 
-      {error && <p style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
+      {error && <p role="alert" style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
 
       {result && (
         <div
@@ -53,7 +53,7 @@ export function CompilePage() {
           }}
         >
           <p style={{ color: result.ok ? "var(--pr-trust-green)" : "var(--pr-critical-red)", fontWeight: 600 }}>
-            {result.ok ? "SUCCESS" : `ERRORS, not compiled`}
+            {result.ok ? "Compiled successfully" : "Compile failed, not compiled"}
           </p>
           {result.ok ? (
             <div className="mt-3 text-sm" style={{ color: "var(--pr-text-secondary)" }}>

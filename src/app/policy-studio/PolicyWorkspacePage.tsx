@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { policyStudioApi } from "./api";
 import type { Condition, Constraints, Effect, Metadata, RuntimePolicy, RuntimePolicyRequest, Scope } from "./types";
 import { PolicyStatusBadge } from "./components/PolicyStatusBadge";
 import { ConditionRow } from "./components/ConditionRow";
 import { ScopeFields } from "./components/ScopeFields";
-import { ApiError } from "../live/apiClient";
+import { describeApiError } from "../live/format";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -40,6 +40,7 @@ export function PolicyWorkspacePage() {
   const { policyKey } = useParams();
   const isNew = !policyKey || policyKey === "new";
   const navigate = useNavigate();
+  const formId = useId();
 
   const [existing, setExisting] = useState<RuntimePolicy | null>(null);
   const [form, setForm] = useState<RuntimePolicyRequest>(EMPTY);
@@ -72,7 +73,7 @@ export function PolicyWorkspacePage() {
       if (isNew) navigate(`/policy-studio/${saved.policy_key}`);
       else setExisting(saved);
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Save failed: ${JSON.stringify(e.body)}` : "Save failed.");
+      setMessage(describeApiError(e, "Save"));
     } finally {
       setSaving(false);
     }
@@ -86,7 +87,7 @@ export function PolicyWorkspacePage() {
       setExisting(updated);
       setMessage("Submitted for review.");
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Submit failed: ${JSON.stringify(e.body)}` : "Submit failed.");
+      setMessage(describeApiError(e, "Submit"));
     } finally {
       setSaving(false);
     }
@@ -131,7 +132,7 @@ export function PolicyWorkspacePage() {
           className="px-4 py-2 rounded-lg text-sm font-medium"
           style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
         >
-          {saving ? "Saving..." : "Save Draft"}
+          {saving ? "Saving..." : "Save draft"}
         </button>
       </div>
 
@@ -139,13 +140,15 @@ export function PolicyWorkspacePage() {
         <h1 style={{ color: "var(--pr-text-primary)" }}>{form.name || "New Policy"}</h1>
         {existing && (
           <>
-            <span style={{ color: "var(--pr-text-disabled)" }}>v{existing.version}</span>
+            <span style={{ color: "var(--pr-text-muted)" }}>v{existing.version}</span>
             <PolicyStatusBadge status={existing.status} />
           </>
         )}
       </div>
 
-      {message && <p style={{ color: "var(--pr-text-secondary)", marginBottom: 16 }}>{message}</p>}
+      {message && (
+        <p role="alert" style={{ color: "var(--pr-text-secondary)", marginBottom: 16 }}>{message}</p>
+      )}
 
       {existing && (
         <div className="mb-4 flex gap-3 text-sm">
@@ -154,7 +157,7 @@ export function PolicyWorkspacePage() {
           </Link>
           {existing.status === "draft" && (
             <button onClick={handleSubmitForReview} disabled={saving} style={{ color: "var(--pr-authority-blue)" }}>
-              Submit for Review
+              Submit for review
             </button>
           )}
           {existing.status === "approved" && (
@@ -176,15 +179,17 @@ export function PolicyWorkspacePage() {
       )}
 
       <div style={sectionStyle}>
-        <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Identity</h3>
-        <label style={labelStyle}>Name</label>
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Identity</h2>
+        <label htmlFor={`${formId}-name`} style={labelStyle}>Name</label>
         <input
+          id={`${formId}-name`}
           style={{ ...inputStyle, marginBottom: 10 }}
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
         />
-        <label style={labelStyle}>Description</label>
+        <label htmlFor={`${formId}-description`} style={labelStyle}>Description</label>
         <input
+          id={`${formId}-description`}
           style={inputStyle}
           value={form.description ?? ""}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -192,15 +197,15 @@ export function PolicyWorkspacePage() {
       </div>
 
       <div style={sectionStyle}>
-        <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Scope</h3>
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Scope</h2>
         <ScopeFields scope={form.scope} onChange={updateScope} />
       </div>
 
       <div style={sectionStyle}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>
+          <h2 className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>
             Conditions (all must hold)
-          </h3>
+          </h2>
           <button onClick={addCondition} style={{ color: "var(--pr-authority-blue)", fontSize: 13 }}>
             + Add condition
           </button>
@@ -209,24 +214,26 @@ export function PolicyWorkspacePage() {
           <ConditionRow key={i} condition={c} onChange={(next) => updateCondition(i, next)} onRemove={() => removeCondition(i)} />
         ))}
         {form.conditions.length === 0 && (
-          <p style={{ color: "var(--pr-text-disabled)", fontSize: 13 }}>No conditions yet: this policy matches on scope alone.</p>
+          <p style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>No conditions yet: this policy matches on scope alone.</p>
         )}
       </div>
 
       <div style={sectionStyle}>
-        <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Constraints</h3>
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Constraints</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label style={labelStyle}>Delegated by</label>
+            <label htmlFor={`${formId}-delegated-by`} style={labelStyle}>Delegated by</label>
             <input
+              id={`${formId}-delegated-by`}
               style={inputStyle}
               value={form.constraints.delegated_by ?? ""}
               onChange={(e) => updateConstraints({ ...form.constraints, delegated_by: e.target.value || null })}
             />
           </div>
           <div>
-            <label style={labelStyle}>Risk level</label>
+            <label htmlFor={`${formId}-risk-level`} style={labelStyle}>Risk level</label>
             <select
+              id={`${formId}-risk-level`}
               style={inputStyle}
               value={form.constraints.risk_level ?? ""}
               onChange={(e) => updateConstraints({ ...form.constraints, risk_level: e.target.value || null })}
@@ -250,7 +257,7 @@ export function PolicyWorkspacePage() {
       </div>
 
       <div style={sectionStyle}>
-        <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Effect</h3>
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Effect</h2>
         <div className="flex gap-4">
           {(["allow", "deny", "require_human_review"] as Effect[]).map((eff) => (
             <label key={eff} className="flex items-center gap-2" style={{ fontSize: 13, color: "var(--pr-text-secondary)" }}>
@@ -262,27 +269,38 @@ export function PolicyWorkspacePage() {
       </div>
 
       <div style={sectionStyle}>
-        <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Metadata</h3>
-        <label style={labelStyle}>Owner</label>
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Metadata</h2>
+        <label htmlFor={`${formId}-owner`} style={labelStyle}>Owner</label>
         <input
+          id={`${formId}-owner`}
           style={{ ...inputStyle, marginBottom: 10 }}
           value={form.metadata.owner ?? ""}
           onChange={(e) => updateMetadata({ ...form.metadata, owner: e.target.value || null })}
         />
-        <label style={labelStyle}>Tags</label>
+        <label htmlFor={`${formId}-tag-input`} style={labelStyle}>Tags</label>
         <div className="flex gap-2 flex-wrap mb-2">
           {form.metadata.tags.map((t) => (
             <span key={t} style={{ ...inputStyle, width: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
               {t}
-              <button onClick={() => removeTag(t)} style={{ color: "var(--pr-critical-red)" }}>
+              <button
+                onClick={() => removeTag(t)}
+                aria-label={`Remove tag ${t}`}
+                style={{ color: "var(--pr-critical-red)", padding: "2px 4px" }}
+              >
                 x
               </button>
             </span>
           ))}
         </div>
         <div className="flex gap-2">
-          <input style={inputStyle} value={tagInput} onChange={(e) => setTagInput(e.target.value)} placeholder="new tag" />
-          <button onClick={addTag} style={{ color: "var(--pr-authority-blue)", fontSize: 13 }}>
+          <input
+            id={`${formId}-tag-input`}
+            style={inputStyle}
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            placeholder="New tag"
+          />
+          <button onClick={addTag} style={{ color: "var(--pr-authority-blue)", fontSize: 13, padding: "6px 8px" }}>
             + Add tag
           </button>
         </div>
@@ -290,7 +308,7 @@ export function PolicyWorkspacePage() {
 
       {existing?.audit && (
         <div style={sectionStyle}>
-          <h3 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-primary)" }}>Audit</h3>
+          <h2 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-primary)" }}>Audit</h2>
           <p style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
             {Object.entries(existing.audit)
               .filter(([, v]) => v)

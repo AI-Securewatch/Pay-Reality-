@@ -43,17 +43,22 @@ function Citation({ excerpt, location }: { excerpt: string | null; location: str
 function Section({
   title,
   count,
+  emptyLabel,
   children,
 }: {
   title: string;
   count: number;
+  emptyLabel: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const contentId = `section-${title.toLowerCase().replace(/\s+/g, "-")}`;
   return (
     <div style={sectionStyle}>
       <button
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={contentId}
         className="w-full flex items-center justify-between"
         style={{ padding: "16px 20px", textAlign: "left" }}
       >
@@ -62,11 +67,15 @@ function Section({
         </span>
         <span style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>{open ? "Hide" : "Show"}</span>
       </button>
-      {open && (count === 0 ? (
-        <p style={{ ...rowStyle, color: "var(--pr-text-disabled)" }}>None found.</p>
-      ) : (
-        children
-      ))}
+      {open && (
+        <div id={contentId}>
+          {count === 0 ? (
+            <p style={{ ...rowStyle, color: "var(--pr-text-muted)" }}>{emptyLabel}</p>
+          ) : (
+            children
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -114,7 +123,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         &lt; Back to corpora
       </Link>
       <h1 className="mt-2 mb-1" style={{ color: "var(--pr-text-primary)" }}>{corpus?.name ?? "Authority Graph"}</h1>
-      <p style={{ color: "var(--pr-text-disabled)", fontSize: 12, marginBottom: 20 }}>
+      <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 20 }}>
         Every finding below is a reviewable claim, cited to its source document and location, never
         auto-deployed. Only Runtime Policies can be promoted into Policy Studio; everything else is
         informational discovery about this organisation's authority structure.
@@ -143,7 +152,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         </div>
       )}
 
-      <Section title="Runtime Policies" count={policies?.length ?? 0}>
+      <Section title="Runtime Policies" count={policies?.length ?? 0} emptyLabel="No Runtime Policies were found in this corpus.">
         <div style={{ padding: 20 }}>
           {policies?.map((c) => (
             <CandidateCard key={c.candidate_id} candidate={c} onChanged={loadAll} />
@@ -151,12 +160,12 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         </div>
       </Section>
 
-      <Section title="Principals" count={principals?.length ?? 0}>
+      <Section title="Principals" count={principals?.length ?? 0} emptyLabel="No principals were found in this corpus.">
         {principals?.map((p) => (
           <div key={p.id} style={rowStyle}>
             <div className="flex items-center justify-between">
               <span style={{ color: "var(--pr-text-primary)" }}>
-                {p.name}{p.role ? ` — ${p.role}` : ""}{p.reports_to ? ` (reports to ${p.reports_to})` : ""}
+                {p.name}{p.role ? `, ${p.role}` : ""}{p.reports_to ? ` (reports to ${p.reports_to})` : ""}
               </span>
               <ConfidenceBadge confidence={p.confidence} />
             </div>
@@ -165,12 +174,12 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Resources" count={resources?.length ?? 0}>
+      <Section title="Resources" count={resources?.length ?? 0} emptyLabel="No resources were found in this corpus.">
         {resources?.map((r) => (
           <div key={r.id} style={rowStyle}>
             <div className="flex items-center justify-between">
               <span style={{ color: "var(--pr-text-primary)" }}>
-                {r.name}{r.description ? ` — ${r.description}` : ""}
+                {r.name}{r.description ? `, ${r.description}` : ""}
               </span>
               <ConfidenceBadge confidence={r.confidence} />
             </div>
@@ -179,12 +188,12 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Operations" count={operations?.length ?? 0}>
+      <Section title="Operations" count={operations?.length ?? 0} emptyLabel="No operations were found in this corpus.">
         {operations?.map((o) => (
           <div key={o.id} style={rowStyle}>
             <div className="flex items-center justify-between">
               <span style={{ color: "var(--pr-text-primary)" }}>
-                {o.name}{o.description ? ` — ${o.description}` : ""}
+                {o.name}{o.description ? `, ${o.description}` : ""}
               </span>
               <ConfidenceBadge confidence={o.confidence} />
             </div>
@@ -193,7 +202,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Relationships" count={relationships?.length ?? 0}>
+      <Section title="Relationships" count={relationships?.length ?? 0} emptyLabel="No delegation, escalation, or inheritance links were found in this corpus.">
         {relationships?.map((r) => (
           <div key={r.id} style={rowStyle}>
             <div className="flex items-center justify-between">
@@ -211,7 +220,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Conflicts" count={conflicts?.length ?? 0}>
+      <Section title="Conflicts" count={conflicts?.length ?? 0} emptyLabel="No contradictory or duplicate authority was found in this corpus.">
         {conflicts?.map((c) => (
           <div key={c.id} style={rowStyle}>
             <div className="flex items-center justify-between">
@@ -223,7 +232,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Gaps" count={gaps?.length ?? 0}>
+      <Section title="Gaps" count={gaps?.length ?? 0} emptyLabel="No missing information was found in this corpus.">
         {gaps?.map((g) => (
           <div key={g.id} style={rowStyle}>
             <div className="flex items-center justify-between">
@@ -235,7 +244,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Questions" count={questions?.length ?? 0}>
+      <Section title="Questions" count={questions?.length ?? 0} emptyLabel="No clarification questions were raised for this corpus.">
         {questions?.map((q) => (
           <div key={q.id} style={rowStyle}>
             <p style={{ color: "var(--pr-text-primary)" }}>{q.question}</p>
@@ -245,6 +254,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
             ) : (
               <div className="flex gap-2 mt-2">
                 <input
+                  aria-label={`Answer: ${q.question}`}
                   placeholder="Answer this question"
                   value={answerDrafts[q.id] ?? ""}
                   onChange={(e) => setAnswerDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
@@ -258,7 +268,10 @@ export function AIAuthorityBuilderCorpusReviewPage() {
                     flex: 1,
                   }}
                 />
-                <button onClick={() => submitAnswer(q.id)} style={{ color: "var(--pr-authority-blue)", fontSize: 13 }}>
+                <button
+                  onClick={() => submitAnswer(q.id)}
+                  style={{ color: "var(--pr-authority-blue)", fontSize: 13, padding: "6px 10px" }}
+                >
                   Save
                 </button>
               </div>

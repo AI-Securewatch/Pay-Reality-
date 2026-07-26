@@ -7,8 +7,8 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { motion } from "motion/react";
-import { apiClient, ApiError } from "../apiClient";
+import { apiClient } from "../apiClient";
+import { describeApiError, formatStatus } from "../format";
 import type { LiveAuthority, LiveDocument, LivePolicy } from "../types";
 
 export function LiveDocuments() {
@@ -19,6 +19,7 @@ export function LiveDocuments() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, { limit_amount?: string; currency?: string }>>({});
+  const [reviewerName, setReviewerName] = useState("");
 
   const refreshPolicies = () => apiClient.get<LivePolicy[]>("/v1/policies").then(setPolicies);
 
@@ -54,7 +55,7 @@ export function LiveDocuments() {
           : `Document uploaded but extraction did not complete (status: ${doc.status}).`
       );
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Upload failed: ${JSON.stringify(e.body)}` : "Upload failed.");
+      setMessage(describeApiError(e, "Upload"));
     } finally {
       setUploading(false);
     }
@@ -62,7 +63,10 @@ export function LiveDocuments() {
 
   const approve = async (authorityId: string) => {
     const edit = edits[authorityId];
-    const body: Record<string, unknown> = { status: "approved", reviewer_id: "demo_reviewer" };
+    const body: Record<string, unknown> = {
+      status: "approved",
+      reviewer_id: reviewerName.trim() || "unspecified reviewer",
+    };
     if (edit?.limit_amount || edit?.currency) {
       body.edits = {
         ...(edit.limit_amount ? { limit_amount: Number(edit.limit_amount) } : {}),
@@ -78,7 +82,7 @@ export function LiveDocuments() {
     if (!reason) return;
     await apiClient.patch(`/v1/policies/authorities/${authorityId}`, {
       status: "rejected",
-      reviewer_id: "demo_reviewer",
+      reviewer_id: reviewerName.trim() || "unspecified reviewer",
       rejection_reason: reason,
     });
     if (selectedDocId) refreshAuthorities(selectedDocId);
@@ -95,7 +99,7 @@ export function LiveDocuments() {
       setMessage(`Policy v${compiled.version} compiled (${compiled.mandate_count} mandate(s)) and activated.`);
       refreshPolicies();
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Compile/activate failed: ${JSON.stringify(e.body)}` : "Compile/activate failed.");
+      setMessage(describeApiError(e, "Compile and activate"));
     }
   };
 
@@ -114,7 +118,7 @@ export function LiveDocuments() {
       </div>
 
       <div
-        className="p-6 rounded-2xl border mb-6"
+        className="p-6 rounded-xl border mb-6"
         style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
       >
         <label
@@ -127,7 +131,7 @@ export function LiveDocuments() {
             <Upload className="w-6 h-6" style={{ color: "var(--pr-authority-blue)" }} />
           )}
           <span className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>
-            {uploading ? "Uploading & extracting…" : "Upload a DoA PDF"}
+            {uploading ? "Uploading and extracting..." : "Upload a delegation-of-authority PDF"}
           </span>
           <input
             type="file"
@@ -138,8 +142,22 @@ export function LiveDocuments() {
           />
         </label>
 
+        <div className="mt-4">
+          <label htmlFor="reviewer-name" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
+            Your name (recorded as the reviewer for any approval or rejection below)
+          </label>
+          <input
+            id="reviewer-name"
+            value={reviewerName}
+            onChange={(e) => setReviewerName(e.target.value)}
+            placeholder="Jane Smith"
+            className="w-full max-w-xs px-3 py-2 rounded-lg border text-sm"
+            style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+          />
+        </div>
+
         {message && (
-          <p className="text-sm mt-4" style={{ color: "var(--pr-text-secondary)" }}>{message}</p>
+          <p role="alert" className="text-sm mt-4" style={{ color: "var(--pr-text-secondary)" }}>{message}</p>
         )}
       </div>
 
@@ -182,18 +200,15 @@ export function LiveDocuments() {
 
           {activePolicy && (
             <p className="text-xs mb-4" style={{ color: "var(--pr-text-muted)" }}>
-              Currently active: Policy v{activePolicy.version} ({activePolicy.bundle_hash.slice(0, 20)}…)
+              Currently active: Policy v{activePolicy.version} ({activePolicy.bundle_hash.slice(0, 20)}...)
             </p>
           )}
 
           <div className="space-y-3">
-            {authorities.map((a, i) => (
-              <motion.div
+            {authorities.map((a) => (
+              <div
                 key={a.authority_id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="p-5 rounded-2xl border"
+                className="p-5 rounded-xl border"
                 style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -214,7 +229,7 @@ export function LiveDocuments() {
                         a.status === "approved" ? "var(--pr-trust-green)" : a.status === "rejected" ? "var(--pr-critical-red)" : "var(--pr-warning-amber)",
                     }}
                   >
-                    {a.status.replace("_", " ")}
+                    {formatStatus(a.status)}
                   </span>
                 </div>
 
@@ -238,13 +253,14 @@ export function LiveDocuments() {
                 {a.status === "pending_review" ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
+                      <label htmlFor={`limit-${a.authority_id}`} className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
                         Limit amount (extracted: {a.limit_amount ?? "N/A"})
                       </label>
                       <input
+                        id={`limit-${a.authority_id}`}
                         type="number"
                         placeholder={String(a.limit_amount ?? "")}
-                        className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                        className="w-full px-3 py-2 rounded-lg border text-sm"
                         style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
                         onChange={(e) =>
                           setEdits((prev) => ({ ...prev, [a.authority_id]: { ...prev[a.authority_id], limit_amount: e.target.value } }))
@@ -277,7 +293,7 @@ export function LiveDocuments() {
                     Approved limit: {a.limit_amount} {a.currency}
                   </p>
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
         </>

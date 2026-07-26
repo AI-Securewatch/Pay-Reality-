@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Database, ShieldCheck, ShieldX } from "lucide-react";
-import { motion } from "motion/react";
 import { apiClient } from "../apiClient";
+import { formatStatus } from "../format";
 import type { LiveEvidence as LiveEvidenceType } from "../types";
 
 export function LiveEvidence() {
-  const [records, setRecords] = useState<LiveEvidenceType[]>([]);
+  const [records, setRecords] = useState<LiveEvidenceType[] | null>(null);
   const [verifyResults, setVerifyResults] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -28,26 +28,23 @@ export function LiveEvidence() {
         </div>
         <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Live Evidence</h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
-          Every decision produces a cryptographically signed, immutable Evidence record (spec
-          Section 17). Verify a signature to detect any tampering.
+          Every decision produces a cryptographically signed, immutable Evidence record. Verify a
+          signature to detect any tampering.
         </p>
       </div>
 
       <div className="space-y-3">
-        {records.length === 0 && (
+        {records?.length === 0 && (
           <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
             No evidence yet. Submit an Intent from the Test a Decision page.
           </p>
         )}
-        {records.map((e, i) => {
+        {records?.map((e) => {
           const verified = verifyResults[e.evidence_id];
           return (
-            <motion.div
+            <div
               key={e.evidence_id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              className="p-5 rounded-2xl border"
+              className="p-5 rounded-xl border"
               style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
             >
               <div className="flex items-start justify-between mb-3">
@@ -64,7 +61,7 @@ export function LiveEvidence() {
                     color: e.status === "VERIFIED" ? "var(--pr-trust-green)" : e.status === "REJECTED" ? "var(--pr-critical-red)" : "var(--pr-warning-amber)",
                   }}
                 >
-                  {e.status}
+                  {formatStatus(e.status)}
                 </span>
               </div>
 
@@ -96,7 +93,7 @@ export function LiveEvidence() {
                   </span>
                 )}
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>

@@ -24,7 +24,7 @@ export function AIPolicyBuilderReviewPage() {
       </h1>
 
       {candidates?.length === 0 && (
-        <p style={{ color: "var(--pr-text-disabled)" }}>
+        <p style={{ color: "var(--pr-text-muted)" }}>
           No candidates were extracted from this document. This can be a valid outcome (a scanned,
           non-text PDF, or a document with nothing matching a known action).
         </p>

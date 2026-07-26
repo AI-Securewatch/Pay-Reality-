@@ -34,7 +34,7 @@ export function OperatorKeyField() {
             setSaved(true);
           }}
           placeholder="Required to approve/activate"
-          className="w-full text-[11px] px-2 py-1 rounded-md outline-none"
+          className="w-full text-[11px] px-2 py-1 rounded-md"
           style={{
             backgroundColor: "rgba(0,0,0,0.2)",
             color: "var(--pr-text-primary)",

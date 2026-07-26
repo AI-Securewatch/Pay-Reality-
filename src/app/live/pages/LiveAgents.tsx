@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Bot, KeyRound, Plus } from "lucide-react";
-import { motion } from "motion/react";
-import { apiClient, ApiError } from "../apiClient";
+import { apiClient } from "../apiClient";
 import { generateKeyPair } from "../crypto";
 import { saveAgentKeyPair } from "../agentKeyStore";
+import { describeApiError, formatStatus } from "../format";
 import type { LiveAgent, LivePrincipal } from "../types";
 
 export function LiveAgents() {
@@ -46,7 +46,7 @@ export function LiveAgents() {
       setName("");
       setMessage(`Registered "${agent.name}". Its signing key is stored in this browser for the Test a Decision page.`);
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Registration failed: ${JSON.stringify(e.body)}` : "Registration failed.");
+      setMessage(describeApiError(e, "Registration"));
     }
   };
 
@@ -55,42 +55,44 @@ export function LiveAgents() {
       <div className="mb-8">
         <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Live Agents</h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
-          Register an AI agent with a signing key (spec Section 10). The private key never leaves
-          this browser, only the public key is sent to the server.
+          Register an AI agent with a signing key. The private key never leaves this browser; only
+          the public key is sent to the server.
         </p>
       </div>
 
       <div
-        className="p-6 rounded-2xl border mb-8"
+        className="p-6 rounded-xl border mb-8"
         style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
       >
-        <h3 className="text-sm font-medium mb-4" style={{ color: "var(--pr-text-primary)" }}>
+        <h2 className="text-sm font-medium mb-4" style={{ color: "var(--pr-text-primary)" }}>
           Register a new agent
-        </h3>
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
+            <label htmlFor="agent-name" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
               Agent name
             </label>
             <input
+              id="agent-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="AP-Automation-Agent"
-              className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+              className="w-full px-3 py-2 rounded-lg border text-sm"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
-              Acting for Principal
+            <label htmlFor="agent-principal" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
+              Acting for principal
             </label>
             <select
+              id="agent-principal"
               value={principalId}
               onChange={(e) => setPrincipalId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+              className="w-full px-3 py-2 rounded-lg border text-sm"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             >
-              <option value="">Select a principal…</option>
+              <option value="">Select a principal...</option>
               {principals.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -100,14 +102,15 @@ export function LiveAgents() {
 
         <div className="flex items-end gap-2 mb-4">
           <div className="flex-1">
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
-              Or create a new Principal
+            <label htmlFor="new-principal-name" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
+              Or create a new principal
             </label>
             <input
+              id="new-principal-name"
               value={newPrincipalName}
               onChange={(e) => setNewPrincipalName(e.target.value)}
               placeholder="Regional Controller (EMEA)"
-              className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+              className="w-full px-3 py-2 rounded-lg border text-sm"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             />
           </div>
@@ -125,19 +128,20 @@ export function LiveAgents() {
           className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
           style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
         >
-          <Plus className="w-4 h-4" /> Register Agent
+          <Plus className="w-4 h-4" /> Register agent
         </button>
 
-        {message && <p className="text-sm mt-4" style={{ color: "var(--pr-text-secondary)" }}>{message}</p>}
+        {message && (
+          <p role="alert" className="text-sm mt-4" style={{ color: "var(--pr-text-secondary)" }}>
+            {message}
+          </p>
+        )}
       </div>
 
       <div className="space-y-3">
-        {agents.map((a, i) => (
-          <motion.div
+        {agents.map((a) => (
+          <div
             key={a.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.03 }}
             className="p-4 rounded-xl border flex items-center justify-between"
             style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
           >
@@ -159,10 +163,10 @@ export function LiveAgents() {
                   color: a.status === "active" ? "var(--pr-trust-green)" : "var(--pr-critical-red)",
                 }}
               >
-                {a.status}
+                {formatStatus(a.status)}
               </span>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

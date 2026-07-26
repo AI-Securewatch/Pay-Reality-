@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Clock, Send, ShieldAlert, XCircle } from "lucide-react";
-import { apiClient, ApiError } from "../apiClient";
+import { apiClient } from "../apiClient";
 import { signBody } from "../crypto";
 import { getAgentPrivateKey } from "../agentKeyStore";
+import { describeApiError, formatStatus } from "../format";
 import type { LiveAgent, LiveDecision, SubmitIntentResult } from "../types";
 
 const KNOWN_SCOPES = ["vendor_payment", "purchase_order_create", "wire_transfer"];
@@ -23,6 +24,7 @@ export function LiveTestIntent() {
   const [decision, setDecision] = useState<LiveDecision | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [resolverName, setResolverName] = useState("");
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export function LiveTestIntent() {
       setDecision(latest);
       if (submitted.status === "PENDING") startPolling(submitted.decision.decision_id);
     } catch (e) {
-      setError(e instanceof ApiError ? `Submission failed: ${JSON.stringify(e.body)}` : "Submission failed.");
+      setError(describeApiError(e, "Submission"));
     }
   };
 
@@ -92,7 +94,7 @@ export function LiveTestIntent() {
     try {
       await apiClient.post(`/v1/decisions/${decision.id}/resolve`, {
         resolution,
-        resolved_by: "CFO Jane Doe",
+        resolved_by: resolverName.trim() || "unspecified reviewer",
         reason: resolution === "approved" ? "Reviewed and approved." : "Reviewed and denied.",
       });
       const latest = await apiClient.get<LiveDecision>(`/v1/decisions/${decision.id}`);
@@ -115,7 +117,7 @@ export function LiveTestIntent() {
       </div>
 
       <div
-        className="p-6 rounded-2xl border mb-6"
+        className="p-6 rounded-xl border mb-6"
         style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
       >
         {signableAgents.length === 0 && (
@@ -125,25 +127,27 @@ export function LiveTestIntent() {
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Agent</label>
+            <label htmlFor="intent-agent" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Agent</label>
             <select
+              id="intent-agent"
               value={agentId}
               onChange={(e) => setAgentId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+              className="w-full px-3 py-2 rounded-lg border text-sm"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             >
-              <option value="">Select an agent…</option>
+              <option value="">Select an agent...</option>
               {signableAgents.map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Action</label>
+            <label htmlFor="intent-action" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Action</label>
             <select
+              id="intent-action"
               value={action}
               onChange={(e) => setAction(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+              className="w-full px-3 py-2 rounded-lg border text-sm"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             >
               {KNOWN_SCOPES.map((s) => (
@@ -152,21 +156,23 @@ export function LiveTestIntent() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Amount</label>
+            <label htmlFor="intent-amount" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Amount</label>
             <input
+              id="intent-amount"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+              className="w-full px-3 py-2 rounded-lg border text-sm"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Currency</label>
+            <label htmlFor="intent-currency" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>Currency</label>
             <input
+              id="intent-currency"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+              className="w-full px-3 py-2 rounded-lg border text-sm"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             />
           </div>
@@ -178,15 +184,17 @@ export function LiveTestIntent() {
           className="px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-40"
           style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
         >
-          <Send className="w-4 h-4" /> Submit signed Intent
+          <Send className="w-4 h-4" /> Submit signed intent
         </button>
 
-        {error && <p className="text-sm mt-4" style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm mt-4" style={{ color: "var(--pr-critical-red)" }}>{error}</p>
+        )}
       </div>
 
       {decision && style && (
         <div
-          className="p-6 rounded-2xl border"
+          className="p-6 rounded-xl border"
           style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -194,7 +202,7 @@ export function LiveTestIntent() {
               <style.icon className="w-5 h-5" style={{ color: style.fg }} />
             </div>
             <div>
-              <p className="font-semibold" style={{ color: style.fg }}>{decision.outcome}</p>
+              <p className="font-semibold" style={{ color: style.fg }}>{formatStatus(decision.outcome)}</p>
               <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{decision.reason}</p>
             </div>
           </div>
@@ -203,29 +211,42 @@ export function LiveTestIntent() {
             <div className="flex items-center gap-2 mb-4 p-3 rounded-lg" style={{ backgroundColor: "rgba(245,158,11,0.06)" }}>
               <Clock className="w-4 h-4 animate-pulse" style={{ color: "var(--pr-warning-amber)" }} />
               <span className="text-sm" style={{ color: "var(--pr-text-secondary)" }}>
-                Awaiting human review… (polling every 2s)
+                Awaiting human review (checking every 2 seconds)...
               </span>
             </div>
           )}
 
           {decision.outcome === "HUMAN_REVIEW" && decision.status === "PENDING" && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleResolve("approved")}
-                disabled={resolving}
-                className="flex-1 px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2"
-                style={{ backgroundColor: "rgba(34,197,94,0.1)", color: "var(--pr-trust-green)" }}
-              >
-                <CheckCircle2 className="w-4 h-4" /> Approve as CFO
-              </button>
-              <button
-                onClick={() => handleResolve("denied")}
-                disabled={resolving}
-                className="flex-1 px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2"
-                style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "var(--pr-critical-red)" }}
-              >
-                <XCircle className="w-4 h-4" /> Deny as CFO
-              </button>
+            <div>
+              <label htmlFor="resolver-name" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
+                Your name (recorded as the reviewer for this decision)
+              </label>
+              <input
+                id="resolver-name"
+                value={resolverName}
+                onChange={(e) => setResolverName(e.target.value)}
+                placeholder="Jane Smith"
+                className="w-full max-w-xs mb-3 px-3 py-2 rounded-lg border text-sm"
+                style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleResolve("approved")}
+                  disabled={resolving}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "rgba(34,197,94,0.1)", color: "var(--pr-trust-green)" }}
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Approve
+                </button>
+                <button
+                  onClick={() => handleResolve("denied")}
+                  disabled={resolving}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "var(--pr-critical-red)" }}
+                >
+                  <XCircle className="w-4 h-4" /> Deny
+                </button>
+              </div>
             </div>
           )}
 
@@ -236,7 +257,7 @@ export function LiveTestIntent() {
           )}
 
           {result && (
-            <p className="text-xs mt-4 font-mono" style={{ color: "var(--pr-text-disabled)" }}>
+            <p className="text-xs mt-4 font-mono" style={{ color: "var(--pr-text-muted)" }}>
               evidence_id: {result.evidence_id}
             </p>
           )}

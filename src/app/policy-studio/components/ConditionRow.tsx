@@ -39,9 +39,10 @@ export function ConditionRow({ condition, onChange, onRemove, readOnly }: Props)
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
       <input
+        aria-label="Condition field"
         style={{ ...inputStyle, width: 180 }}
         value={condition.field}
-        placeholder="field, e.g. amount"
+        placeholder="Field, e.g. amount"
         readOnly={readOnly}
         onChange={(e) => onChange?.({ ...condition, field: e.target.value })}
       />
@@ -49,6 +50,7 @@ export function ConditionRow({ condition, onChange, onRemove, readOnly }: Props)
         <span style={{ ...inputStyle, width: 90, textAlign: "center" }}>{condition.operator}</span>
       ) : (
         <select
+          aria-label="Condition operator"
           style={{ ...inputStyle, width: 90 }}
           value={condition.operator}
           onChange={(e) => onChange?.({ ...condition, operator: e.target.value })}
@@ -62,6 +64,7 @@ export function ConditionRow({ condition, onChange, onRemove, readOnly }: Props)
       )}
       {condition.operator === "exists" ? (
         <select
+          aria-label="Condition value"
           style={{ ...inputStyle, width: 180 }}
           value={String(condition.value)}
           disabled={readOnly}
@@ -72,9 +75,10 @@ export function ConditionRow({ condition, onChange, onRemove, readOnly }: Props)
         </select>
       ) : (
         <input
+          aria-label="Condition value"
           style={{ ...inputStyle, width: 180 }}
           value={valueToInputString(condition.value)}
-          placeholder="value"
+          placeholder="Value"
           readOnly={readOnly}
           onChange={(e) => onChange?.({ ...condition, value: parseValue(e.target.value, condition.operator) })}
         />
@@ -83,7 +87,15 @@ export function ConditionRow({ condition, onChange, onRemove, readOnly }: Props)
         <button
           type="button"
           onClick={onRemove}
-          style={{ background: "none", border: "none", color: "var(--pr-critical-red)", cursor: "pointer", fontSize: 12 }}
+          aria-label={`Remove condition on ${condition.field || "this field"}`}
+          style={{
+            background: "none",
+            border: "none",
+            color: "var(--pr-critical-red)",
+            cursor: "pointer",
+            fontSize: 12,
+            padding: "6px 8px",
+          }}
         >
           Remove
         </button>

@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import { policyStudioApi } from "./api";
 import type { DeployResult, RuntimePolicy } from "./types";
 import { PolicyStatusBadge } from "./components/PolicyStatusBadge";
-import { ApiError } from "../live/apiClient";
+import { describeApiError } from "../live/format";
 
 export function DeploymentPage() {
   const { policyKey } = useParams();
@@ -25,7 +25,7 @@ export function DeploymentPage() {
       const updated = await policyStudioApi.get(policyKey!);
       setPolicy(updated);
     } catch (e) {
-      setError(e instanceof ApiError ? `Deploy failed: ${JSON.stringify(e.body)}` : "Deploy failed.");
+      setError(describeApiError(e, "Deploy"));
     } finally {
       setRunning(false);
     }
@@ -48,7 +48,7 @@ export function DeploymentPage() {
       )}
 
       {policy && !canDeploy && (
-        <p style={{ color: "var(--pr-text-disabled)", fontSize: 13, marginBottom: 16 }}>
+        <p style={{ color: "var(--pr-text-muted)", fontSize: 13, marginBottom: 16 }}>
           Only a policy in the Compiled status can be deployed. Compile this version first.
         </p>
       )}
@@ -79,13 +79,13 @@ export function DeploymentPage() {
         className="px-4 py-2 rounded-lg text-sm font-medium mb-6"
         style={{
           backgroundColor: canDeploy ? "var(--pr-critical-red)" : "var(--pr-bg-hover)",
-          color: canDeploy ? "#fff" : "var(--pr-text-disabled)",
+          color: canDeploy ? "#fff" : "var(--pr-text-muted)",
         }}
       >
-        {running ? "Deploying..." : "Deploy to Production"}
+        {running ? "Deploying..." : "Deploy to production"}
       </button>
 
-      {error && <p style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
+      {error && <p role="alert" style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
 
       {result && (
         <div
@@ -96,7 +96,7 @@ export function DeploymentPage() {
             padding: 20,
           }}
         >
-          <p style={{ color: "var(--pr-trust-green)", fontWeight: 600 }}>DEPLOYED</p>
+          <p style={{ color: "var(--pr-trust-green)", fontWeight: 600 }}>Deployed</p>
           <div className="mt-3 text-sm" style={{ color: "var(--pr-text-secondary)" }}>
             <p>Bundle ID: {result.bundle_id}</p>
             <p>Bundle Hash: {result.bundle_hash}</p>

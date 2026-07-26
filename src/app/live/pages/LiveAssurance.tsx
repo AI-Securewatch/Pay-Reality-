@@ -25,7 +25,7 @@ export function LiveAssurance() {
         setPolicies(p);
         setEvidence(e);
       })
-      .catch(() => setError("Could not reach the Live backend. Is the server running on :8000?"));
+      .catch(() => setError("We couldn't reach the service. Check your connection and try again."));
   }, []);
 
   const activePolicy = policies.find((p) => p.status === "active");
@@ -67,14 +67,12 @@ export function LiveAssurance() {
         <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Enterprise Assurance</h1>
         <p style={{ color: "var(--pr-text-muted)" }}>
           A live rollup of what has actually been authorized, decided, and evidenced. Every number
-          here is derived directly from real agents, real policy, and real signed Evidence records,
-          not a computed maturity score, because that would be one more thing this page would be
-          claiming rather than showing.
+          here is pulled directly from your agents, policies, and signed Evidence records.
         </p>
       </div>
 
       {error && (
-        <p className="text-sm mb-6" style={{ color: "var(--pr-warning-amber)" }}>
+        <p role="alert" className="text-sm mb-6" style={{ color: "var(--pr-warning-amber)" }}>
           {error}
         </p>
       )}
@@ -85,7 +83,7 @@ export function LiveAssurance() {
           return (
             <div
               key={c.label}
-              className="p-5 rounded-2xl border"
+              className="p-5 rounded-xl border"
               style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
             >
               <div
@@ -97,7 +95,7 @@ export function LiveAssurance() {
               <div className="text-2xl font-semibold mb-1" style={{ color: "var(--pr-text-primary)" }}>
                 {c.value}
                 {c.total !== undefined && (
-                  <span className="text-sm font-normal" style={{ color: "var(--pr-text-disabled)" }}>
+                  <span className="text-sm font-normal" style={{ color: "var(--pr-text-muted)" }}>
                     {" "}
                     / {c.total}
                   </span>
@@ -110,7 +108,7 @@ export function LiveAssurance() {
       </div>
 
       <div
-        className="p-5 rounded-2xl border flex items-center gap-3"
+        className="p-5 rounded-xl border flex items-center gap-3"
         style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
       >
         <ShieldCheck className="w-4 h-4 flex-shrink-0" style={{ color: "var(--pr-verification-purple)" }} />

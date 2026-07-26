@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { policyStudioApi } from "../api";
 import type { Scope } from "../types";
 
@@ -25,6 +25,7 @@ const labelStyle: React.CSSProperties = {
 // Runtime Decisions page.
 export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next: Scope) => void }) {
   const [actions, setActions] = useState<string[]>([]);
+  const formId = useId();
 
   useEffect(() => {
     policyStudioApi
@@ -36,18 +37,24 @@ export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <label style={labelStyle}>Principal</label>
+        <label htmlFor={`${formId}-principal`} style={labelStyle}>Principal</label>
         <input
+          id={`${formId}-principal`}
           style={inputStyle}
           value={scope.principal}
           onChange={(e) => onChange({ ...scope, principal: e.target.value })}
-          placeholder="principal id"
+          placeholder="Principal ID"
         />
       </div>
       <div>
-        <label style={labelStyle}>Action</label>
-        <select style={inputStyle} value={scope.action} onChange={(e) => onChange({ ...scope, action: e.target.value })}>
-          <option value="">(select an action)</option>
+        <label htmlFor={`${formId}-action`} style={labelStyle}>Action</label>
+        <select
+          id={`${formId}-action`}
+          style={inputStyle}
+          value={scope.action}
+          onChange={(e) => onChange({ ...scope, action: e.target.value })}
+        >
+          <option value="">Select an action</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {a}
@@ -56,17 +63,19 @@ export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next
         </select>
       </div>
       <div>
-        <label style={labelStyle}>Agent (optional)</label>
+        <label htmlFor={`${formId}-agent`} style={labelStyle}>Agent (optional)</label>
         <input
+          id={`${formId}-agent`}
           style={inputStyle}
           value={scope.agent ?? ""}
           onChange={(e) => onChange({ ...scope, agent: e.target.value || null })}
-          placeholder="(any agent for this principal)"
+          placeholder="Any agent for this principal"
         />
       </div>
       <div>
-        <label style={labelStyle}>Resource (optional)</label>
+        <label htmlFor={`${formId}-resource`} style={labelStyle}>Resource (optional)</label>
         <input
+          id={`${formId}-resource`}
           style={inputStyle}
           value={scope.resource ?? ""}
           onChange={(e) => onChange({ ...scope, resource: e.target.value || null })}

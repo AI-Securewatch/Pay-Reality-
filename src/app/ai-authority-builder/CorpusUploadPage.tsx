@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
+import { useId, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { aiAuthorityBuilderApi } from "./api";
 import type { Corpus } from "./types";
-import { ApiError } from "../live/apiClient";
+import { describeApiError, formatStatus } from "../live/format";
 
 const STATUS_COLOR: Record<string, string> = {
-  uploaded: "var(--pr-text-disabled)",
+  uploaded: "var(--pr-text-muted)",
   extracted: "var(--pr-trust-green)",
   failed: "var(--pr-critical-red)",
 };
 
 export function AIAuthorityBuilderUploadPage() {
   const navigate = useNavigate();
+  const formId = useId();
   const [corpora, setCorpora] = useState<Corpus[] | null>(null);
   const [name, setName] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -49,7 +50,7 @@ export function AIAuthorityBuilderUploadPage() {
         load();
       }
     } catch (e) {
-      setMessage(e instanceof ApiError ? `Upload failed: ${JSON.stringify(e.body)}` : "Upload failed.");
+      setMessage(describeApiError(e, "Upload"));
     } finally {
       setUploading(false);
     }
@@ -75,10 +76,11 @@ export function AIAuthorityBuilderUploadPage() {
           marginBottom: 24,
         }}
       >
-        <label style={{ fontSize: 12, color: "var(--pr-text-muted)", display: "block", marginBottom: 4 }}>
+        <label htmlFor={`${formId}-name`} style={{ fontSize: 12, color: "var(--pr-text-muted)", display: "block", marginBottom: 4 }}>
           Corpus name
         </label>
         <input
+          id={`${formId}-name`}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. 2026 Delegation of Authority Refresh"
@@ -115,7 +117,11 @@ export function AIAuthorityBuilderUploadPage() {
             {files.map((f, i) => (
               <div key={i} className="flex items-center justify-between py-1" style={{ fontSize: 13, color: "var(--pr-text-secondary)" }}>
                 <span>{f.name}</span>
-                <button onClick={() => removeFile(i)} style={{ color: "var(--pr-critical-red)", fontSize: 12 }}>
+                <button
+                  onClick={() => removeFile(i)}
+                  aria-label={`Remove ${f.name}`}
+                  style={{ color: "var(--pr-critical-red)", fontSize: 12, padding: "4px 8px" }}
+                >
                   Remove
                 </button>
               </div>
@@ -132,7 +138,7 @@ export function AIAuthorityBuilderUploadPage() {
           {uploading ? "Uploading and analyzing corpus..." : `Analyze corpus (${files.length} file(s))`}
         </button>
 
-        {message && <p style={{ color: "var(--pr-warning-amber)", marginTop: 12 }}>{message}</p>}
+        {message && <p role="alert" style={{ color: "var(--pr-warning-amber)", marginTop: 12 }}>{message}</p>}
       </div>
 
       <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Past corpora</h2>
@@ -147,14 +153,20 @@ export function AIAuthorityBuilderUploadPage() {
         </thead>
         <tbody>
           {corpora?.map((c) => (
-            <tr key={c.corpus_id} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            <tr
+              key={c.corpus_id}
+              className="transition-colors"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--pr-bg-hover)")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            >
               <td className="py-2">
                 <Link to={`/policy-studio/authority-builder/${c.corpus_id}`} style={{ color: "var(--pr-authority-blue)" }}>
                   {c.name}
                 </Link>
               </td>
               <td className="py-2" style={{ color: "var(--pr-text-muted)" }}>{c.document_count}</td>
-              <td className="py-2" style={{ color: STATUS_COLOR[c.status] }}>{c.status}</td>
+              <td className="py-2" style={{ color: STATUS_COLOR[c.status] }}>{formatStatus(c.status)}</td>
               <td className="py-2" style={{ color: "var(--pr-text-muted)" }}>
                 {new Date(c.created_at).toLocaleString()}
               </td>
@@ -162,7 +174,7 @@ export function AIAuthorityBuilderUploadPage() {
           ))}
           {corpora?.length === 0 && (
             <tr>
-              <td colSpan={4} className="py-6 text-center" style={{ color: "var(--pr-text-disabled)" }}>
+              <td colSpan={4} className="py-6 text-center" style={{ color: "var(--pr-text-muted)" }}>
                 No corpora yet.
               </td>
             </tr>

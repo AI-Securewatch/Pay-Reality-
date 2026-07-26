@@ -1,3 +1,4 @@
+import { formatStatus } from "../../live/format";
 import type { PolicyStatus } from "../types";
 
 const STATUS_COLOR: Record<PolicyStatus, string> = {
@@ -24,7 +25,7 @@ export function PolicyStatusBadge({ status }: { status: PolicyStatus }) {
         fontFamily: "monospace",
       }}
     >
-      {status}
+      {formatStatus(status)}
     </span>
   );
 }
