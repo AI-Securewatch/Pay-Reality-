@@ -57,7 +57,7 @@ export function LiveEvidence() {
             <div
               key={e.evidence_id}
               className="p-5 rounded-xl border"
-              style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
+              style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "var(--pr-overlay-05)" }}
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -90,7 +90,7 @@ export function LiveEvidence() {
                 <button
                   onClick={() => verify(e.evidence_id)}
                   className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 border transition-all"
-                  style={{ borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-secondary)" }}
+                  style={{ borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-secondary)" }}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" /> Verify signature
                 </button>

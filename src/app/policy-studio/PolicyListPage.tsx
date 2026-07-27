@@ -74,7 +74,7 @@ export function PolicyListPage() {
           placeholder="Search by name"
           style={{
             backgroundColor: "var(--pr-bg-hover)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid var(--pr-overlay-10)",
             color: "var(--pr-text-primary)",
             borderRadius: 6,
             padding: "6px 10px",
@@ -88,7 +88,7 @@ export function PolicyListPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           style={{
             backgroundColor: "var(--pr-bg-hover)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid var(--pr-overlay-10)",
             color: "var(--pr-text-primary)",
             borderRadius: 6,
             padding: "6px 10px",
@@ -110,7 +110,7 @@ export function PolicyListPage() {
           onChange={(e) => setSortKey(e.target.value as SortKey)}
           style={{
             backgroundColor: "var(--pr-bg-hover)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid var(--pr-overlay-10)",
             color: "var(--pr-text-primary)",
             borderRadius: 6,
             padding: "6px 10px",
@@ -145,7 +145,7 @@ export function PolicyListPage() {
               <tr
                 key={p.policy_key}
                 className="transition-colors"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                style={{ borderTop: "1px solid var(--pr-overlay-05)" }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--pr-bg-hover)")}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >

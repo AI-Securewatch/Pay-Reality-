@@ -79,7 +79,7 @@ export function RouteErrorBoundary() {
           <Link
             to="/"
             className="px-6 py-3 rounded-lg border transition-colors"
-            style={{ borderColor: "rgba(255,255,255,0.12)", color: "var(--pr-text-primary)" }}
+            style={{ borderColor: "var(--pr-overlay-12)", color: "var(--pr-text-primary)" }}
           >
             Return to Overview
           </Link>

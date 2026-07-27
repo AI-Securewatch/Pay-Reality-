@@ -59,7 +59,7 @@ export function ReviewQueuePage() {
         onChange={(e) => setApprover(e.target.value)}
         style={{
           backgroundColor: "var(--pr-bg-hover)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          border: "1px solid var(--pr-overlay-10)",
           color: "var(--pr-text-primary)",
           borderRadius: 6,
           padding: "6px 8px",
@@ -78,7 +78,7 @@ export function ReviewQueuePage() {
       {pending?.map((p) => (
         <div
           key={p.policy_key}
-          style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: 16, marginBottom: 12 }}
+          style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 16, marginBottom: 12 }}
         >
           <div className="flex items-center justify-between mb-2">
             <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>
@@ -115,7 +115,7 @@ export function ReviewQueuePage() {
             onChange={(e) => setRejectReason((prev) => ({ ...prev, [p.policy_key]: e.target.value }))}
             style={{
               backgroundColor: "var(--pr-bg-hover)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              border: "1px solid var(--pr-overlay-10)",
               color: "var(--pr-text-primary)",
               borderRadius: 6,
               padding: "6px 8px",

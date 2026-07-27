@@ -13,7 +13,7 @@ export function OperatorKeyField() {
   return (
     <div
       className="px-3 py-2.5 rounded-xl mt-2"
-      style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.04)" }}
+      style={{ backgroundColor: "var(--pr-overlay-03)", border: "1px solid var(--pr-overlay-04)" }}
     >
       <div className="flex items-center gap-1.5 mb-1.5">
         <KeyRound className="w-3 h-3" style={{ color: "var(--pr-text-disabled)" }} />
@@ -36,9 +36,9 @@ export function OperatorKeyField() {
           placeholder="Required to approve/activate"
           className="w-full text-[11px] px-2 py-1 rounded-md"
           style={{
-            backgroundColor: "rgba(0,0,0,0.2)",
+            backgroundColor: "var(--pr-input-bg)",
             color: "var(--pr-text-primary)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            border: "1px solid var(--pr-overlay-06)",
           }}
         />
       </div>

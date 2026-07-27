@@ -138,7 +138,7 @@ export function LiveTestIntent() {
 
       <div
         className="p-6 rounded-xl border mb-6"
-        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
+        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "var(--pr-overlay-05)" }}
       >
         {agents !== null && signableAgents.length === 0 && (
           <p className="text-sm mb-4" style={{ color: "var(--pr-warning-amber)" }}>
@@ -154,7 +154,7 @@ export function LiveTestIntent() {
               value={agentId}
               onChange={(e) => setAgentId(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border text-sm"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             >
               <option value="">Select an agent...</option>
               {signableAgents.map((a) => (
@@ -169,7 +169,7 @@ export function LiveTestIntent() {
               value={action}
               onChange={(e) => setAction(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border text-sm"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             >
               {actions.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -184,7 +184,7 @@ export function LiveTestIntent() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border text-sm"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             />
           </div>
           <div>
@@ -194,7 +194,7 @@ export function LiveTestIntent() {
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border text-sm"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             />
           </div>
         </div>
@@ -218,7 +218,7 @@ export function LiveTestIntent() {
           role="status"
           aria-live="polite"
           className="p-6 rounded-xl border"
-          style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
+          style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "var(--pr-overlay-05)" }}
         >
           <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: "var(--pr-text-muted)" }}>
             Decision
@@ -253,7 +253,7 @@ export function LiveTestIntent() {
                 onChange={(e) => setResolverName(e.target.value)}
                 placeholder="Jane Smith"
                 className="w-full max-w-xs mb-3 px-3 py-2 rounded-lg border text-sm"
-                style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+                style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
               />
               <div className="flex gap-3">
                 <button

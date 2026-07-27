@@ -9,7 +9,7 @@ import type { OrgUser } from "./types";
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid var(--pr-overlay-05)",
   borderRadius: 12,
 };
 
@@ -94,7 +94,7 @@ export function UsersPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full text-sm px-3 py-2 rounded-lg"
-                style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--pr-text-primary)", border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ backgroundColor: "var(--pr-input-bg)", color: "var(--pr-text-primary)", border: "1px solid var(--pr-overlay-08)" }}
               />
             </div>
             <div>
@@ -107,7 +107,7 @@ export function UsersPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full text-sm px-3 py-2 rounded-lg"
-                style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--pr-text-primary)", border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ backgroundColor: "var(--pr-input-bg)", color: "var(--pr-text-primary)", border: "1px solid var(--pr-overlay-08)" }}
               />
             </div>
             <div>
@@ -119,7 +119,7 @@ export function UsersPage() {
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full text-sm px-3 py-2 rounded-lg"
-                style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--pr-text-primary)", border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ backgroundColor: "var(--pr-input-bg)", color: "var(--pr-text-primary)", border: "1px solid var(--pr-overlay-08)" }}
               >
                 {ASSIGNABLE_ROLES.map((r) => (
                   <option key={r} value={r}>{ROLE_LABELS[r]}</option>
@@ -149,7 +149,7 @@ export function UsersPage() {
         <div style={{ ...cardStyle, overflow: "hidden" }}>
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <tr style={{ borderBottom: "1px solid var(--pr-overlay-05)" }}>
                 {["Name", "Email", "Role", "Status", "Last Login", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium" style={{ color: "var(--pr-text-muted)" }}>
                     {h}
@@ -159,7 +159,7 @@ export function UsersPage() {
             </thead>
             <tbody>
               {(users ?? []).map((u) => (
-                <tr key={u.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                <tr key={u.id} style={{ borderBottom: "1px solid var(--pr-overlay-03)" }}>
                   <td className="px-4 py-3" style={{ color: "var(--pr-text-primary)" }}>{u.name}</td>
                   <td className="px-4 py-3" style={{ color: "var(--pr-text-secondary)" }}>{u.email}</td>
                   <td className="px-4 py-3">
@@ -168,7 +168,7 @@ export function UsersPage() {
                       onChange={(e) => changeRole(u.id, e.target.value)}
                       disabled={u.id === currentUser?.id}
                       className="text-xs px-2 py-1 rounded-md"
-                      style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--pr-text-primary)", border: "1px solid rgba(255,255,255,0.08)" }}
+                      style={{ backgroundColor: "var(--pr-input-bg)", color: "var(--pr-text-primary)", border: "1px solid var(--pr-overlay-08)" }}
                     >
                       {ASSIGNABLE_ROLES.map((r) => (
                         <option key={r} value={r}>{ROLE_LABELS[r]}</option>

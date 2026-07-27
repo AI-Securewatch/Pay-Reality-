@@ -2,13 +2,18 @@
 
 :root {
   --font-size: 16px;
-  
-  /* PayReality Brand Colors */
+
+  /* PayReality Brand Colors -- dark theme is the default (data-theme
+     unset or "dark"); see [data-theme="light"] below for the light
+     theme's values. Every one of these is a real CSS custom property
+     read via var(...) throughout the app, not a Tailwind class, so
+     switching data-theme on <html> re-themes the whole app without
+     touching a single component. */
   --pr-bg-primary: #07111F;
   --pr-bg-secondary: #0E1728;
   --pr-bg-card: #111C31;
   --pr-bg-hover: #16233F;
-  
+
   --pr-authority-blue: #4D7CFE;
   --pr-evidence-cyan: #00D4FF;
   --pr-trust-green: #22C55E;
@@ -16,12 +21,31 @@
   --pr-critical-red: #EF4444;
   --pr-verification-purple: #8B5CF6;
   --pr-logo-gradient-end: #7C3AED;
-  
+
   --pr-text-primary: #F8FAFC;
   --pr-text-secondary: #CBD5E1;
   --pr-text-muted: #94A3B8;
   --pr-text-disabled: #64748B;
-  
+
+  /* The low-level translucent overlays (hairline borders, subtle card
+     backgrounds, recessed input backgrounds) every page builds with
+     inline styles -- previously hardcoded rgba(255,255,255,*) literals
+     repeated in ~150 places across the app, which is exactly why light
+     mode never worked before: those literals assumed a dark background
+     and would have rendered as near-invisible washes on a light one.
+     Named by weight, not by where they're used, since the same "faint
+     white line on dark / faint black line on light" overlay serves as a
+     border in one place and a background in another. */
+  --pr-overlay-03: rgba(255,255,255,0.03);
+  --pr-overlay-04: rgba(255,255,255,0.04);
+  --pr-overlay-05: rgba(255,255,255,0.05);
+  --pr-overlay-06: rgba(255,255,255,0.06);
+  --pr-overlay-08: rgba(255,255,255,0.08);
+  --pr-overlay-10: rgba(255,255,255,0.1);
+  --pr-overlay-12: rgba(255,255,255,0.12);
+  --pr-input-bg: rgba(0,0,0,0.2);
+  --pr-backdrop: rgba(0,0,0,0.4);
+
   /* Original theme variables */
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
@@ -60,6 +84,37 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Light theme, toggled via <html data-theme="light">. Brand/semantic
+   colors (authority-blue, trust-green, warning-amber, critical-red,
+   evidence-cyan, verification-purple) intentionally aren't redefined
+   here: those stay constant across both themes, only the neutrals flip.
+   The four bg/text steps keep the same *relative* contrast ordering as
+   the dark theme (bg-secondary/card lighter than bg-primary; text gets
+   progressively lighter from primary to disabled), just remapped to the
+   light end of the scale, so a page built for one theme's contrast
+   logic reads correctly in the other without per-component changes. */
+:root[data-theme="light"] {
+  --pr-bg-primary: #F6F8FB;
+  --pr-bg-secondary: #FFFFFF;
+  --pr-bg-card: #FFFFFF;
+  --pr-bg-hover: #EEF2F8;
+
+  --pr-text-primary: #0F1A2E;
+  --pr-text-secondary: #33415C;
+  --pr-text-muted: #64748B;
+  --pr-text-disabled: #94A3B8;
+
+  --pr-overlay-03: rgba(15,26,46,0.025);
+  --pr-overlay-04: rgba(15,26,46,0.035);
+  --pr-overlay-05: rgba(15,26,46,0.08);
+  --pr-overlay-06: rgba(15,26,46,0.045);
+  --pr-overlay-08: rgba(15,26,46,0.1);
+  --pr-overlay-10: rgba(15,26,46,0.12);
+  --pr-overlay-12: rgba(15,26,46,0.14);
+  --pr-input-bg: rgba(15,26,46,0.04);
+  --pr-backdrop: rgba(15,26,46,0.4);
 }
 
 .dark {
@@ -257,19 +312,21 @@
   top: 8px;
 }
 
-/* PayReality Scrollbar Styling - Force dark theme scrollbars */
+/* PayReality Scrollbar Styling -- follows the active theme via
+   --pr-bg-card/--pr-authority-blue rather than hardcoded hex, so it no
+   longer forces a dark-only look now that light mode exists. */
 ::-webkit-scrollbar {
   width: 8px !important;
   height: 8px !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: #111C31 !important;
+  background: var(--pr-bg-card) !important;
   border-radius: 4px !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4D7CFE !important;
+  background: var(--pr-authority-blue) !important;
   border-radius: 4px !important;
   transition: background 0.2s ease !important;
 }
@@ -279,11 +336,11 @@
 }
 
 ::-webkit-scrollbar-corner {
-  background: #111C31 !important;
+  background: var(--pr-bg-card) !important;
 }
 
 /* Firefox Scrollbar */
 * {
   scrollbar-width: thin !important;
-  scrollbar-color: #4D7CFE #111C31 !important;
+  scrollbar-color: var(--pr-authority-blue) var(--pr-bg-card) !important;
 }

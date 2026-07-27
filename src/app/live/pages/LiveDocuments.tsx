@@ -119,7 +119,7 @@ export function LiveDocuments() {
 
       <div
         className="p-6 rounded-xl border mb-6"
-        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
+        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "var(--pr-overlay-05)" }}
       >
         <label
           className="flex flex-col items-center justify-center gap-2 p-8 rounded-xl border-2 border-dashed cursor-pointer transition-all"
@@ -152,7 +152,7 @@ export function LiveDocuments() {
             onChange={(e) => setReviewerName(e.target.value)}
             placeholder="Jane Smith"
             className="w-full max-w-xs px-3 py-2 rounded-lg border text-sm"
-            style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+            style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
           />
         </div>
 
@@ -170,7 +170,7 @@ export function LiveDocuments() {
               className="px-3 py-2 rounded-lg text-sm whitespace-nowrap border transition-all"
               style={{
                 backgroundColor: selectedDocId === d.document_id ? "rgba(77,124,254,0.12)" : "transparent",
-                borderColor: selectedDocId === d.document_id ? "var(--pr-authority-blue)" : "rgba(255,255,255,0.08)",
+                borderColor: selectedDocId === d.document_id ? "var(--pr-authority-blue)" : "var(--pr-overlay-08)",
                 color: selectedDocId === d.document_id ? "var(--pr-text-primary)" : "var(--pr-text-muted)",
               }}
             >
@@ -209,7 +209,7 @@ export function LiveDocuments() {
               <div
                 key={a.authority_id}
                 className="p-5 rounded-xl border"
-                style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "rgba(255,255,255,0.05)" }}
+                style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "var(--pr-overlay-05)" }}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -261,7 +261,7 @@ export function LiveDocuments() {
                         type="number"
                         placeholder={String(a.limit_amount ?? "")}
                         className="w-full px-3 py-2 rounded-lg border text-sm"
-                        style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+                        style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
                         onChange={(e) =>
                           setEdits((prev) => ({ ...prev, [a.authority_id]: { ...prev[a.authority_id], limit_amount: e.target.value } }))
                         }

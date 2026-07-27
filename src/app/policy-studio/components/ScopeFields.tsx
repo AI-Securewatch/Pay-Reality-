@@ -5,7 +5,7 @@ import type { Scope } from "../types";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--pr-overlay-10)",
   color: "var(--pr-text-primary)",
   borderRadius: 6,
   padding: "6px 8px",

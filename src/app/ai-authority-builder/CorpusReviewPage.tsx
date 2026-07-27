@@ -22,7 +22,7 @@ import type {
 
 const sectionStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid var(--pr-overlay-05)",
   borderRadius: 12,
   marginBottom: 16,
   overflow: "hidden",
@@ -30,7 +30,7 @@ const sectionStyle: React.CSSProperties = {
 
 const rowStyle: React.CSSProperties = {
   padding: "12px 20px",
-  borderTop: "1px solid rgba(255,255,255,0.05)",
+  borderTop: "1px solid var(--pr-overlay-05)",
   fontSize: 13,
 };
 
@@ -151,7 +151,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
       {summary && (
         <div
           className="grid grid-cols-4 gap-px mb-6 rounded-xl overflow-hidden"
-          style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+          style={{ backgroundColor: "var(--pr-overlay-05)" }}
         >
           {[
             ["Rules", summary.policy_count],
@@ -279,7 +279,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
                   onChange={(e) => setAnswerDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
                   style={{
                     backgroundColor: "var(--pr-bg-hover)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    border: "1px solid var(--pr-overlay-10)",
                     color: "var(--pr-text-primary)",
                     borderRadius: 6,
                     padding: "6px 8px",

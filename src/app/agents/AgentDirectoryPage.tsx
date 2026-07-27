@@ -14,7 +14,7 @@ const PAGE_SIZE = 25;
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid var(--pr-overlay-05)",
   borderRadius: 12,
 };
 
@@ -166,7 +166,7 @@ export function AgentDirectoryPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="AP-Automation-Agent"
               className="w-full px-3 py-2 rounded-lg border text-sm"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             />
           </div>
           <div>
@@ -178,7 +178,7 @@ export function AgentDirectoryPage() {
               value={principalId}
               onChange={(e) => setPrincipalId(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border text-sm"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             >
               <option value="">Select a principal...</option>
               {principals.map((p) => (
@@ -199,13 +199,13 @@ export function AgentDirectoryPage() {
               onChange={(e) => setNewPrincipalName(e.target.value)}
               placeholder="Regional Controller (EMEA)"
               className="w-full px-3 py-2 rounded-lg border text-sm"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             />
           </div>
           <button
             onClick={handleCreatePrincipal}
             className="px-4 py-2 rounded-lg text-sm border"
-            style={{ borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-secondary)" }}
+            style={{ borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-secondary)" }}
           >
             Create
           </button>
@@ -240,14 +240,14 @@ export function AgentDirectoryPage() {
           placeholder="Search by name..."
           aria-label="Search agents by name"
           className="px-3 py-2 rounded-lg border text-sm"
-          style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)", minWidth: 220 }}
+          style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)", minWidth: 220 }}
         />
         <select
           value={statusFilter}
           onChange={(e) => { setOffset(0); setStatusFilter(e.target.value); }}
           aria-label="Filter by status"
           className="px-3 py-2 rounded-lg border text-sm"
-          style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+          style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
         >
           <option value="">All statuses</option>
           <option value="registered">Registered</option>
@@ -262,7 +262,7 @@ export function AgentDirectoryPage() {
           placeholder="Environment (e.g. production)"
           aria-label="Filter by environment"
           className="px-3 py-2 rounded-lg border text-sm"
-          style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)", minWidth: 200 }}
+          style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)", minWidth: 200 }}
         />
 
         {selected.size > 0 && (
@@ -270,7 +270,7 @@ export function AgentDirectoryPage() {
             <span style={{ fontSize: 12, color: "var(--pr-text-muted)" }}>{selected.size} selected</span>
             <button onClick={() => runBulkAction("activate")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(34,197,94,0.1)", color: "var(--pr-trust-green)" }}>Activate many</button>
             <button onClick={() => runBulkAction("suspend")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(245,158,11,0.1)", color: "var(--pr-warning-amber)" }}>Suspend many</button>
-            <button onClick={() => runBulkAction("retire")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--pr-text-secondary)" }}>Retire many</button>
+            <button onClick={() => runBulkAction("retire")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}>Retire many</button>
             <button onClick={() => runBulkAction("rotate")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(77,124,254,0.1)", color: "var(--pr-authority-blue)" }}>Request rotation</button>
           </div>
         )}
@@ -281,7 +281,7 @@ export function AgentDirectoryPage() {
       <div style={{ ...cardStyle, overflow: "hidden" }}>
         <table className="w-full text-sm" style={{ color: "var(--pr-text-primary)" }}>
           <thead>
-            <tr style={{ color: "var(--pr-text-muted)", textAlign: "left", fontSize: 12, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <tr style={{ color: "var(--pr-text-muted)", textAlign: "left", fontSize: 12, borderBottom: "1px solid var(--pr-overlay-05)" }}>
               <th className="p-3" style={{ width: 32 }}></th>
               <th className="p-3">Name</th>
               <th className="p-3">Principal</th>
@@ -300,7 +300,7 @@ export function AgentDirectoryPage() {
                 <tr
                   key={a.id}
                   className="transition-colors"
-                  style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                  style={{ borderTop: "1px solid var(--pr-overlay-05)" }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--pr-bg-hover)")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                 >
@@ -328,7 +328,7 @@ export function AgentDirectoryPage() {
                       <button
                         onClick={() => runRowAction(rowAction.action, a.id)}
                         className="text-xs px-2.5 py-1 rounded-md"
-                        style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--pr-text-secondary)" }}
+                        style={{ backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}
                       >
                         {rowAction.label}
                       </button>
@@ -353,7 +353,7 @@ export function AgentDirectoryPage() {
             onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
             disabled={offset === 0}
             className="px-3 py-1.5 rounded-lg disabled:opacity-30"
-            style={{ backgroundColor: "rgba(255,255,255,0.05)", color: "var(--pr-text-secondary)" }}
+            style={{ backgroundColor: "var(--pr-overlay-05)", color: "var(--pr-text-secondary)" }}
           >
             Previous
           </button>
@@ -361,7 +361,7 @@ export function AgentDirectoryPage() {
             onClick={() => setOffset((o) => o + PAGE_SIZE)}
             disabled={offset + PAGE_SIZE >= total}
             className="px-3 py-1.5 rounded-lg disabled:opacity-30"
-            style={{ backgroundColor: "rgba(255,255,255,0.05)", color: "var(--pr-text-secondary)" }}
+            style={{ backgroundColor: "var(--pr-overlay-05)", color: "var(--pr-text-secondary)" }}
           >
             Next
           </button>

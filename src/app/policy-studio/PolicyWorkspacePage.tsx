@@ -10,7 +10,7 @@ import { describePolicy, EFFECT_LABEL } from "./describePolicy";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--pr-overlay-10)",
   color: "var(--pr-text-primary)",
   borderRadius: 6,
   padding: "6px 8px",
@@ -21,7 +21,7 @@ const inputStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = { fontSize: 12, color: "var(--pr-text-muted)", display: "block", marginBottom: 4 };
 const sectionStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid var(--pr-overlay-05)",
   borderRadius: 12,
   padding: 20,
   marginBottom: 16,

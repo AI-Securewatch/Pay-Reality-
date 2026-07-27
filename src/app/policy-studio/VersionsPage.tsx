@@ -57,7 +57,7 @@ export function VersionsPage() {
         <div
           key={v.version}
           className="flex items-center justify-between py-2"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 13 }}
+          style={{ borderTop: "1px solid var(--pr-overlay-05)", fontSize: 13 }}
         >
           <div className="flex items-center gap-3">
             <input
@@ -95,7 +95,7 @@ export function VersionsPage() {
 
           {diff && (
             <>
-              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
                 <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Conditions</h3>
                 {diff.conditions.map((c, i) => (
                   <div key={i} style={{ fontSize: 13, marginBottom: 4 }}>
@@ -121,7 +121,7 @@ export function VersionsPage() {
                 </div>
               </div>
 
-              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
                 <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>
                   Affected agents ({diff.affected_agents.length})
                 </h3>
@@ -135,7 +135,7 @@ export function VersionsPage() {
                 )}
               </div>
 
-              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
                 <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>
                   Other affected rules ({diff.affected_policies.length})
                 </h3>
@@ -150,7 +150,7 @@ export function VersionsPage() {
                 )}
               </div>
 
-              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: 20 }}>
+              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20 }}>
                 <h3 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-primary)" }}>
                   Risk impact:{" "}
                   <span style={{ color: RISK_COLOR[diff.risk_impact], textTransform: "uppercase" }}>{diff.risk_impact}</span>

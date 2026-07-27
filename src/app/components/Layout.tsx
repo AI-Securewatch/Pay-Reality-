@@ -48,7 +48,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       {/* Logo */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+      <div className="px-5 py-5 border-b" style={{ borderColor: "var(--pr-overlay-05)" }}>
         <div className="flex items-center gap-2.5">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -97,7 +97,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                     color: active ? "var(--pr-text-primary)" : "var(--pr-text-muted)",
                   }}
                   onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
+                    if (!active) e.currentTarget.style.backgroundColor = "var(--pr-overlay-04)";
                   }}
                   onMouseLeave={(e) => {
                     if (!active) e.currentTarget.style.backgroundColor = "transparent";
@@ -131,10 +131,10 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       {/* Bottom section */}
-      <div className="px-3 pb-4 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+      <div className="px-3 pb-4 border-t pt-3" style={{ borderColor: "var(--pr-overlay-05)" }}>
         <div
           className="px-3 py-2.5 rounded-xl"
-          style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.04)" }}
+          style={{ backgroundColor: "var(--pr-overlay-03)", border: "1px solid var(--pr-overlay-04)" }}
         >
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5">
@@ -163,7 +163,7 @@ function CurrentUserWidget() {
       <Link
         to="/login"
         className="block mt-2 px-3 py-2 text-[11px] font-medium text-center rounded-xl"
-        style={{ border: "1px solid rgba(255,255,255,0.06)", color: "var(--pr-text-muted)" }}
+        style={{ border: "1px solid var(--pr-overlay-06)", color: "var(--pr-text-muted)" }}
       >
         Sign in
       </Link>
@@ -173,7 +173,7 @@ function CurrentUserWidget() {
   return (
     <div
       className="px-3 py-2.5 rounded-xl mt-2 flex items-center justify-between gap-2"
-      style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.04)" }}
+      style={{ backgroundColor: "var(--pr-overlay-03)", border: "1px solid var(--pr-overlay-04)" }}
     >
       <div className="min-w-0">
         <p className="text-[11px] font-medium truncate" style={{ color: "var(--pr-text-secondary)" }}>
@@ -219,7 +219,7 @@ function LayoutInner() {
           className="w-[220px] flex-shrink-0 flex flex-col border-r"
           style={{
             backgroundColor: "var(--pr-bg-secondary)",
-            borderColor: "rgba(255,255,255,0.05)",
+            borderColor: "var(--pr-overlay-05)",
           }}
         >
           <SidebarBody />
@@ -234,7 +234,7 @@ function LayoutInner() {
             className="w-[260px] max-w-[80vw] flex flex-col p-0 gap-0 border-r"
             style={{
               backgroundColor: "var(--pr-bg-secondary)",
-              borderColor: "rgba(255,255,255,0.05)",
+              borderColor: "var(--pr-overlay-05)",
             }}
           >
             <SheetTitle className="sr-only">Navigation</SheetTitle>
@@ -251,7 +251,7 @@ function LayoutInner() {
             className="flex items-center gap-3 px-4 py-3 border-b flex-shrink-0"
             style={{
               backgroundColor: "var(--pr-bg-secondary)",
-              borderColor: "rgba(255,255,255,0.05)",
+              borderColor: "var(--pr-overlay-05)",
             }}
           >
             <button
@@ -285,7 +285,7 @@ function LayoutInner() {
         {!isMobile && (
           <header
             className="flex items-center justify-end px-4 flex-shrink-0 border-b"
-            style={{ height: 44, borderColor: "rgba(255,255,255,0.05)" }}
+            style={{ height: 44, borderColor: "var(--pr-overlay-05)" }}
           >
             <HelpButton />
           </header>

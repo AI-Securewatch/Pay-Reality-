@@ -83,7 +83,7 @@ export function SetupOwnerPage() {
 
         <div
           className="p-6 rounded-xl"
-          style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid rgba(255,255,255,0.05)" }}
+          style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)" }}
         >
           <h2 className="text-sm font-medium mb-1" style={{ color: "var(--pr-text-primary)" }}>
             Set up your account
@@ -110,7 +110,7 @@ export function SetupOwnerPage() {
                 value={operatorKey}
                 onChange={(e) => setOperatorKeyInput(e.target.value)}
                 className="w-full text-sm px-3 py-2 rounded-lg"
-                style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--pr-text-primary)", border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ backgroundColor: "var(--pr-input-bg)", color: "var(--pr-text-primary)", border: "1px solid var(--pr-overlay-08)" }}
               />
             </div>
             <div>
@@ -129,7 +129,7 @@ export function SetupOwnerPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full text-sm px-3 py-2 rounded-lg"
-                style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--pr-text-primary)", border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ backgroundColor: "var(--pr-input-bg)", color: "var(--pr-text-primary)", border: "1px solid var(--pr-overlay-08)" }}
               />
             </div>
             <div>
@@ -148,7 +148,7 @@ export function SetupOwnerPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full text-sm px-3 py-2 rounded-lg"
-                style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--pr-text-primary)", border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ backgroundColor: "var(--pr-input-bg)", color: "var(--pr-text-primary)", border: "1px solid var(--pr-overlay-08)" }}
               />
             </div>
             <div>
@@ -167,7 +167,7 @@ export function SetupOwnerPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full text-sm px-3 py-2 rounded-lg"
-                style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--pr-text-primary)", border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ backgroundColor: "var(--pr-input-bg)", color: "var(--pr-text-primary)", border: "1px solid var(--pr-overlay-08)" }}
               />
             </div>
 

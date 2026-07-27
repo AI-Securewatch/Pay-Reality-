@@ -243,13 +243,13 @@ export const CONTACT_ACTIONS: ContactAction[] = [
     id: "report_bug",
     label: "Report Bug",
     description: "Something isn't working the way it should.",
-    href: "https://github.com/AI-Securewatch/Pay-Reality-/issues/new",
+    href: "mailto:sean@aisecurewatch.com?subject=" + encodeURIComponent("Bug report"),
   },
   {
     id: "feature_request",
     label: "Feature Request",
     description: "Something you wish the platform could do.",
-    href: "https://github.com/AI-Securewatch/Pay-Reality-/issues/new",
+    href: "mailto:sean@aisecurewatch.com?subject=" + encodeURIComponent("Feature request"),
   },
   {
     id: "contact_support",

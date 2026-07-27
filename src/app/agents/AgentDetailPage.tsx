@@ -12,7 +12,7 @@ import type { AgentDetail } from "./types";
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid var(--pr-overlay-05)",
   borderRadius: 12,
   padding: 20,
   marginBottom: 16,
@@ -100,7 +100,7 @@ export function AgentDetailPage() {
         )}
         {(agent.status === "registered" || agent.status === "active" || agent.status === "suspended") && (
           <>
-            <button onClick={() => runAction(() => agentsApi.retire(agentId!), "Retire")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--pr-text-secondary)" }}>Retire</button>
+            <button onClick={() => runAction(() => agentsApi.retire(agentId!), "Retire")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}>Retire</button>
             <button onClick={() => runAction(() => agentsApi.revoke(agentId!), "Revoke")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "var(--pr-critical-red)" }}>Revoke</button>
           </>
         )}
@@ -126,7 +126,7 @@ export function AgentDetailPage() {
               <div style={labelStyle}>Tags</div>
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {agent.tags.map((t) => (
-                  <span key={t} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)", color: "var(--pr-text-secondary)" }}>{t}</span>
+                  <span key={t} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}>{t}</span>
                 ))}
               </div>
             </div>
@@ -153,7 +153,7 @@ export function AgentDetailPage() {
               placeholder="New owner"
               aria-label="New owner"
               className="px-2 py-1.5 rounded-lg border text-xs flex-1 min-w-0"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             />
             <input
               value={newBusinessUnit}
@@ -161,7 +161,7 @@ export function AgentDetailPage() {
               placeholder="New business unit (optional)"
               aria-label="New business unit"
               className="px-2 py-1.5 rounded-lg border text-xs flex-1 min-w-0"
-              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
+              style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
             />
             <button
               onClick={() => runAction(() => agentsApi.transfer(agentId!, newOwner, newBusinessUnit || undefined), "Transfer")}
@@ -192,7 +192,7 @@ export function AgentDetailPage() {
           </thead>
           <tbody>
             {detail.certificates.map((c) => (
-              <tr key={c.id} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              <tr key={c.id} style={{ borderTop: "1px solid var(--pr-overlay-05)" }}>
                 <td className="py-2">{formatStatus(c.status)}{c.id === activeCert?.id ? " (current)" : ""}</td>
                 <td className="py-2" style={{ color: "var(--pr-text-muted)" }}>{new Date(c.issued_at).toLocaleDateString()}</td>
                 <td className="py-2" style={{ color: "var(--pr-text-muted)" }}>{c.activated_at ? new Date(c.activated_at).toLocaleDateString() : "-"}</td>
@@ -210,7 +210,7 @@ export function AgentDetailPage() {
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Rules</h2>
         {detail.policies.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No rules target this agent's principal yet.</p>}
         {detail.policies.map((p) => (
-          <div key={p.policy_key} className="flex items-center justify-between py-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 13 }}>
+          <div key={p.policy_key} className="flex items-center justify-between py-1.5" style={{ borderTop: "1px solid var(--pr-overlay-05)", fontSize: 13 }}>
             <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>{p.name || p.policy_key}</Link>
             <span style={{ color: "var(--pr-text-muted)" }}>v{p.version} &middot; {formatStatus(p.status)}</span>
           </div>
@@ -222,7 +222,7 @@ export function AgentDetailPage() {
           <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Decision history</h2>
           {detail.recent_decisions.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No decisions yet.</p>}
           {detail.recent_decisions.map((d) => (
-            <div key={d.id} className="py-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 13 }}>
+            <div key={d.id} className="py-1.5" style={{ borderTop: "1px solid var(--pr-overlay-05)", fontSize: 13 }}>
               <div className="flex items-center justify-between">
                 <span style={{ color: "var(--pr-text-primary)" }}>{formatStatus(d.outcome)}</span>
                 <span style={{ fontSize: 11, color: "var(--pr-text-disabled)" }}>{new Date(d.created_at).toLocaleString()}</span>
@@ -240,7 +240,7 @@ export function AgentDetailPage() {
           </div>
           {detail.recent_evidence.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No evidence yet.</p>}
           {detail.recent_evidence.map((e) => (
-            <div key={e.id} className="flex items-center justify-between py-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 13 }}>
+            <div key={e.id} className="flex items-center justify-between py-1.5" style={{ borderTop: "1px solid var(--pr-overlay-05)", fontSize: 13 }}>
               <span style={{ color: "var(--pr-text-primary)" }}>{formatStatus(e.status)}</span>
               <span style={{ fontSize: 11, color: "var(--pr-text-disabled)" }}>{new Date(e.created_at).toLocaleString()}</span>
             </div>
@@ -261,7 +261,7 @@ export function AgentDetailPage() {
                 <button
                   onClick={() => handleVerify(event.id)}
                   className="px-2 py-0.5 rounded"
-                  style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--pr-text-secondary)" }}
+                  style={{ backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}
                 >
                   Verify
                 </button>

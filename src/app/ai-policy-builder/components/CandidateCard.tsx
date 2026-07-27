@@ -11,7 +11,7 @@ import { describeApiError, formatStatus } from "../../live/format";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--pr-overlay-10)",
   color: "var(--pr-text-primary)",
   borderRadius: 6,
   padding: "6px 8px",
@@ -102,7 +102,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
     <div
       style={{
         backgroundColor: "var(--pr-bg-card)",
-        border: "1px solid rgba(255,255,255,0.05)",
+        border: "1px solid var(--pr-overlay-05)",
         borderRadius: 12,
         padding: 20,
         marginBottom: 16,
@@ -278,7 +278,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
             onClick={save}
             disabled={saving}
             className="rounded-lg border"
-            style={{ color: "var(--pr-text-secondary)", fontSize: 13, padding: "8px 14px", borderColor: "rgba(255,255,255,0.1)" }}
+            style={{ color: "var(--pr-text-secondary)", fontSize: 13, padding: "8px 14px", borderColor: "var(--pr-overlay-10)" }}
           >
             Save draft
           </button>

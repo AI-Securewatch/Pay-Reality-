@@ -3,11 +3,12 @@ import { Link } from "react-router";
 import { organizationApi } from "./api";
 import { RequirePermission } from "../auth/RequireAuth";
 import { describeApiError } from "../live/format";
+import { getTheme, setTheme, type Theme } from "../lib/theme";
 import type { HealthState, HealthStatus, IntegrationsStatus, IntegrationStatus, OrganizationSettings } from "./types";
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid var(--pr-overlay-05)",
   borderRadius: 12,
 };
 
@@ -30,9 +31,9 @@ function fieldLabelStyle(): React.CSSProperties {
 
 function inputStyle(): React.CSSProperties {
   return {
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: "var(--pr-input-bg)",
     color: "var(--pr-text-primary)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--pr-overlay-08)",
     borderRadius: 8,
     padding: "8px 10px",
     fontSize: 13,
@@ -135,6 +136,45 @@ function GeneralTab({ settings, onSaved }: { settings: OrganizationSettings; onS
       </div>
       <SaveButton onClick={save} saving={saving} />
       {message && <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
+
+      <AppearanceSection />
+    </div>
+  );
+}
+
+function AppearanceSection() {
+  const [theme, setThemeState] = useState<Theme>(() => getTheme());
+
+  function choose(next: Theme) {
+    setTheme(next);
+    setThemeState(next);
+  }
+
+  return (
+    <div style={{ ...cardStyle, padding: 16 }} className="mt-6">
+      <h3 className="text-sm font-medium mb-1" style={{ color: "var(--pr-text-primary)" }}>Appearance</h3>
+      <p className="text-xs mb-3" style={{ color: "var(--pr-text-muted)" }}>
+        Light or dark mode for this browser. This is a personal display preference, not an
+        organisation-wide setting -- it isn't saved to the organisation and won't affect anyone
+        else's view of the platform.
+      </p>
+      <div className="flex gap-2">
+        {(["dark", "light"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => choose(option)}
+            className="text-sm font-medium px-4 py-2 rounded-lg capitalize"
+            style={
+              theme === option
+                ? { backgroundColor: "var(--pr-authority-blue)", color: "white" }
+                : { border: "1px solid var(--pr-overlay-10)", color: "var(--pr-text-secondary)" }
+            }
+          >
+            {option}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -614,7 +654,7 @@ export function OrganizationSettingsPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-1 mb-6 border-b pb-0" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+        <div className="flex flex-wrap gap-1 mb-6 border-b pb-0" style={{ borderColor: "var(--pr-overlay-05)" }}>
           {TABS.map((t) => (
             <button
               key={t}

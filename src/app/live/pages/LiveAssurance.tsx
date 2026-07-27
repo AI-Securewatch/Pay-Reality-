@@ -91,7 +91,7 @@ export function LiveAssurance() {
             <div
               key={c.label}
               className="p-5 rounded-xl border"
-              style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
+              style={{ borderColor: "var(--pr-overlay-06)", backgroundColor: "var(--pr-bg-card)" }}
             >
               <div
                 className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
@@ -116,7 +116,7 @@ export function LiveAssurance() {
 
       <div
         className="p-5 rounded-xl border flex items-center gap-3"
-        style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
+        style={{ borderColor: "var(--pr-overlay-06)", backgroundColor: "var(--pr-bg-card)" }}
       >
         <ShieldCheck className="w-4 h-4 flex-shrink-0" style={{ color: "var(--pr-verification-purple)" }} />
         <p className="text-sm" style={{ color: "var(--pr-text-secondary)" }}>

@@ -111,7 +111,7 @@ export function PlatformOverview() {
           <Link
             to="/decisions"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-colors"
-            style={{ borderColor: "rgba(255,255,255,0.12)", color: "var(--pr-text-primary)" }}
+            style={{ borderColor: "var(--pr-overlay-12)", color: "var(--pr-text-primary)" }}
           >
             Test a decision now
           </Link>
@@ -121,7 +121,7 @@ export function PlatformOverview() {
       {/* Live status strip */}
       <div
         className="mb-14 p-5 rounded-xl border flex flex-wrap items-center gap-6"
-        style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
+        style={{ borderColor: "var(--pr-overlay-06)", backgroundColor: "var(--pr-bg-card)" }}
       >
         {reachable === false ? (
           <div role="alert" className="flex items-center gap-2 text-sm" style={{ color: "var(--pr-warning-amber)" }}>
@@ -171,7 +171,7 @@ export function PlatformOverview() {
               key={item.title}
               to={item.path}
               className="flex items-start gap-5 p-6 rounded-xl border transition-colors group"
-              style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "var(--pr-bg-card)" }}
+              style={{ borderColor: "var(--pr-overlay-06)", backgroundColor: "var(--pr-bg-card)" }}
             >
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"

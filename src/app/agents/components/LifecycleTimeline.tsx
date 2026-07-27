@@ -63,7 +63,7 @@ export function LifecycleTimeline({ events }: { events: AuditEvent[] }) {
                 <div
                   style={{
                     position: "absolute", left: 4, top: 14, bottom: -18, width: 1,
-                    backgroundColor: "rgba(255,255,255,0.12)",
+                    backgroundColor: "var(--pr-overlay-12)",
                   }}
                 />
               )}

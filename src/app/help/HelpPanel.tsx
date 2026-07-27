@@ -23,7 +23,7 @@ const TABS: Array<{ id: HelpTab; label: string }> = [
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid var(--pr-overlay-05)",
   borderRadius: 10,
 };
 
@@ -40,7 +40,7 @@ function GettingStartedTab({ onNavigate }: { onNavigate: (path: string) => void 
       <p className="text-xs mb-3" style={{ color: "var(--pr-text-muted)" }}>
         {doneCount} of {GETTING_STARTED_STEPS.length} complete
       </p>
-      <div className="h-1 rounded-full mb-4 overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
+      <div className="h-1 rounded-full mb-4 overflow-hidden" style={{ backgroundColor: "var(--pr-overlay-06)" }}>
         <div
           className="h-full rounded-full transition-all"
           style={{
@@ -144,7 +144,7 @@ function SearchTab({ onResult }: { onResult: (result: SearchResult) => void }) {
     <div>
       <div
         className="flex items-center gap-2 px-3 py-2 rounded-lg mb-4"
-        style={{ backgroundColor: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.08)" }}
+        style={{ backgroundColor: "var(--pr-input-bg)", border: "1px solid var(--pr-overlay-08)" }}
       >
         <Search className="w-4 h-4 flex-shrink-0" style={{ color: "var(--pr-text-disabled)" }} />
         <input
@@ -303,18 +303,18 @@ export function HelpPanel() {
       <SheetContent
         side="right"
         className="w-[420px] max-w-[92vw] flex flex-col p-0 gap-0 border-l"
-        style={{ backgroundColor: "var(--pr-bg-secondary)", borderColor: "rgba(255,255,255,0.05)" }}
+        style={{ backgroundColor: "var(--pr-bg-secondary)", borderColor: "var(--pr-overlay-05)" }}
       >
         <SheetTitle className="sr-only">Help Center</SheetTitle>
 
-        <div className="px-5 py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+        <div className="px-5 py-4 border-b" style={{ borderColor: "var(--pr-overlay-05)" }}>
           <h2 className="text-sm font-semibold" style={{ color: "var(--pr-text-primary)" }}>Help Center</h2>
           <p className="text-xs mt-0.5" style={{ color: "var(--pr-text-muted)" }}>
             Guidance for using PayReality, without leaving this page.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-1 px-3 pt-3 border-b" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+        <div className="flex flex-wrap gap-1 px-3 pt-3 border-b" style={{ borderColor: "var(--pr-overlay-05)" }}>
           {TABS.map((tab) => (
             <button
               key={tab.id}

@@ -11,7 +11,7 @@ export function HelpButton() {
       className="flex items-center justify-center rounded-lg transition-colors"
       style={{ width: 32, height: 32, color: "var(--pr-text-muted)" }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)";
+        e.currentTarget.style.backgroundColor = "var(--pr-overlay-05)";
         e.currentTarget.style.color = "var(--pr-text-primary)";
       }}
       onMouseLeave={(e) => {

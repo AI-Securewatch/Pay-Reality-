@@ -100,7 +100,7 @@ export function AIPolicyBuilderUploadPage() {
             <tr
               key={u.upload_id}
               className="transition-colors"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+              style={{ borderTop: "1px solid var(--pr-overlay-05)" }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--pr-bg-hover)")}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >

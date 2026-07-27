@@ -55,8 +55,8 @@ export function HelpIcon({ articleId }: { articleId: string }) {
           style={{
             width: 260,
             backgroundColor: "var(--pr-bg-card)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            border: "1px solid var(--pr-overlay-08)",
+            boxShadow: "0 8px 24px var(--pr-backdrop)",
           }}
         >
           <p className="text-xs font-semibold mb-1" style={{ color: "var(--pr-text-primary)" }}>
