@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, useParams } from "react-router";
 import { Layout } from "./components/Layout";
 import { NotFound } from "./pages/NotFound";
 import { RouteErrorBoundary } from "./pages/RouteErrorBoundary";
+import { RequireAuth } from "./auth/RequireAuth";
 
 // Compile/Dry Run/Deploy and Diff were merged into Publish and Versions
 // respectively (PAYREALITY_UX_REVIEW.md); these keep the old URLs from
@@ -33,6 +34,31 @@ export const router = createBrowserRouter([
       { path: "decisions", lazy: () => import("./live/pages/LiveTestIntent").then((m) => ({ Component: m.LiveTestIntent })) },
       { path: "evidence", lazy: () => import("./live/pages/LiveEvidence").then((m) => ({ Component: m.LiveEvidence })) },
       { path: "assurance", lazy: () => import("./live/pages/LiveAssurance").then((m) => ({ Component: m.LiveAssurance })) },
+
+      // Phase 10 (RBAC.md): real human login, Organisation Settings, and
+      // Users management. /login is public; the other two require a
+      // session (RequireAuth) -- neither gates any pre-existing route.
+      { path: "login", lazy: () => import("./auth/LoginPage").then((m) => ({ Component: m.LoginPage })) },
+      {
+        path: "organization",
+        lazy: () => import("./organization/OrganizationSettingsPage").then((m) => ({
+          Component: () => (
+            <RequireAuth>
+              <m.OrganizationSettingsPage />
+            </RequireAuth>
+          ),
+        })),
+      },
+      {
+        path: "organization/users",
+        lazy: () => import("./organization/UsersPage").then((m) => ({
+          Component: () => (
+            <RequireAuth>
+              <m.UsersPage />
+            </RequireAuth>
+          ),
+        })),
+      },
 
       // Policy Studio is the single entry point for all policy work: manual
       // authoring, the AI Authority Builder (multi-document corpus
@@ -78,7 +104,7 @@ export const router = createBrowserRouter([
       { path: "approvals", element: <Navigate to="/decisions" replace /> },
       { path: "assurance-center", element: <Navigate to="/assurance" replace /> },
       { path: "insurance-readiness", element: <Navigate to="/assurance" replace /> },
-      { path: "settings", element: <Navigate to="/" replace /> },
+      { path: "settings", element: <Navigate to="/organization" replace /> },
       { path: "live", element: <Navigate to="/" replace /> },
       { path: "live/documents", element: <Navigate to="/policy-studio/legacy-review" replace /> },
       { path: "live/agents", element: <Navigate to="/authority" replace /> },

@@ -7,9 +7,11 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.models import PolicyExtractionCandidate, PolicyExtractionUpload
 from app.db.session import get_db
+from app.dependencies import require_permission
 from app.domain.ai_policy_builder.claude_provider import ClaudeRuntimePolicyExtractionProvider
 from app.domain.ai_policy_builder.fake_provider import FakeRuntimePolicyExtractionProvider
 from app.domain.ai_policy_builder.text_extraction import UnsupportedFormatError, detect_format
+from app.domain.rbac.permissions import Permission
 from app.schemas.ai_policy_builder import (
     CandidateResponse,
     EditCandidateRequest,
@@ -18,7 +20,6 @@ from app.schemas.ai_policy_builder import (
     UploadResponse,
     ValidationErrorSchema,
 )
-from app.security import verify_operator_key
 from app.services import ai_policy_builder_service as svc
 from app.services.ai_policy_builder_service import (
     CandidateNotFoundError,
@@ -75,7 +76,7 @@ def get_status():
     "/uploads",
     response_model=UploadResponse,
     status_code=201,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
 async def upload(file: UploadFile, db: Session = Depends(get_db)):
     """AI_EXTRACTION_PIPELINE.md Stage 1. Extraction (Stages 2-4) runs
@@ -145,7 +146,7 @@ def get_candidate(candidate_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.put(
     "/candidates/{candidate_id}",
     response_model=CandidateResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
 def edit_candidate(candidate_id: uuid.UUID, body: EditCandidateRequest, db: Session = Depends(get_db)):
     try:
@@ -160,7 +161,7 @@ def edit_candidate(candidate_id: uuid.UUID, body: EditCandidateRequest, db: Sess
 @router.post(
     "/candidates/{candidate_id}/dismiss",
     response_model=CandidateResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
 def dismiss_candidate(candidate_id: uuid.UUID, db: Session = Depends(get_db)):
     try:
@@ -175,7 +176,7 @@ def dismiss_candidate(candidate_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.post(
     "/candidates/{candidate_id}/promote",
     response_model=PromoteCandidateResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
 def promote_candidate(candidate_id: uuid.UUID, db: Session = Depends(get_db)):
     """AI_EXTRACTION_PIPELINE.md Stage 6: the one integration point with

@@ -1,0 +1,85 @@
+"""Pure logic, no DB (this codebase's established pattern for the fixed
+vocabularies -- see test_scope tests for scope_vocabulary.py, test_compiler_v2
+for FinancialVocabulary): encodes Phase 10 (RBAC.md)'s exact can/cannot
+lists as assertions, so a future change to ROLE_PERMISSIONS that silently
+breaks one of those promises fails a test, not a support ticket."""
+
+from app.domain.rbac.permissions import Permission, Role, has_permission, permissions_for_role
+
+
+def test_owner_has_every_permission():
+    for permission in Permission:
+        assert has_permission(Role.OWNER, permission)
+
+
+def test_governance_admin_cannot_manage_organisation_billing_or_users():
+    for forbidden in (
+        Permission.ORGANISATION_MANAGE,
+        Permission.ORGANISATION_DELETE,
+        Permission.USERS_MANAGE,
+        Permission.API_KEYS_MANAGE,
+    ):
+        assert not has_permission(Role.GOVERNANCE_ADMIN, forbidden)
+
+
+def test_governance_admin_can_author_and_publish_runtime_policy():
+    for allowed in (
+        Permission.RUNTIME_POLICY_CREATE,
+        Permission.RUNTIME_POLICY_EDIT,
+        Permission.RUNTIME_POLICY_PUBLISH,
+        Permission.RUNTIME_POLICY_VIEW,
+        Permission.AUTHORITY_REVIEW,
+    ):
+        assert has_permission(Role.GOVERNANCE_ADMIN, allowed)
+
+
+def test_agent_admin_cannot_edit_or_publish_runtime_policy():
+    assert not has_permission(Role.AGENT_ADMIN, Permission.RUNTIME_POLICY_EDIT)
+    assert not has_permission(Role.AGENT_ADMIN, Permission.RUNTIME_POLICY_PUBLISH)
+
+
+def test_agent_admin_can_manage_the_full_agent_lifecycle():
+    for allowed in (
+        Permission.AGENT_REGISTER,
+        Permission.AGENT_SUSPEND,
+        Permission.AGENT_RETIRE,
+        Permission.AGENT_ROTATE,
+        Permission.AGENT_ACTIVATE,
+        Permission.AGENT_REVOKE,
+        Permission.AGENT_MANAGE,
+    ):
+        assert has_permission(Role.AGENT_ADMIN, allowed)
+
+
+def test_reviewer_can_review_but_never_publish():
+    assert has_permission(Role.REVIEWER, Permission.AUTHORITY_REVIEW)
+    assert not has_permission(Role.REVIEWER, Permission.RUNTIME_POLICY_PUBLISH)
+    assert not has_permission(Role.REVIEWER, Permission.RUNTIME_POLICY_EDIT)
+    assert not has_permission(Role.REVIEWER, Permission.RUNTIME_POLICY_CREATE)
+
+
+def test_auditor_is_strictly_read_only():
+    view_permissions = {
+        Permission.EVIDENCE_VIEW,
+        Permission.DECISIONS_VIEW,
+        Permission.RUNTIME_POLICY_VIEW,
+        Permission.AGENT_VIEW,
+        Permission.ASSURANCE_VIEW,
+    }
+    assert set(permissions_for_role(Role.AUDITOR)) == {p.value for p in view_permissions}
+    for permission in Permission:
+        if permission not in view_permissions:
+            assert not has_permission(Role.AUDITOR, permission)
+
+
+def test_executive_has_only_assurance_view():
+    assert permissions_for_role(Role.EXECUTIVE) == [Permission.ASSURANCE_VIEW.value]
+
+
+def test_unknown_role_has_no_permissions():
+    assert not has_permission("not_a_real_role", Permission.EVIDENCE_VIEW)
+
+
+def test_permissions_for_role_is_sorted_and_stable():
+    result = permissions_for_role(Role.OWNER)
+    assert result == sorted(result)

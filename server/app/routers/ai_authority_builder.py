@@ -16,9 +16,11 @@ from app.db.models import (
     AuthorityResource,
 )
 from app.db.session import get_db
+from app.dependencies import require_permission
 from app.domain.ai_authority_builder.claude_provider import ClaudeAuthorityGraphExtractionProvider
 from app.domain.ai_authority_builder.fake_provider import FakeAuthorityGraphExtractionProvider
 from app.domain.ai_policy_builder.text_extraction import UnsupportedFormatError, detect_format
+from app.domain.rbac.permissions import Permission
 from app.schemas.ai_authority_builder import (
     AnswerQuestionRequest,
     ConflictResponse,
@@ -32,7 +34,6 @@ from app.schemas.ai_authority_builder import (
     RelationshipResponse,
     ResourceResponse,
 )
-from app.security import verify_operator_key
 from app.services import ai_authority_builder_service as svc
 from app.services.ai_authority_builder_service import CorpusNotFoundError, QuestionNotFoundError
 
@@ -108,7 +109,10 @@ def get_status():
     return ProviderStatusResponse(ai_enabled=bool(settings.anthropic_api_key))
 
 
-@router.post("/corpora", response_model=CorpusResponse, status_code=201, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/corpora", response_model=CorpusResponse, status_code=201,
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
+)
 async def create_corpus(files: list[UploadFile], name: str = Form(...), db: Session = Depends(get_db)):
     """AI_AUTHORITY_BUILDER_ARCHITECTURE.md: every file in `files` is
     treated as one Authority Corpus and analyzed together, never
@@ -207,7 +211,7 @@ def get_questions(corpus_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.post(
     "/questions/{question_id}/answer",
     response_model=QuestionResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
 def answer_question(question_id: uuid.UUID, body: AnswerQuestionRequest, db: Session = Depends(get_db)):
     try:

@@ -1,4 +1,5 @@
 import { getOperatorKey } from "./operatorKey";
+import { getSessionToken } from "./sessionToken";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -16,6 +17,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const operatorKey = getOperatorKey();
   if (operatorKey && !headers.has("X-PayReality-Operator-Key")) {
     headers.set("X-PayReality-Operator-Key", operatorKey);
+  }
+  // Phase 10 (RBAC.md): a logged-in human user's session token, sent
+  // alongside the Operator Key above. The backend always checks the
+  // Operator Key first (require_permission), so this only takes effect
+  // for someone who hasn't set one -- the normal case for a real user.
+  const sessionToken = getSessionToken();
+  if (sessionToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${sessionToken}`);
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
@@ -42,4 +51,5 @@ export const apiClient = {
     request<T>(path, { method: "PATCH", body: body !== undefined ? JSON.stringify(body) : undefined }),
   put: <T,>(path: string, body?: unknown) =>
     request<T>(path, { method: "PUT", body: body !== undefined ? JSON.stringify(body) : undefined }),
+  delete: <T,>(path: string) => request<T>(path, { method: "DELETE" }),
 };

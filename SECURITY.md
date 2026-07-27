@@ -4,17 +4,19 @@ A full review of this codebase's security posture as it actually stands, written
 
 ## Authentication
 
-Three mechanisms exist; there is deliberately no fourth ("human login") yet.
+Four mechanisms exist.
 
 - **Agent signature** (`server/app/domain/auth/signature.py`): an Agent's ED25519 private key is generated client-side (`src/app/live/crypto.ts`) and never transmitted; only the public key is registered server-side via `POST /v1/agents`. Every `POST /v1/intents` is signed over the raw request body, and the signature is checked against the stored public key plus a timestamp window (`INTENT_SIGNATURE_WINDOW_SECONDS`, default 300s) to bound replay. This is real, working, and was already in place before this pass.
-- **Operator key** (`server/app/security.py::verify_operator_key`), added in this pass. Before it, every policy-mutation and decision-resolution endpoint was completely open: anyone who could reach the API could approve authorities, activate policies, or resolve a `HUMAN_REVIEW` decision as `approved`. `ADMIN_API_KEY` is a single shared secret, checked with `hmac.compare_digest` (constant-time, avoiding a timing side-channel), required via `X-PayReality-Operator-Key`. It gates: `POST /v1/principals`, `POST /v1/agents`, `POST /v1/policies/documents`, `PATCH /v1/policies/authorities/{id}`, `POST /v1/policies/{id}/compile`, `POST /v1/policies/{id}/activate`, `POST /v1/decisions/{id}/resolve`.
-- **None (by design)**: every `GET` and the evidence-verification endpoints. There's no user identity to authorize reads *against* yet, and the frontend's own dashboards need this data. This stops being correct the moment there's a second, mutually distrusting tenant (see VERSION_3_ROADMAP.md).
+- **Operator key** (`server/app/security.py::verify_operator_key`), added in an earlier pass and unchanged since: `ADMIN_API_KEY` is a single shared secret, checked with `hmac.compare_digest` (constant-time, avoiding a timing side-channel), required via `X-PayReality-Operator-Key`. A present, correct key is still a full bypass on every gated endpoint -- every existing integration built against it keeps working with zero changes.
+- **Human login + session** (RBAC.md, added in this pass): `POST /v1/auth/login` authenticates a real `User` (bcrypt-hashed password) and returns a session bearer token, which is the session id itself, not a JWT -- validating it is one indexed lookup against a row the database can revoke instantly. Fixed expiry at login (not sliding), a deliberate scope reduction.
+- **API keys** (RBAC.md, added in this pass): a per-developer, role-scoped credential distinct from the operator key. The raw secret is shown once at creation and only its SHA-256 hash is stored.
+- **None (by design)**: every `GET` and the evidence-verification endpoints. There's no per-tenant boundary to authorize reads *against* yet (single-tenant today), and the frontend's own dashboards need this data. This stops being correct the moment there's a second, mutually distrusting tenant (see VERSION_3_ROADMAP.md).
 
-**What the operator key is not**: a real RBAC system. It answers "is this caller a legitimate operator", not "which operator, with what permissions, and is this logged against their identity." `resolved_by` and `reviewer_id` remain free-text fields. This is a real, working, proportionate control for a single-tenant pilot with one ops team; it is explicitly not sufficient once there's more than one.
+**What changed in this pass**: a real permission system now sits alongside the operator key (`server/app/domain/rbac/permissions.py`, `server/app/dependencies.py::require_permission`). Six fixed roles, each mapped to a fixed set of permissions; every mutating endpoint checks a permission, never a role directly. This is additive: the operator key is not deprecated, replaced, or weakened by this -- it remains a full, working Owner-equivalent bypass, unchanged. `resolved_by` and `reviewer_id` remain free-text fields for now; this phase ties *access* to a real identity and permission, not yet *attribution* of every historical free-text field (see RBAC.md's "What this doesn't fix"). Full detail in RBAC.md.
 
 ## Authorization
 
-Enforced entirely at the endpoint/dependency level (`Depends(verify_operator_key)`), not at the row level; there's no concept of "this operator can only touch this principal's data" because there's only one tenant. This is correct today and named as a hard requirement before onboarding a second tenant, not an oversight to catch later.
+Enforced entirely at the endpoint/dependency level, not at the row level; there's no concept of "this user can only touch this principal's data" because there's only one tenant. This is correct today and named as a hard requirement before onboarding a second tenant, not an oversight to catch later. Enforcement itself is now permission-based (`Depends(require_permission(Permission.X))`) rather than a single undifferentiated "is this a legitimate operator" check -- see RBAC.md for the full mapping from role to permission to endpoint.
 
 ## Secrets management
 
@@ -74,7 +76,8 @@ Checked directly as part of this pass, not assumed:
 
 ## What would make this materially stronger next (see VERSION_3_ROADMAP.md for sequencing)
 
-1. Real human authentication + RBAC, replacing the shared operator key.
-2. Hash-chained Evidence for true append-only tamper-evidence.
-3. Rate limiting backed by shared state once there's more than one backend instance.
-4. A secrets manager (not env vars) once there's a real production account provisioned.
+1. Tie `resolved_by`/`reviewer_id`/`actor` to the resolving `User` directly now that real identity exists (RBAC.md), rather than leaving them free-text.
+2. A full MFA challenge/verification flow -- today's `mfa_required` is a requirement flag and schema field only (RBAC.md).
+3. Hash-chained Evidence for true append-only tamper-evidence.
+4. Rate limiting backed by shared state once there's more than one backend instance.
+5. A secrets manager (not env vars) once there's a real production account provisioned.

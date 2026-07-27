@@ -7,12 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.session import get_db
+from app.dependencies import require_permission
 from app.domain.compiler_v2.compiler_v2 import FINANCIAL_VOCABULARY
 from app.domain.runtime_policy.conditions import Condition, ConditionSet, Operator
 from app.domain.runtime_policy.constraints import Constraints, RiskLevel
 from app.domain.runtime_policy.effects import Effect
 from app.domain.runtime_policy.metadata import AuditTrail, Metadata
 from app.domain.runtime_policy.runtime_policy import PolicyStatus, RuntimePolicy, Scope
+from app.domain.rbac.permissions import Permission
 from app.schemas.runtime_policy import (
     ApproveRequest,
     CompileResponse,
@@ -29,7 +31,6 @@ from app.schemas.runtime_policy import (
     RuntimePolicyResponse,
     ScopeSchema,
 )
-from app.security import verify_operator_key
 from app.services import runtime_policy_service as svc
 from app.services.runtime_policy_service import (
     BundleChangedSinceCompileError,
@@ -152,7 +153,10 @@ def get_version(policy_key: uuid.UUID, version: int, db: Session = Depends(get_d
     return _record_to_response(row)
 
 
-@router.post("", response_model=RuntimePolicyResponse, status_code=201, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "", response_model=RuntimePolicyResponse, status_code=201,
+    dependencies=[Depends(require_permission(Permission.RUNTIME_POLICY_CREATE))],
+)
 def create_policy(body: RuntimePolicyRequest, db: Session = Depends(get_db)):
     audit = AuditTrail(created=datetime.now(timezone.utc))
     policy = _build_runtime_policy(
@@ -162,7 +166,10 @@ def create_policy(body: RuntimePolicyRequest, db: Session = Depends(get_db)):
     return _record_to_response(row)
 
 
-@router.put("/{policy_key}", response_model=RuntimePolicyResponse, dependencies=[Depends(verify_operator_key)])
+@router.put(
+    "/{policy_key}", response_model=RuntimePolicyResponse,
+    dependencies=[Depends(require_permission(Permission.RUNTIME_POLICY_EDIT))],
+)
 def edit_policy(policy_key: uuid.UUID, body: RuntimePolicyRequest, db: Session = Depends(get_db)):
     try:
         latest = svc.get_latest(db, policy_key)
@@ -186,7 +193,7 @@ def edit_policy(policy_key: uuid.UUID, body: RuntimePolicyRequest, db: Session =
 @router.post(
     "/{policy_key}/submit-for-review",
     response_model=RuntimePolicyResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.RUNTIME_POLICY_EDIT))],
 )
 def submit_for_review(policy_key: uuid.UUID, db: Session = Depends(get_db)):
     try:
@@ -199,7 +206,9 @@ def submit_for_review(policy_key: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post(
-    "/{policy_key}/approve", response_model=RuntimePolicyResponse, dependencies=[Depends(verify_operator_key)]
+    "/{policy_key}/approve",
+    response_model=RuntimePolicyResponse,
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
 def approve_policy(policy_key: uuid.UUID, body: ApproveRequest, db: Session = Depends(get_db)):
     try:
@@ -212,7 +221,9 @@ def approve_policy(policy_key: uuid.UUID, body: ApproveRequest, db: Session = De
 
 
 @router.post(
-    "/{policy_key}/reject", response_model=RuntimePolicyResponse, dependencies=[Depends(verify_operator_key)]
+    "/{policy_key}/reject",
+    response_model=RuntimePolicyResponse,
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
 def reject_policy(policy_key: uuid.UUID, body: RejectRequest, db: Session = Depends(get_db)):
     try:
@@ -226,7 +237,10 @@ def reject_policy(policy_key: uuid.UUID, body: RejectRequest, db: Session = Depe
     return _record_to_response(row)
 
 
-@router.post("/{policy_key}/compile", response_model=CompileResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/{policy_key}/compile", response_model=CompileResponse,
+    dependencies=[Depends(require_permission(Permission.RUNTIME_POLICY_EDIT))],
+)
 def compile_policy(policy_key: uuid.UUID, db: Session = Depends(get_db)):
     try:
         outcome = svc.compile_policy(db, policy_key)
@@ -286,7 +300,10 @@ def dry_run_policy(policy_key: uuid.UUID, body: DryRunRequest, db: Session = Dep
     )
 
 
-@router.post("/{policy_key}/deploy", response_model=DeployResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/{policy_key}/deploy", response_model=DeployResponse,
+    dependencies=[Depends(require_permission(Permission.RUNTIME_POLICY_PUBLISH))],
+)
 def deploy_policy(policy_key: uuid.UUID, db: Session = Depends(get_db)):
     try:
         outcome = svc.deploy_policy(db, policy_key, opa_url=_opa_url())

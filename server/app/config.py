@@ -14,9 +14,11 @@ class Settings(BaseSettings):
     evidence_signing_key_b64: str = ""
     evidence_signing_key_id: str = "signing_key_dev"
 
-    # Gates the operator-only endpoints (policy review/compile/activate,
-    # human-review resolution) until a real human auth/RBAC system exists.
-    # See app.security.verify_operator_key.
+    # The original shared-secret superuser bypass (app.security.
+    # verify_operator_key / app.dependencies.require_permission): every
+    # existing integration keeps working through this unchanged.
+    # RBAC.md's per-user/per-API-key permission system is additive to
+    # this, not a replacement for it.
     admin_api_key: str = ""
 
     anthropic_api_key: str = ""
@@ -24,6 +26,12 @@ class Settings(BaseSettings):
     intent_signature_window_seconds: int = 300
 
     cors_origin: str = "http://localhost:5173"
+
+    # Phase 10 (RBAC.md): identity for the one-time Organisation Owner
+    # bootstrap. Not used anywhere else -- once the Owner row exists, the
+    # bootstrap hook is a no-op on every subsequent boot.
+    organization_name: str = "PayReality"
+    owner_email: str = "owner@payreality.local"
 
 
 settings = Settings()

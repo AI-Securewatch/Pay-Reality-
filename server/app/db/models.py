@@ -275,6 +275,111 @@ class AgentAuditEvent(Base):
     __table_args__ = (Index("idx_agent_audit_events_agent", "agent_id"),)
 
 
+_ROLE_VALUES = "'owner','governance_admin','agent_admin','reviewer','auditor','executive'"
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    logo_url: Mapped[str | None] = mapped_column(Text)
+    timezone: Mapped[str] = mapped_column(Text, nullable=False, server_default="UTC")
+    default_currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="USD")
+    default_language: Mapped[str] = mapped_column(Text, nullable=False, server_default="en")
+    # Everything in Organisation Settings that isn't its own column (Runtime
+    # Authority defaults, Notifications config, Audit retention, MFA
+    # requirement, etc.) lives here rather than as a wide, ever-growing set
+    # of nullable columns -- these are operator preferences, not entities
+    # other tables need to join against or index on.
+    settings: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
+    )
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
+    )
+    email: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    role: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default="active")
+    mfa_enabled: Mapped[bool] = mapped_column(nullable=False, server_default="false")
+    must_reset_password: Mapped[bool] = mapped_column(nullable=False, server_default="false")
+    last_login_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "email", name="uq_users_organization_email"),
+        CheckConstraint(f"role IN ({_ROLE_VALUES})", name="ck_users_role"),
+        CheckConstraint("status IN ('active','disabled')", name="ck_users_status"),
+        Index("idx_users_organization", "organization_id"),
+    )
+
+
+class UserSession(Base):
+    """Named UserSession, not Session, so it never collides with
+    sqlalchemy.orm.Session -- every service/router in this codebase already
+    imports that as `Session` for the DB session type."""
+
+    __tablename__ = "sessions"
+
+    # The session id doubles as the bearer token handed to the client: no
+    # separate opaque-token column and no JWT, so validating a session is
+    # always one indexed primary-key lookup against a value the DB can
+    # revoke instantly (delete/expire the row), never a signature check
+    # against a token that stays valid until it expires on its own.
+    id: Mapped[uuid.UUID] = uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(nullable=False)
+    revoked_at: Mapped[datetime | None]
+
+    __table_args__ = (Index("idx_sessions_user", "user_id"),)
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    # SHA-256 of the raw key, not bcrypt: the raw key is a high-entropy
+    # generated secret (not a human-guessable password), so a slow salted
+    # hash buys nothing here and would cost a hash on every authenticated
+    # request instead of only at login. A fast digest with an exact-match
+    # lookup is the same tradeoff Stripe/GitHub-style API keys make.
+    key_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    key_prefix: Mapped[str] = mapped_column(Text, nullable=False)
+    role: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    last_used_at: Mapped[datetime | None]
+    revoked_at: Mapped[datetime | None]
+
+    __table_args__ = (
+        UniqueConstraint("key_hash", name="uq_api_keys_key_hash"),
+        CheckConstraint(f"role IN ({_ROLE_VALUES})", name="ck_api_keys_role"),
+        Index("idx_api_keys_organization", "organization_id"),
+    )
+
+
 class SigningKey(Base):
     """A registry of every Ed25519 key ever used to sign Evidence and
     Agent Lifecycle audit events. Before this table existed, every

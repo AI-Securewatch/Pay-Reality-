@@ -6,9 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.session import get_db
+from app.dependencies import require_permission
 from app.domain.compiler.compiler import CompilationConflictError
 from app.domain.extraction.claude_provider import ClaudeExtractionProvider
 from app.domain.extraction.fake_provider import FakeExtractionProvider
+from app.domain.rbac.permissions import Permission
 from app.schemas.policy import (
     ActivatePolicyResponse,
     AuthorityResponse,
@@ -17,7 +19,6 @@ from app.schemas.policy import (
     PolicyResponse,
     ReviewAuthorityRequest,
 )
-from app.security import verify_operator_key
 from app.services import document_service, policy_service, review_service
 from app.services.policy_service import (
     BundleHashMismatchError,
@@ -45,7 +46,7 @@ def list_documents(db: Session = Depends(get_db)):
     "/documents",
     response_model=DocumentResponse,
     status_code=201,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.RUNTIME_POLICY_CREATE))],
 )
 async def upload_document(file: UploadFile, db: Session = Depends(get_db)):
     """spec 19.1. Extraction (spec 12.4 Stage 2-3) runs synchronously here
@@ -81,7 +82,7 @@ def list_authorities(
 @router.patch(
     "/authorities/{authority_id}",
     response_model=AuthorityResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
 def review_authority(
     authority_id: UUID, body: ReviewAuthorityRequest, db: Session = Depends(get_db)
@@ -111,7 +112,7 @@ def review_authority(
 @router.post(
     "/{document_id}/compile",
     response_model=CompilePolicyResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.RUNTIME_POLICY_EDIT))],
 )
 def compile_policy(document_id: UUID, db: Session = Depends(get_db)):
     """spec 19.3."""
@@ -145,7 +146,7 @@ def compile_policy(document_id: UUID, db: Session = Depends(get_db)):
 @router.post(
     "/{policy_id}/activate",
     response_model=ActivatePolicyResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.RUNTIME_POLICY_PUBLISH))],
 )
 def activate_policy(policy_id: UUID, db: Session = Depends(get_db)):
     """spec 19.3 + 14.4 (also used for rollback: reactivating a retired

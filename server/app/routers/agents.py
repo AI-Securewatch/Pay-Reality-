@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Agent, Certificate, Principal
 from app.db.session import get_db
-from app.dependencies import verify_agent_signature
+from app.dependencies import require_permission, verify_agent_signature
+from app.domain.rbac.permissions import Permission
 from app.schemas.agent import (
     AgentDetailResponse,
     AgentListResponse,
@@ -28,7 +29,6 @@ from app.schemas.agent import (
     UpdateAgentRequest,
     VerifyAuditEventResponse,
 )
-from app.security import verify_operator_key
 from app.services import agent_service, intent_service, runtime_policy_service
 from app.services.agent_service import (
     AgentNotFoundError,
@@ -76,7 +76,10 @@ def _invalid_transition_response(e: InvalidTransitionError) -> HTTPException:
     )
 
 
-@router.post("", response_model=AgentResponse, status_code=201, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "", response_model=AgentResponse, status_code=201,
+    dependencies=[Depends(require_permission(Permission.AGENT_REGISTER))],
+)
 def create_agent(body: CreateAgentRequest, db: Session = Depends(get_db)):
     try:
         agent, certificate = agent_service.create_agent(
@@ -134,28 +137,40 @@ def _bulk_response(results: list[dict]) -> BulkActionResponse:
     )
 
 
-@router.post("/bulk/suspend", response_model=BulkActionResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/bulk/suspend", response_model=BulkActionResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_SUSPEND))],
+)
 def bulk_suspend(body: BulkAgentActionRequest, db: Session = Depends(get_db)):
     return _bulk_response(
         agent_service.bulk_transition(db, body.agent_ids, "suspend", reason=body.reason, actor=body.actor)
     )
 
 
-@router.post("/bulk/activate", response_model=BulkActionResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/bulk/activate", response_model=BulkActionResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_ACTIVATE))],
+)
 def bulk_activate(body: BulkAgentActionRequest, db: Session = Depends(get_db)):
     return _bulk_response(
         agent_service.bulk_transition(db, body.agent_ids, "activate", actor=body.actor)
     )
 
 
-@router.post("/bulk/retire", response_model=BulkActionResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/bulk/retire", response_model=BulkActionResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_RETIRE))],
+)
 def bulk_retire(body: BulkAgentActionRequest, db: Session = Depends(get_db)):
     return _bulk_response(
         agent_service.bulk_transition(db, body.agent_ids, "retire", reason=body.reason, actor=body.actor)
     )
 
 
-@router.post("/bulk/rotate", response_model=BulkActionResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/bulk/rotate", response_model=BulkActionResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_ROTATE))],
+)
 def bulk_rotate(body: BulkAgentActionRequest, db: Session = Depends(get_db)):
     """Honest bulk rotation (CERTIFICATE_ROTATION.md): PayReality never
     holds an agent's private key, so an operator-triggered bulk action
@@ -213,7 +228,10 @@ def _build_agent_detail(db: Session, agent: Agent, certificate, certificates) ->
     )
 
 
-@router.patch("/{agent_id}", response_model=AgentResponse, dependencies=[Depends(verify_operator_key)])
+@router.patch(
+    "/{agent_id}", response_model=AgentResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_MANAGE))],
+)
 def update_agent(agent_id: UUID, body: UpdateAgentRequest, db: Session = Depends(get_db)):
     try:
         agent = agent_service.update_agent_metadata(db, agent_id, **body.model_dump(exclude_unset=True))
@@ -223,7 +241,10 @@ def update_agent(agent_id: UUID, body: UpdateAgentRequest, db: Session = Depends
     return _to_response(agent, certificate)
 
 
-@router.delete("/{agent_id}", response_model=AgentResponse, dependencies=[Depends(verify_operator_key)])
+@router.delete(
+    "/{agent_id}", response_model=AgentResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_RETIRE))],
+)
 def delete_agent(agent_id: UUID, db: Session = Depends(get_db)):
     """Not a real delete: AGENT_LIFECYCLE.md's own design philosophy is
     "Nothing is deleted. Everything is auditable," which a hard DELETE
@@ -269,7 +290,10 @@ def verify_audit_event(agent_id: UUID, event_id: UUID, db: Session = Depends(get
     )
 
 
-@router.post("/{agent_id}/activate", response_model=AgentResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/{agent_id}/activate", response_model=AgentResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_ACTIVATE))],
+)
 def activate_agent(agent_id: UUID, body: LifecycleActionRequest = LifecycleActionRequest(), db: Session = Depends(get_db)):
     try:
         agent = agent_service.activate_agent(db, agent_id, actor=body.actor)
@@ -281,7 +305,10 @@ def activate_agent(agent_id: UUID, body: LifecycleActionRequest = LifecycleActio
     return _to_response(agent, certificate)
 
 
-@router.post("/{agent_id}/suspend", response_model=AgentResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/{agent_id}/suspend", response_model=AgentResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_SUSPEND))],
+)
 def suspend_agent(agent_id: UUID, body: LifecycleActionRequest = LifecycleActionRequest(), db: Session = Depends(get_db)):
     try:
         agent = agent_service.suspend_agent(db, agent_id, reason=body.reason, actor=body.actor)
@@ -293,7 +320,10 @@ def suspend_agent(agent_id: UUID, body: LifecycleActionRequest = LifecycleAction
     return _to_response(agent, certificate)
 
 
-@router.post("/{agent_id}/retire", response_model=AgentResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/{agent_id}/retire", response_model=AgentResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_RETIRE))],
+)
 def retire_agent(agent_id: UUID, body: LifecycleActionRequest = LifecycleActionRequest(), db: Session = Depends(get_db)):
     try:
         agent = agent_service.retire_agent(db, agent_id, reason=body.reason, actor=body.actor)
@@ -305,7 +335,10 @@ def retire_agent(agent_id: UUID, body: LifecycleActionRequest = LifecycleActionR
     return _to_response(agent, certificate)
 
 
-@router.post("/{agent_id}/revoke", response_model=AgentResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/{agent_id}/revoke", response_model=AgentResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_REVOKE))],
+)
 def revoke_agent(agent_id: UUID, body: LifecycleActionRequest = LifecycleActionRequest(), db: Session = Depends(get_db)):
     """Not in the spec's literal API list (only suspend/activate/retire/
     rotate/heartbeat/transfer are named there), added because "Revoked"
@@ -321,7 +354,10 @@ def revoke_agent(agent_id: UUID, body: LifecycleActionRequest = LifecycleActionR
     return _to_response(agent, certificate)
 
 
-@router.post("/{agent_id}/rotate", response_model=CertificateResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/{agent_id}/rotate", response_model=CertificateResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_ROTATE))],
+)
 def rotate_certificate(agent_id: UUID, body: RotateCertificateRequest, db: Session = Depends(get_db)):
     try:
         certificate = agent_service.rotate_certificate(db, agent_id, body.new_public_key, actor=body.actor)
@@ -334,7 +370,10 @@ def rotate_certificate(agent_id: UUID, body: RotateCertificateRequest, db: Sessi
     return CertificateResponse.model_validate(certificate)
 
 
-@router.post("/{agent_id}/transfer", response_model=AgentResponse, dependencies=[Depends(verify_operator_key)])
+@router.post(
+    "/{agent_id}/transfer", response_model=AgentResponse,
+    dependencies=[Depends(require_permission(Permission.AGENT_MANAGE))],
+)
 def transfer_owner(agent_id: UUID, body: TransferOwnerRequest, db: Session = Depends(get_db)):
     try:
         agent = agent_service.transfer_owner(

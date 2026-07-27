@@ -10,10 +10,14 @@ import {
   Activity,
   Menu,
   ScrollText,
+  Settings,
+  LogOut,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 import { useIsMobile } from "./ui/use-mobile";
 import { OperatorKeyField } from "../live/components/OperatorKeyField";
+import { useAuth } from "../auth/AuthContext";
+import { ROLE_LABELS } from "../auth/types";
 
 // One workflow, in order: Agents -> Governance -> Decisions -> Evidence
 // -> Assurance. No department-shaped groups, no duplicate "real" vs
@@ -28,6 +32,7 @@ const navItems = [
   { path: "/decisions", label: "Decisions", icon: FlaskConical },
   { path: "/evidence", label: "Evidence", icon: Database },
   { path: "/assurance", label: "Assurance", icon: Building2 },
+  { path: "/organization", label: "Organisation Settings", icon: Settings },
 ];
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
@@ -142,8 +147,50 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           </p>
         </div>
         <OperatorKeyField />
+        <CurrentUserWidget />
       </div>
     </>
+  );
+}
+
+function CurrentUserWidget() {
+  const { user, logout } = useAuth();
+
+  if (!user) {
+    return (
+      <Link
+        to="/login"
+        className="block mt-2 px-3 py-2 text-[11px] font-medium text-center rounded-xl"
+        style={{ border: "1px solid rgba(255,255,255,0.06)", color: "var(--pr-text-muted)" }}
+      >
+        Sign in
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      className="px-3 py-2.5 rounded-xl mt-2 flex items-center justify-between gap-2"
+      style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.04)" }}
+    >
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium truncate" style={{ color: "var(--pr-text-secondary)" }}>
+          {user.name}
+        </p>
+        <p className="text-[10px] truncate" style={{ color: "var(--pr-text-muted)" }}>
+          {ROLE_LABELS[user.role] ?? user.role}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => logout()}
+        aria-label="Sign out"
+        className="flex-shrink-0 p-1.5 rounded-lg"
+        style={{ color: "var(--pr-text-disabled)" }}
+      >
+        <LogOut className="w-3.5 h-3.5" />
+      </button>
+    </div>
   );
 }
 

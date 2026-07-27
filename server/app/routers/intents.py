@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.models import Agent
 from app.db.session import get_db
-from app.dependencies import verify_agent_signature
+from app.dependencies import require_permission, verify_agent_signature
 from app.domain.auth.signature import check_timestamp_window
+from app.domain.rbac.permissions import Permission
 from app.schemas.intent import (
     DecisionSummary,
     GetDecisionResponse,
@@ -17,7 +18,6 @@ from app.schemas.intent import (
     SubmitIntentRequest,
     SubmitIntentResponse,
 )
-from app.security import verify_operator_key
 from app.services import intent_service, resolution_service
 from app.services.intent_service import (
     AgentNotOperationalError,
@@ -130,15 +130,15 @@ def get_decision(decision_id: UUID, db: Session = Depends(get_db)):
 @router.post(
     "/decisions/{decision_id}/resolve",
     response_model=ResolveDecisionResponse,
-    dependencies=[Depends(verify_operator_key)],
+    dependencies=[Depends(require_permission(Permission.DECISIONS_RESOLVE))],
 )
 def resolve_decision(
     decision_id: UUID, body: ResolveDecisionRequest, db: Session = Depends(get_db)
 ):
     """The Phase 1 addition (see plan's 'The one addition: resolving
-    HUMAN_REVIEW'). Gated by the shared operator key (app.security) so not
-    anyone can resolve a review; resolved_by is still a free-text identity
-    string until the real human RBAC system in the V3 roadmap replaces it."""
+    HUMAN_REVIEW'). Gated by permission (RBAC.md) so not anyone can resolve
+    a review; resolved_by is still a free-text identity string until a
+    later phase ties it to the resolving User directly."""
     if body.resolution not in ("approved", "denied"):
         raise HTTPException(status_code=422, detail="invalid_resolution")
 

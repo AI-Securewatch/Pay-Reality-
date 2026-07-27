@@ -1,13 +1,16 @@
 """Operator authentication, request context/logging, security headers, and
 per-client rate limiting.
 
-Phase 1 has no human user/session/RBAC system yet: `resolved_by` on a
+`verify_operator_key` is the original single-shared-credential gate on
+every mutating endpoint. RBAC.md added real per-user roles and
+per-API-key permissions on top of this (see
+`app.dependencies.require_permission`), but `verify_operator_key` itself
+is unchanged and still works exactly as it always has: a present, correct
+operator key is still a full bypass, so every existing integration built
+against it keeps working with no changes required. `resolved_by` on a
 decision resolution is still a free-text field (see
-app.services.resolution_service). `verify_operator_key` is a real, working
-gate (not a mock) on the endpoints that mutate policy or resolve a
-HUMAN_REVIEW decision: a single shared operator credential, appropriate for
-an early pilot with one ops team, not a substitute for the multi-user RBAC
-system in the V3 roadmap.
+app.services.resolution_service) -- RBAC.md ties *access* to resolving a
+decision to a real permission, not yet *attribution* of who resolved it.
 """
 
 import hmac

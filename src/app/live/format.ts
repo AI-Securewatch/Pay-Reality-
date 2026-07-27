@@ -15,11 +15,24 @@ const AGENT_STATUS_DETAIL: Record<string, string> = {
   agent_not_operational: "This agent hasn't been activated yet.",
 };
 
+// Phase 10 (RBAC.md): require_permission's specific detail codes, checked
+// before the generic 401/403 Operator Key message so a logged-in user
+// who simply lacks the right role sees that, not a prompt to enter a key
+// they were never meant to have.
+const PERMISSION_DETAIL: Record<string, string> = {
+  authentication_required: "this action needs you to sign in, or the Operator Key set in the sidebar (bottom left).",
+  invalid_or_expired_credential: "your session has expired. Sign in again to continue.",
+  permission_denied: "your role doesn't include this permission. Ask your Organisation Owner if you believe this is wrong.",
+};
+
 export function describeApiError(e: unknown, action: string): string {
   if (e instanceof ApiError) {
     const detail = e.body && typeof e.body === "object" ? (e.body as { detail?: string }).detail : undefined;
     if (detail && AGENT_STATUS_DETAIL[detail]) {
       return `${action} failed: ${AGENT_STATUS_DETAIL[detail]}`;
+    }
+    if (detail && PERMISSION_DETAIL[detail]) {
+      return `${action} failed: ${PERMISSION_DETAIL[detail]}`;
     }
     if (e.status === 401 || e.status === 403) {
       return `${action} failed: this action needs the Operator Key set in the sidebar (bottom left). Enter it there and try again.`;

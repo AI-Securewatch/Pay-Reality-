@@ -12,11 +12,14 @@ from app.routers import (
     agents,
     ai_authority_builder,
     ai_policy_builder,
+    auth as auth_router,
     evidence,
     intents,
+    organization as organization_router,
     policies,
     principals,
     runtime_policies,
+    users as users_router,
 )
 from app.security import observability_middleware
 
@@ -56,9 +59,29 @@ def _register_current_signing_key() -> None:
         logger.exception("signing_key_registration_failed_at_startup")
 
 
+def _bootstrap_organisation_owner() -> None:
+    """RBAC.md: idempotently creates the one Organisation and its Owner
+    user on first boot after this migration. Same failure posture as
+    _register_current_signing_key: never raises, since a transient DB
+    issue at boot shouldn't crash-loop the whole service, and every
+    subsequent boot will simply try again."""
+    try:
+        from app.db.session import SessionLocal
+        from app.services.organization_service import ensure_owner_bootstrapped
+
+        db = SessionLocal()
+        try:
+            ensure_owner_bootstrapped(db)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("organisation_owner_bootstrap_failed_at_startup")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _register_current_signing_key()
+    _bootstrap_organisation_owner()
     yield
 
 
@@ -103,9 +126,10 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=[settings.cors_origin],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "PUT"],
+        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
         allow_headers=[
             "Content-Type",
+            "Authorization",
             "X-PayReality-Key-Id",
             "X-PayReality-Signature",
             "X-PayReality-Operator-Key",
@@ -200,6 +224,9 @@ def create_app() -> FastAPI:
     app.include_router(runtime_policies.router)
     app.include_router(ai_policy_builder.router)
     app.include_router(ai_authority_builder.router)
+    app.include_router(auth_router.router)
+    app.include_router(users_router.router)
+    app.include_router(organization_router.router)
 
     return app
 
