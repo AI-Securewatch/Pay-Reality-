@@ -6,8 +6,11 @@ const STORAGE_KEY = "payreality_theme";
 
 export type Theme = "dark" | "light";
 
+// Light is the platform default: a first-time visitor with no stored
+// preference gets light mode. Only an explicit "dark" in storage (the
+// user picked it in Organisation Settings > General) opts back into dark.
 export function getTheme(): Theme {
-  return localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
+  return localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
 }
 
 function applyTheme(theme: Theme): void {

@@ -159,7 +159,7 @@ function AppearanceSection() {
         else's view of the platform.
       </p>
       <div className="flex gap-2">
-        {(["dark", "light"] as const).map((option) => (
+        {(["light", "dark"] as const).map((option) => (
           <button
             key={option}
             type="button"
