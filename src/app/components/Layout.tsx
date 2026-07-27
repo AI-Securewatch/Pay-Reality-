@@ -18,6 +18,8 @@ import { useIsMobile } from "./ui/use-mobile";
 import { OperatorKeyField } from "../live/components/OperatorKeyField";
 import { useAuth } from "../auth/AuthContext";
 import { ROLE_LABELS } from "../auth/types";
+import { HelpButton } from "../help/HelpButton";
+import { HelpPanel } from "../help/HelpPanel";
 
 // One workflow, in order: Agents -> Governance -> Decisions -> Evidence
 // -> Assurance. No department-shaped groups, no duplicate "real" vs
@@ -272,12 +274,27 @@ function LayoutInner() {
             <h1 className="text-sm font-semibold" style={{ color: "var(--pr-text-primary)" }}>
               Pay<span style={{ color: "var(--pr-warning-amber)" }}>Reality</span>
             </h1>
+            <div className="ml-auto">
+              <HelpButton />
+            </div>
+          </header>
+        )}
+        {/* Desktop top bar: minimal, exists only to hold the Help entry
+            point top-right (spec: "Add a Help button to the top-right
+            navigation") -- everything else stays in the sidebar. */}
+        {!isMobile && (
+          <header
+            className="flex items-center justify-end px-4 flex-shrink-0 border-b"
+            style={{ height: 44, borderColor: "rgba(255,255,255,0.05)" }}
+          >
+            <HelpButton />
           </header>
         )}
         <main id="pr-main-content" className="flex-1 overflow-auto" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
+      <HelpPanel />
     </div>
   );
 }

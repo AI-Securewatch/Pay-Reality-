@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { aiPolicyBuilderApi } from "./api";
 import type { Upload } from "./types";
 import { describeApiError, formatStatus } from "../live/format";
 import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
+import { NextStepGuidance } from "../help/NextStepGuidance";
 
 const STATUS_COLOR: Record<string, string> = {
   uploaded: "var(--pr-text-muted)",
@@ -12,11 +13,11 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export function AIPolicyBuilderUploadPage() {
-  const navigate = useNavigate();
   const [uploads, setUploads] = useState<Upload[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [justUploaded, setJustUploaded] = useState<Upload | null>(null);
 
   function load() {
     aiPolicyBuilderApi.listUploads().then(setUploads);
@@ -30,10 +31,12 @@ export function AIPolicyBuilderUploadPage() {
   async function handleUpload(file: File) {
     setUploading(true);
     setMessage(null);
+    setJustUploaded(null);
     try {
       const upload = await aiPolicyBuilderApi.upload(file);
       if (upload.status === "extracted") {
-        navigate(`/policy-studio/upload/${upload.upload_id}`);
+        setJustUploaded(upload);
+        load();
       } else {
         setMessage(`Upload failed to extract (status: ${upload.status}). ${upload.error ?? ""}`);
         load();
@@ -74,7 +77,15 @@ export function AIPolicyBuilderUploadPage() {
 
       {message && <p role="alert" style={{ color: "var(--pr-warning-amber)", marginBottom: 16 }}>{message}</p>}
 
-      <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Past uploads</h2>
+      {justUploaded && (
+        <NextStepGuidance
+          message={`"${justUploaded.filename}" was analyzed successfully. Review what the AI found before anything becomes a real rule.`}
+          actionLabel="Review AI Findings"
+          actionPath={`/policy-studio/upload/${justUploaded.upload_id}`}
+        />
+      )}
+
+      <h2 className="text-sm font-medium mb-3 mt-6" style={{ color: "var(--pr-text-primary)" }}>Past uploads</h2>
       <table className="w-full text-sm" style={{ color: "var(--pr-text-primary)" }}>
         <thead>
           <tr style={{ color: "var(--pr-text-muted)", textAlign: "left", fontSize: 12 }}>

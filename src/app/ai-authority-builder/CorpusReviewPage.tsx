@@ -6,6 +6,8 @@ import type { Candidate } from "../ai-policy-builder/types";
 import { CandidateCard } from "../ai-policy-builder/components/CandidateCard";
 import { ConfidenceBadge } from "../ai-policy-builder/components/ConfidenceBadge";
 import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
+import { HelpIcon } from "../help/HelpIcon";
+import { NextStepGuidance } from "../help/NextStepGuidance";
 import type {
   Conflict,
   Corpus,
@@ -123,12 +125,21 @@ export function AIAuthorityBuilderCorpusReviewPage() {
     aiAuthorityBuilderApi.getQuestions(corpusId!).then(setQuestions);
   }
 
+  // "Reviewed" isn't tracked as its own flag -- it's genuinely true once
+  // every clarification question has an answer and there's at least one
+  // Rule to actually act on next, not a fabricated completion signal.
+  const readyToPublish =
+    questions !== null && questions.every((q) => q.answered) && (policies?.length ?? 0) > 0;
+
   return (
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <Link to="/policy-studio/authority-builder" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
         &lt; Back to corpora
       </Link>
-      <h1 className="mt-2 mb-1" style={{ color: "var(--pr-text-primary)" }}>{corpus?.name ?? "Authority Graph"}</h1>
+      <div className="mt-2 mb-1 flex items-center gap-1.5">
+        <h1 style={{ color: "var(--pr-text-primary)" }}>{corpus?.name ?? "Authority Graph"}</h1>
+        <HelpIcon articleId="authority_graph" />
+      </div>
       <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 20 }}>
         Every finding below is a reviewable claim, cited to its source document and location, never
         published automatically. Only Rules can be promoted into Governance; everything else is
@@ -287,6 +298,14 @@ export function AIAuthorityBuilderCorpusReviewPage() {
           </div>
         ))}
       </Section>
+
+      {readyToPublish && (
+        <NextStepGuidance
+          message="This corpus is fully reviewed. Promote a Rule from above, then publish it so it starts governing real agent actions."
+          actionLabel="Publish Runtime Policies"
+          actionPath="/policy-studio"
+        />
+      )}
     </div>
   );
 }

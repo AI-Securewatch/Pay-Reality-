@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Database, ShieldCheck, ShieldX } from "lucide-react";
 import { apiClient } from "../apiClient";
 import { formatStatus } from "../format";
+import { HelpIcon } from "../../help/HelpIcon";
 import type { LiveEvidence as LiveEvidenceType } from "../types";
 
 const FIELD_LABEL: Record<string, string> = {
@@ -34,7 +35,10 @@ export function LiveEvidence() {
             Evidence Vault
           </span>
         </div>
-        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Evidence</h1>
+        <div className="flex items-center gap-1.5 mb-2">
+          <h1 style={{ color: "var(--pr-text-primary)" }}>Evidence</h1>
+          <HelpIcon articleId="evidence" />
+        </div>
         <p style={{ color: "var(--pr-text-muted)" }}>
           Every decision produces a cryptographically signed, unchangeable record. Verify a
           signature to detect any tampering.

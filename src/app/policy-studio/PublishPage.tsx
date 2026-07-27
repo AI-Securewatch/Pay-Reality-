@@ -4,6 +4,7 @@ import { policyStudioApi } from "./api";
 import { PolicyStatusBadge } from "./components/PolicyStatusBadge";
 import { CompilerDiagnosticsList } from "./components/CompilerDiagnosticsList";
 import { describeApiError, describeReason, formatStatus } from "../live/format";
+import { NextStepGuidance } from "../help/NextStepGuidance";
 import type { CompileResult, DeployResult, DryRunResult, RuntimePolicy } from "./types";
 
 // Replaces the three separate Compile / Dry Run / Deployment pages
@@ -262,6 +263,14 @@ export function PublishPage() {
           </p>
         )}
       </div>
+
+      {publishResult && (
+        <NextStepGuidance
+          message="This rule is now active and governing real agent actions. Register an agent so there's something for it to actually apply to."
+          actionLabel="Register an Agent"
+          actionPath="/authority"
+        />
+      )}
     </div>
   );
 }

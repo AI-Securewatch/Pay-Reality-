@@ -1,9 +1,10 @@
 import { useId, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { aiAuthorityBuilderApi } from "./api";
 import type { Corpus } from "./types";
 import { describeApiError, formatStatus } from "../live/format";
 import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
+import { NextStepGuidance } from "../help/NextStepGuidance";
 
 const STATUS_COLOR: Record<string, string> = {
   uploaded: "var(--pr-text-muted)",
@@ -12,7 +13,6 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export function AIAuthorityBuilderUploadPage() {
-  const navigate = useNavigate();
   const formId = useId();
   const [corpora, setCorpora] = useState<Corpus[] | null>(null);
   const [name, setName] = useState("");
@@ -20,6 +20,7 @@ export function AIAuthorityBuilderUploadPage() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [justCreated, setJustCreated] = useState<Corpus | null>(null);
 
   function load() {
     aiAuthorityBuilderApi.listCorpora().then(setCorpora);
@@ -46,10 +47,14 @@ export function AIAuthorityBuilderUploadPage() {
     }
     setUploading(true);
     setMessage(null);
+    setJustCreated(null);
     try {
       const corpus = await aiAuthorityBuilderApi.createCorpus(name.trim() || "Untitled corpus", files);
       if (corpus.status === "extracted") {
-        navigate(`/policy-studio/authority-builder/${corpus.corpus_id}`);
+        setJustCreated(corpus);
+        setFiles([]);
+        setName("");
+        load();
       } else {
         setMessage(`Corpus failed to extract (status: ${corpus.status}). ${corpus.error ?? ""}`);
         load();
@@ -148,7 +153,15 @@ export function AIAuthorityBuilderUploadPage() {
         {message && <p role="alert" style={{ color: "var(--pr-warning-amber)", marginTop: 12 }}>{message}</p>}
       </div>
 
-      <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Past corpora</h2>
+      {justCreated && (
+        <NextStepGuidance
+          message={`"${justCreated.name}" was analyzed successfully. Review what the AI found before anything becomes a real rule.`}
+          actionLabel="Review AI Findings"
+          actionPath={`/policy-studio/authority-builder/${justCreated.corpus_id}`}
+        />
+      )}
+
+      <h2 className="text-sm font-medium mb-3 mt-6" style={{ color: "var(--pr-text-primary)" }}>Past corpora</h2>
       <table className="w-full text-sm" style={{ color: "var(--pr-text-primary)" }}>
         <thead>
           <tr style={{ color: "var(--pr-text-muted)", textAlign: "left", fontSize: 12 }}>

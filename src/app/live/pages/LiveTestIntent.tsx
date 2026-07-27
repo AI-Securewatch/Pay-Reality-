@@ -6,6 +6,8 @@ import { signBody } from "../crypto";
 import { getAgentPrivateKey } from "../agentKeyStore";
 import { describeApiError, describeReason, formatStatus } from "../format";
 import { policyStudioApi } from "../../policy-studio/api";
+import { HelpIcon } from "../../help/HelpIcon";
+import { NextStepGuidance } from "../../help/NextStepGuidance";
 import type { LiveAgent, LiveDecision, SubmitIntentResult } from "../types";
 
 const OUTCOME_STYLE: Record<string, { bg: string; fg: string; icon: typeof CheckCircle2 }> = {
@@ -124,7 +126,10 @@ export function LiveTestIntent() {
   return (
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-8">
-        <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Decisions</h1>
+        <div className="flex items-center gap-1.5 mb-2">
+          <h1 style={{ color: "var(--pr-text-primary)" }}>Decisions</h1>
+          <HelpIcon articleId="runtime_decision" />
+        </div>
         <p style={{ color: "var(--pr-text-muted)" }}>
           See what happens when an agent tries to act: watch it get checked against your active
           rules in real time and come back approved, blocked, or sent to a human.
@@ -281,15 +286,19 @@ export function LiveTestIntent() {
           )}
 
           {result && (
-            <p className="text-xs mt-4" style={{ color: "var(--pr-text-muted)" }}>
-              <span className="font-mono">evidence_id: {result.evidence_id}</span>
-              {" "}
-              <Link to="/evidence" style={{ color: "var(--pr-authority-blue)" }}>
-                View in Evidence
-              </Link>
+            <p className="text-xs mt-4 font-mono" style={{ color: "var(--pr-text-muted)" }}>
+              evidence_id: {result.evidence_id}
             </p>
           )}
         </div>
+      )}
+
+      {result && decision && decision.status !== "PENDING" && (
+        <NextStepGuidance
+          message="This decision produced a signed Evidence record. See exactly what was recorded and verify it hasn't been tampered with."
+          actionLabel="View Evidence"
+          actionPath="/evidence"
+        />
       )}
     </div>
   );

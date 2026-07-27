@@ -7,6 +7,7 @@ import { LifecycleTimeline } from "./components/LifecycleTimeline";
 import { describeApiError, formatStatus } from "../live/format";
 import { generateKeyPair } from "../live/crypto";
 import { saveAgentKeyPair } from "../live/agentKeyStore";
+import { HelpIcon } from "../help/HelpIcon";
 import type { AgentDetail } from "./types";
 
 const cardStyle: React.CSSProperties = {
@@ -175,7 +176,10 @@ export function AgentDetailPage() {
       </div>
 
       <div style={cardStyle}>
-        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Certificates</h2>
+        <div className="flex items-center gap-1.5 mb-3">
+          <h2 className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>Certificates</h2>
+          <HelpIcon articleId="agent_certificate" />
+        </div>
         <table className="w-full text-xs" style={{ color: "var(--pr-text-primary)" }}>
           <thead>
             <tr style={{ color: "var(--pr-text-muted)", textAlign: "left" }}>
@@ -230,7 +234,10 @@ export function AgentDetailPage() {
         </div>
 
         <div style={cardStyle}>
-          <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Evidence</h2>
+          <div className="flex items-center gap-1.5 mb-3">
+            <h2 className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>Evidence</h2>
+            <HelpIcon articleId="evidence" />
+          </div>
           {detail.recent_evidence.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No evidence yet.</p>}
           {detail.recent_evidence.map((e) => (
             <div key={e.id} className="flex items-center justify-between py-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 13 }}>

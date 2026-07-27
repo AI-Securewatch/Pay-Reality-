@@ -7,6 +7,7 @@ import { HealthDot } from "./components/HealthDot";
 import { generateKeyPair } from "../live/crypto";
 import { saveAgentKeyPair } from "../live/agentKeyStore";
 import { describeApiError } from "../live/format";
+import { NextStepGuidance } from "../help/NextStepGuidance";
 import type { LiveAgent, LivePrincipal } from "../live/types";
 
 const PAGE_SIZE = 25;
@@ -37,6 +38,7 @@ export function AgentDirectoryPage() {
   const [newPrincipalName, setNewPrincipalName] = useState("");
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
+  const [justActivatedName, setJustActivatedName] = useState<string | null>(null);
 
   function loadPrincipals() {
     agentsApi.listPrincipals().then((ps) => {
@@ -104,7 +106,10 @@ export function AgentDirectoryPage() {
 
   async function runRowAction(action: "activate" | "suspend" | "retire", agentId: string) {
     try {
-      if (action === "activate") await agentsApi.activate(agentId);
+      if (action === "activate") {
+        await agentsApi.activate(agentId);
+        setJustActivatedName(agents?.find((a) => a.id === agentId)?.name ?? "Agent");
+      }
       if (action === "suspend") await agentsApi.suspend(agentId);
       if (action === "retire") await agentsApi.retire(agentId);
       loadAgents();
@@ -219,6 +224,14 @@ export function AgentDirectoryPage() {
           <p role="alert" className="text-sm mt-4" style={{ color: "var(--pr-text-secondary)" }}>{registerMessage}</p>
         )}
       </div>
+
+      {justActivatedName && (
+        <NextStepGuidance
+          message={`"${justActivatedName}" is now active and can sign real Intents. Try a test decision to see it get checked against your rules.`}
+          actionLabel="Submit Test Decision"
+          actionPath="/decisions"
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-3 mb-3">
         <input

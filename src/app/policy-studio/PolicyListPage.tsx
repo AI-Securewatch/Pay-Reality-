@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { policyStudioApi } from "./api";
 import type { RuntimePolicy } from "./types";
 import { PolicyStatusBadge } from "./components/PolicyStatusBadge";
+import { HelpIcon } from "../help/HelpIcon";
 
 type SortKey = "name" | "version" | "status" | "created_at" | "owner";
 
@@ -40,7 +41,10 @@ export function PolicyListPage() {
   return (
     <div className="p-8" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-6 flex items-center justify-between">
-        <h1 style={{ color: "var(--pr-text-primary)" }}>Governance</h1>
+        <div className="flex items-center gap-1.5">
+          <h1 style={{ color: "var(--pr-text-primary)" }}>Governance</h1>
+          <HelpIcon articleId="runtime_policy" />
+        </div>
         <div className="flex items-center gap-3">
           <Link to="/policy-studio/review-queue" style={{ color: "var(--pr-authority-blue)", fontSize: 13 }}>
             Approvals
