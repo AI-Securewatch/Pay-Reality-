@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { Shield } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { ApiError } from "../live/apiClient";
@@ -139,6 +139,13 @@ export function LoginPage() {
               {submitting ? "Signing in..." : "Sign in"}
             </button>
           </form>
+
+          <p className="text-xs mt-4 text-center" style={{ color: "var(--pr-text-muted)" }}>
+            No account yet?{" "}
+            <Link to="/setup-owner" style={{ color: "var(--pr-authority-blue)" }}>
+              Set one up with the Operator Key
+            </Link>
+          </p>
         </div>
       </div>
     </div>

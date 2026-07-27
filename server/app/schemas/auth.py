@@ -41,3 +41,8 @@ class LoginResponse(BaseModel):
     token: str
     expires_at: datetime
     user: CurrentUserResponse
+
+
+class SetupOwnerRequest(BaseModel):
+    email: str
+    password: str

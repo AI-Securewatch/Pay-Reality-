@@ -39,6 +39,7 @@ export const router = createBrowserRouter([
       // Users management. /login is public; the other two require a
       // session (RequireAuth) -- neither gates any pre-existing route.
       { path: "login", lazy: () => import("./auth/LoginPage").then((m) => ({ Component: m.LoginPage })) },
+      { path: "setup-owner", lazy: () => import("./auth/SetupOwnerPage").then((m) => ({ Component: m.SetupOwnerPage })) },
       {
         path: "organization",
         lazy: () => import("./organization/OrganizationSettingsPage").then((m) => ({

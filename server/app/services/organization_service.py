@@ -43,28 +43,27 @@ def ensure_owner_bootstrapped(db: Session) -> None:
         db.commit()
         return
 
-    password = secrets.token_urlsafe(18)
+    # The password is deliberately never surfaced anywhere, including the
+    # logs: it's a random, unrecoverable placeholder, not a credential
+    # meant for anyone to actually retrieve and use. The real way to get
+    # in is POST /v1/auth/setup-owner (frontend: /setup-owner), which
+    # lets anyone holding the Operator Key -- a credential every real
+    # deployment already has -- claim this account with their own email
+    # and password. See RBAC.md's "Claiming the bootstrapped account".
     owner = User(
         organization_id=organization.id,
         email=settings.owner_email,
         name="Organisation Owner",
-        password_hash=auth_service.hash_password(password),
+        password_hash=auth_service.hash_password(secrets.token_urlsafe(18)),
         role=Role.OWNER.value,
         must_reset_password=True,
     )
     db.add(owner)
     db.commit()
-    # Logged ONCE, at the moment this row is created -- every subsequent
-    # boot finds existing_owner above and returns before reaching here.
-    # There is no other channel to deliver this credential yet (no email
-    # delivery exists, see NOTIFICATIONS in ORGANISATION_SETTINGS.md), so
-    # the deploy log is the real, disclosed retrieval path for now.
     logger.warning(
-        "organisation_owner_bootstrapped email=%s password=%s "
-        "-- shown ONCE, never logged again. Store it now; "
-        "must_reset_password is set so this forces a change on first login.",
+        "organisation_owner_bootstrapped email=%s -- unclaimed. Visit "
+        "/setup-owner with the Operator Key to set a real password.",
         settings.owner_email,
-        password,
     )
 
 

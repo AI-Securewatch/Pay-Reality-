@@ -60,11 +60,19 @@ Session expiry is **fixed at login, not sliding**: simpler to reason about and t
 
 ## The Organisation Owner bootstrap
 
-`server/app/services/organization_service.py::ensure_owner_bootstrapped`, called from `main.py`'s existing `lifespan` startup hook (the same pattern already built for evidence-key rotation, `signing_key_service.ensure_current_key_registered`): on every boot, idempotently ensure one `Organization` and one Owner `User` exist. If they already exist, this is a no-op. If not, it creates them and logs a generated password **once**, via `logger.warning`, since there's no email delivery in this platform yet (see Notifications in ORGANISATION_SETTINGS.md) -- the deploy log is the real, disclosed retrieval path for now, not a placeholder for one.
+`server/app/services/organization_service.py::ensure_owner_bootstrapped`, called from `main.py`'s existing `lifespan` startup hook (the same pattern already built for evidence-key rotation, `signing_key_service.ensure_current_key_registered`): on every boot, idempotently ensure one `Organization` and one Owner `User` exist. If they already exist, this is a no-op. If not, it creates them with a random, unrecoverable password and logs a warning that the account needs to be claimed.
 
 This never raises: a transient DB issue at boot logs `organisation_owner_bootstrap_failed_at_startup` and lets the app boot anyway, exactly like the signing-key hook. Verified directly (see Testing below) against a real unreachable database: the app still boots, serves `/health`, and correctly rejects an unauthenticated `GET /v1/auth/me` with `401`.
 
 This bootstrap is **additive**, not a migration of the operator key into a new identity. Holding the operator key was, and remains, a full Owner-equivalent bypass on every endpoint -- nothing about that changed. The bootstrapped Owner account is a separate, new, real login for humans who want to start using the new system, alongside the operator key, not instead of it.
+
+### Claiming the bootstrapped account: `POST /v1/auth/setup-owner`
+
+The first version of this bootstrap logged the generated password once via `logger.warning` and called that "the real, disclosed retrieval path." In practice that's not usable: it requires digging through hosting-provider deploy logs, and there's no way to get a fresh password if that log line is ever missed or rotated out. There was no actual way for a real person to get their first account.
+
+The fix: `routers/auth.py::setup_owner`, gated the same way every other administrative endpoint is (`require_permission(Permission.ORGANISATION_MANAGE)`), which means the Operator Key -- a credential every real deployment already has and already treats as fully trusted -- works as a bypass here too. Anyone holding it can set the Owner's real email and password directly, at any time, not just once at first boot. This only ever updates the single bootstrapped Owner row; it never creates a second user. The frontend's `/setup-owner` page (linked from the login page) is this endpoint's UI: enter the Operator Key, choose an email and password, and you're logged in as Owner immediately after.
+
+This is also the practical password-reset story for the Owner account until a real reset-by-email flow exists: hold the Operator Key, visit `/setup-owner` again, set a new password.
 
 ## What this doesn't fix
 
