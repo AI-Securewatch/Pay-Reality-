@@ -1,6 +1,5 @@
 import { useId, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Shield } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { ApiError } from "../live/apiClient";
 
@@ -44,14 +43,7 @@ export function LoginPage() {
     >
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2.5 mb-8 justify-center">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "linear-gradient(135deg, var(--pr-authority-blue) 0%, var(--pr-logo-gradient-end) 100%)",
-            }}
-          >
-            <Shield className="w-4.5 h-4.5 text-white" />
-          </div>
+          <img src="/payreality-logo.png" alt="" className="w-8 h-8 rounded-lg flex-shrink-0" />
           <h1 className="text-base font-semibold" style={{ color: "var(--pr-text-primary)" }}>
             Pay<span style={{ color: "var(--pr-warning-amber)" }}>Reality</span>
           </h1>

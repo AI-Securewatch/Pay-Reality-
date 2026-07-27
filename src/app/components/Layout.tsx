@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router";
 import {
-  Shield,
   Bot,
   FlaskConical,
   Database,
@@ -50,14 +49,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       {/* Logo */}
       <div className="px-5 py-5 border-b" style={{ borderColor: "var(--pr-overlay-05)" }}>
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "linear-gradient(135deg, var(--pr-authority-blue) 0%, var(--pr-logo-gradient-end) 100%)",
-            }}
-          >
-            <Shield className="w-4 h-4 text-white" />
-          </div>
+          <img src="/payreality-logo.png" alt="" className="w-7 h-7 rounded-lg flex-shrink-0" />
           <div>
             <h1
               className="text-sm font-semibold leading-none mb-0.5"
@@ -263,14 +255,7 @@ function LayoutInner() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div
-              className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{
-                background: "linear-gradient(135deg, var(--pr-authority-blue) 0%, var(--pr-logo-gradient-end) 100%)",
-              }}
-            >
-              <Shield className="w-3.5 h-3.5 text-white" />
-            </div>
+            <img src="/payreality-logo.png" alt="" className="w-6 h-6 rounded-md flex-shrink-0" />
             <h1 className="text-sm font-semibold" style={{ color: "var(--pr-text-primary)" }}>
               Pay<span style={{ color: "var(--pr-warning-amber)" }}>Reality</span>
             </h1>
