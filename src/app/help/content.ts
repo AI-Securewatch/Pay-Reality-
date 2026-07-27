@@ -196,6 +196,8 @@ export interface DeveloperResource {
   href: string;
 }
 
+const WEBSITE_URL = "https://www.aisecurewatch.com";
+
 export const DEVELOPER_RESOURCES: DeveloperResource[] = [
   {
     id: "api_docs",
@@ -207,25 +209,25 @@ export const DEVELOPER_RESOURCES: DeveloperResource[] = [
     id: "sdk_docs",
     label: "SDK Documentation",
     description: "How to integrate an AI agent using the Python SDK: registration, signing, and lifecycle actions.",
-    href: "https://github.com/AI-Securewatch/Pay-Reality-/blob/main/SDK_ARCHITECTURE.md",
+    href: `${WEBSITE_URL}/docs/sdk`,
   },
   {
     id: "integration_examples",
     label: "Integration Examples",
     description: "Worked examples of registering an agent and submitting a signed decision end to end.",
-    href: "https://github.com/AI-Securewatch/Pay-Reality-/blob/main/SDK_AGENT_GUIDE.md",
+    href: `${WEBSITE_URL}/docs/integration-examples`,
   },
   {
     id: "authentication",
     label: "Authentication",
     description: "How requests are authenticated: the Operator Key, per-developer API keys, and agent certificates.",
-    href: "https://github.com/AI-Securewatch/Pay-Reality-/blob/main/RBAC.md",
+    href: `${WEBSITE_URL}/docs/authentication`,
   },
   {
     id: "agent_registration",
     label: "Agent Registration",
     description: "The full agent lifecycle: registration, activation, suspension, rotation, and retirement.",
-    href: "https://github.com/AI-Securewatch/Pay-Reality-/blob/main/AGENT_LIFECYCLE.md",
+    href: `${WEBSITE_URL}/docs/agent-registration`,
   },
 ];
 
@@ -258,8 +260,8 @@ export const CONTACT_ACTIONS: ContactAction[] = [
   {
     id: "documentation",
     label: "Documentation",
-    description: "The full set of architecture and design documents for this platform.",
-    href: "https://github.com/AI-Securewatch/Pay-Reality-",
+    description: "The full set of developer documentation for this platform.",
+    href: `${WEBSITE_URL}/docs`,
   },
   {
     id: "system_status",
