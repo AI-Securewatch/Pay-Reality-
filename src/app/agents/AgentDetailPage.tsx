@@ -145,13 +145,13 @@ export function AgentDetailPage() {
           </p>
 
           <h3 className="text-xs font-medium mt-4 mb-2" style={{ color: "var(--pr-text-primary)" }}>Transfer ownership</h3>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               value={newOwner}
               onChange={(e) => setNewOwner(e.target.value)}
               placeholder="New owner"
               aria-label="New owner"
-              className="px-2 py-1.5 rounded-lg border text-xs flex-1"
+              className="px-2 py-1.5 rounded-lg border text-xs flex-1 min-w-0"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             />
             <input
@@ -159,13 +159,13 @@ export function AgentDetailPage() {
               onChange={(e) => setNewBusinessUnit(e.target.value)}
               placeholder="New business unit (optional)"
               aria-label="New business unit"
-              className="px-2 py-1.5 rounded-lg border text-xs flex-1"
+              className="px-2 py-1.5 rounded-lg border text-xs flex-1 min-w-0"
               style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "rgba(255,255,255,0.1)", color: "var(--pr-text-primary)" }}
             />
             <button
               onClick={() => runAction(() => agentsApi.transfer(agentId!, newOwner, newBusinessUnit || undefined), "Transfer")}
               disabled={!newOwner.trim()}
-              className="px-3 py-1.5 rounded-lg text-xs disabled:opacity-40"
+              className="px-3 py-1.5 rounded-lg text-xs disabled:opacity-40 flex-shrink-0"
               style={{ backgroundColor: "rgba(77,124,254,0.1)", color: "var(--pr-authority-blue)" }}
             >
               Transfer
