@@ -312,35 +312,7 @@
   top: 8px;
 }
 
-/* PayReality Scrollbar Styling -- follows the active theme via
-   --pr-bg-card/--pr-authority-blue rather than hardcoded hex, so it no
-   longer forces a dark-only look now that light mode exists. */
-::-webkit-scrollbar {
-  width: 8px !important;
-  height: 8px !important;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--pr-bg-card) !important;
-  border-radius: 4px !important;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--pr-authority-blue) !important;
-  border-radius: 4px !important;
-  transition: background 0.2s ease !important;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #6B9AFF !important;
-}
-
-::-webkit-scrollbar-corner {
-  background: var(--pr-bg-card) !important;
-}
-
-/* Firefox Scrollbar */
-* {
-  scrollbar-width: thin !important;
-  scrollbar-color: var(--pr-authority-blue) var(--pr-bg-card) !important;
-}
+/* Scrollbar styling lives in globals.css, not here: it loads after this
+   file (see index.css's import order) and declares the exact same
+   selectors, so a copy here would just be dead code shadowed by that
+   later, identical-selector, !important rule. */

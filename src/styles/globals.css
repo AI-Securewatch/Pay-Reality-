@@ -1,4 +1,12 @@
-/* PayReality Scrollbar Styling */
+/* PayReality Scrollbar Styling. This file loads after theme.css (see
+   index.css's import order) and is the one that actually wins the
+   cascade for every rule below -- it used to hardcode dark-only hex
+   values here, which is why the scrollbar stayed dark navy/blue even
+   after theme.css's own (identical, but losing) scrollbar rules were
+   made theme-aware. Fixed by using the same --pr-bg-card/
+   --pr-authority-blue variables theme.css defines a light value for,
+   so there's exactly one place a scrollbar color is decided, and it
+   actually re-themes. */
 
 /* Webkit Scrollbar (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
@@ -7,12 +15,12 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #111C31 !important;
+  background: var(--pr-bg-card) !important;
   border-radius: 4px !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4D7CFE !important;
+  background: var(--pr-authority-blue) !important;
   border-radius: 4px !important;
   transition: background 0.2s ease !important;
 }
@@ -24,12 +32,12 @@
 /* Firefox Scrollbar */
 * {
   scrollbar-width: thin !important;
-  scrollbar-color: #4D7CFE #111C31 !important;
+  scrollbar-color: var(--pr-authority-blue) var(--pr-bg-card) !important;
 }
 
 /* Ensure scrollbar styling applies to all scrollable elements */
 ::-webkit-scrollbar-corner {
-  background: #111C31 !important;
+  background: var(--pr-bg-card) !important;
 }
 
 /* Modal and dropdown scrollbars */
@@ -45,14 +53,14 @@
 .dropdown-content::-webkit-scrollbar-track,
 .overflow-y-auto::-webkit-scrollbar-track,
 .overflow-x-auto::-webkit-scrollbar-track {
-  background: #111C31 !important;
+  background: var(--pr-bg-card) !important;
 }
 
 .modal-content::-webkit-scrollbar-thumb,
 .dropdown-content::-webkit-scrollbar-thumb,
 .overflow-y-auto::-webkit-scrollbar-thumb,
 .overflow-x-auto::-webkit-scrollbar-thumb {
-  background: #4D7CFE !important;
+  background: var(--pr-authority-blue) !important;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover,
