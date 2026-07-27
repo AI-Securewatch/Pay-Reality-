@@ -55,4 +55,4 @@ services:
       - key: INTENT_SIGNATURE_WINDOW_SECONDS
         value: "300"
       - key: CORS_ORIGIN
-        value: https://pay-reality-demo.vercel.app
+        value: https://payreality.aisecurewatch.com
