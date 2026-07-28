@@ -131,7 +131,7 @@ export function PublishPage() {
 
   return (
     <div className="p-8 max-w-2xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
-      <Link to={`/policy-studio/${policyKey}`} style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
+      <Link to={`/governance/${policyKey}`} style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
         &lt; Back
       </Link>
       <div className="flex items-center gap-3 mt-2 mb-6">
@@ -268,7 +268,7 @@ export function PublishPage() {
         <NextStepGuidance
           message="This rule is now active and governing real agent actions. Register an agent so there's something for it to actually apply to."
           actionLabel="Register an Agent"
-          actionPath="/authority"
+          actionPath="/agents"
         />
       )}
     </div>

@@ -79,25 +79,25 @@ export const GETTING_STARTED_STEPS: GettingStartedStep[] = [
     id: "import_governance",
     label: "Import Governance",
     description: "Upload your existing policy documents so the AI Authority Builder can draft your rules for you.",
-    path: "/policy-studio/authority-builder",
+    path: "/governance/authority-builder",
   },
   {
     id: "review_ai_findings",
     label: "Review AI Findings",
     description: "Check what the AI found in your documents before anything becomes a real rule.",
-    path: "/policy-studio/authority-builder",
+    path: "/governance/authority-builder",
   },
   {
     id: "publish_runtime_policies",
     label: "Publish Runtime Policies",
     description: "Approve and publish your rules so they start actually governing agent actions.",
-    path: "/policy-studio",
+    path: "/governance",
   },
   {
     id: "register_agent",
     label: "Register an Agent",
     description: "Give an AI agent its own identity and certificate so it can act under your rules.",
-    path: "/authority",
+    path: "/agents",
   },
   {
     id: "submit_test_decision",
@@ -131,7 +131,7 @@ export const TROUBLESHOOTING_GUIDES: TroubleshootingGuide[] = [
       "Check the filters at the top of the Agents page (status, environment, owner, search) -- a filter left set from an earlier search will hide agents that don't match it.",
       "Confirm registration actually succeeded: a failed registration shows an error message rather than silently doing nothing.",
     ],
-    path: "/authority",
+    path: "/agents",
   },
   {
     id: "signature_verification_failed",
@@ -142,7 +142,7 @@ export const TROUBLESHOOTING_GUIDES: TroubleshootingGuide[] = [
       "Check the request's timestamp: signed requests are only valid for a short window (a few minutes) to prevent an old, captured request from being replayed later.",
       "If the agent's certificate was recently rotated, make sure the new private key generated on that rotation is the one actually being used to sign.",
     ],
-    path: "/authority",
+    path: "/agents",
   },
   {
     id: "policy_wont_publish",
@@ -153,7 +153,7 @@ export const TROUBLESHOOTING_GUIDES: TroubleshootingGuide[] = [
       "If the rule was edited after it was last compiled, compile it again -- publishing intentionally refuses to deploy a bundle that's out of date with the rule's current content.",
       "Look for a specific compiler error message on the Publish page -- it names exactly what's wrong (an unsupported condition, an invalid value) rather than failing silently.",
     ],
-    path: "/policy-studio",
+    path: "/governance",
   },
   {
     id: "ai_extraction_incomplete",
@@ -164,7 +164,7 @@ export const TROUBLESHOOTING_GUIDES: TroubleshootingGuide[] = [
       "Answer any open questions on the corpus's review page -- some findings can't be finalized until you clarify an ambiguity the documents themselves didn't resolve.",
       "If extraction failed outright, the original document is still safely stored -- you can retry extraction without re-uploading.",
     ],
-    path: "/policy-studio/authority-builder",
+    path: "/governance/authority-builder",
   },
   {
     id: "decision_denied",

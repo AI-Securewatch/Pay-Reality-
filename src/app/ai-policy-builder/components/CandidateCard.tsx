@@ -300,7 +300,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           </button>
         </div>
       ) : candidate.status === "promoted" && candidate.promoted_policy_key ? (
-        <Link to={`/policy-studio/${candidate.promoted_policy_key}`} style={{ color: "var(--pr-trust-green)", fontSize: 13 }}>
+        <Link to={`/governance/${candidate.promoted_policy_key}`} style={{ color: "var(--pr-trust-green)", fontSize: 13 }}>
           View in Policy Studio
         </Link>
       ) : (

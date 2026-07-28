@@ -313,7 +313,7 @@ export function AgentDirectoryPage() {
                     />
                   </td>
                   <td className="p-3">
-                    <Link to={`/authority/${a.id}`} style={{ color: "var(--pr-authority-blue)" }}>{a.name}</Link>
+                    <Link to={`/agents/${a.id}`} style={{ color: "var(--pr-authority-blue)" }}>{a.name}</Link>
                   </td>
                   <td className="p-3" style={{ color: "var(--pr-text-muted)" }}>{principalById[a.acting_for_principal_id] ?? "-"}</td>
                   <td className="p-3" style={{ color: "var(--pr-text-muted)" }}>{a.owner ?? "-"}</td>

@@ -19,7 +19,7 @@ const WORKFLOW = [
     icon: Shield,
     title: "Agents",
     desc: "Register the AI agents operating in your enterprise and the identity each one acts under.",
-    path: "/authority",
+    path: "/agents",
     color: "var(--pr-authority-blue)",
   },
   {
@@ -27,7 +27,7 @@ const WORKFLOW = [
     icon: FileText,
     title: "Governance",
     desc: "Upload your existing governance documents and let AI find the rules for you, or write one by hand.",
-    path: "/policy-studio",
+    path: "/governance",
     color: "var(--pr-evidence-cyan)",
   },
   {
@@ -101,7 +101,7 @@ export function PlatformOverview() {
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
-            to="/policy-studio/authority-builder"
+            to="/governance/authority-builder"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-90"
             style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
           >

@@ -81,7 +81,7 @@ export function ReviewQueuePage() {
           style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 16, marginBottom: 12 }}
         >
           <div className="flex items-center justify-between mb-2">
-            <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>
+            <Link to={`/governance/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>
               {p.name} (v{p.version})
             </Link>
             <div className="flex gap-2">

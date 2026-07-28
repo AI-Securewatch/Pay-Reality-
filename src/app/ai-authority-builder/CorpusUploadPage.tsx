@@ -157,7 +157,7 @@ export function AIAuthorityBuilderUploadPage() {
         <NextStepGuidance
           message={`"${justCreated.name}" was analyzed successfully. Review what the AI found before anything becomes a real rule.`}
           actionLabel="Review AI Findings"
-          actionPath={`/policy-studio/authority-builder/${justCreated.corpus_id}`}
+          actionPath={`/governance/authority-builder/${justCreated.corpus_id}`}
         />
       )}
 
@@ -181,7 +181,7 @@ export function AIAuthorityBuilderUploadPage() {
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >
               <td className="py-2">
-                <Link to={`/policy-studio/authority-builder/${c.corpus_id}`} style={{ color: "var(--pr-authority-blue)" }}>
+                <Link to={`/governance/authority-builder/${c.corpus_id}`} style={{ color: "var(--pr-authority-blue)" }}>
                   {c.name}
                 </Link>
               </td>

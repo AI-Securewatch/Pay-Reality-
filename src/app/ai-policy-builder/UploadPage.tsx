@@ -81,7 +81,7 @@ export function AIPolicyBuilderUploadPage() {
         <NextStepGuidance
           message={`"${justUploaded.filename}" was analyzed successfully. Review what the AI found before anything becomes a real rule.`}
           actionLabel="Review AI Findings"
-          actionPath={`/policy-studio/upload/${justUploaded.upload_id}`}
+          actionPath={`/governance/upload/${justUploaded.upload_id}`}
         />
       )}
 
@@ -105,7 +105,7 @@ export function AIPolicyBuilderUploadPage() {
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >
               <td className="py-2">
-                <Link to={`/policy-studio/upload/${u.upload_id}`} style={{ color: "var(--pr-authority-blue)" }}>
+                <Link to={`/governance/upload/${u.upload_id}`} style={{ color: "var(--pr-authority-blue)" }}>
                   {u.filename}
                 </Link>
               </td>

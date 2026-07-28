@@ -46,18 +46,18 @@ export function PolicyListPage() {
           <HelpIcon articleId="runtime_policy" />
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/policy-studio/review-queue" style={{ color: "var(--pr-authority-blue)", fontSize: 13 }}>
+          <Link to="/governance/approvals" style={{ color: "var(--pr-authority-blue)", fontSize: 13 }}>
             Approvals
           </Link>
           <Link
-            to="/policy-studio/new"
+            to="/governance/new"
             className="px-4 py-2 rounded-lg text-sm font-medium border"
             style={{ borderColor: "var(--pr-authority-blue)", color: "var(--pr-authority-blue)" }}
           >
             + Write a rule
           </Link>
           <Link
-            to="/policy-studio/authority-builder"
+            to="/governance/authority-builder"
             className="px-4 py-2 rounded-lg text-sm font-medium"
             style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
           >
@@ -150,7 +150,7 @@ export function PolicyListPage() {
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <td className="py-2">
-                  <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>
+                  <Link to={`/governance/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>
                     {p.name}
                   </Link>
                 </td>

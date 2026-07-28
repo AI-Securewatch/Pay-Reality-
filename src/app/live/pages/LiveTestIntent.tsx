@@ -143,7 +143,7 @@ export function LiveTestIntent() {
         {agents !== null && signableAgents.length === 0 && (
           <p className="text-sm mb-4" style={{ color: "var(--pr-warning-amber)" }}>
             No agents with a signing key in this browser yet. Register one on the{" "}
-            <Link to="/authority" style={{ color: "var(--pr-authority-blue)" }}>Authority page</Link> first.
+            <Link to="/agents" style={{ color: "var(--pr-authority-blue)" }}>Agents page</Link> first.
           </p>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">

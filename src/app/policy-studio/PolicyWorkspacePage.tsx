@@ -71,7 +71,7 @@ export function PolicyWorkspacePage() {
     try {
       const saved = isNew ? await policyStudioApi.create(form) : await policyStudioApi.edit(policyKey!, form);
       setMessage(`Saved as draft, v${saved.version}.`);
-      if (isNew) navigate(`/policy-studio/${saved.policy_key}`);
+      if (isNew) navigate(`/governance/${saved.policy_key}`);
       else setExisting(saved);
     } catch (e) {
       setMessage(describeApiError(e, "Save"));
@@ -124,7 +124,7 @@ export function PolicyWorkspacePage() {
   return (
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <div className="mb-4 flex items-center justify-between">
-        <Link to="/policy-studio" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
+        <Link to="/governance" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
           &lt; Back to Governance
         </Link>
         <button
@@ -153,7 +153,7 @@ export function PolicyWorkspacePage() {
 
       {existing && (
         <div className="mb-4 flex gap-3 text-sm">
-          <Link to={`/policy-studio/${policyKey}/versions`} style={{ color: "var(--pr-authority-blue)" }}>
+          <Link to={`/governance/${policyKey}/versions`} style={{ color: "var(--pr-authority-blue)" }}>
             History
           </Link>
           {existing.status === "draft" && (
@@ -162,7 +162,7 @@ export function PolicyWorkspacePage() {
             </button>
           )}
           {(existing.status === "approved" || existing.status === "compiled" || existing.status === "active") && (
-            <Link to={`/policy-studio/${policyKey}/publish`} style={{ color: "var(--pr-authority-blue)" }}>
+            <Link to={`/governance/${policyKey}/publish`} style={{ color: "var(--pr-authority-blue)" }}>
               Publish
             </Link>
           )}

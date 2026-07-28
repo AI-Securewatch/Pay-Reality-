@@ -133,7 +133,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
 
   return (
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
-      <Link to="/policy-studio/authority-builder" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
+      <Link to="/governance/authority-builder" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
         &lt; Back to corpora
       </Link>
       <div className="mt-2 mb-1 flex items-center gap-1.5">
@@ -303,7 +303,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         <NextStepGuidance
           message="This corpus is fully reviewed. Promote a Rule from above, then publish it so it starts governing real agent actions."
           actionLabel="Publish Runtime Policies"
-          actionPath="/policy-studio"
+          actionPath="/governance"
         />
       )}
     </div>

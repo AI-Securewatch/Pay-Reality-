@@ -28,8 +28,8 @@ import { HelpPanel } from "../help/HelpPanel";
 // unrelated uses of the same word elsewhere in the product.
 const navItems = [
   { path: "/", label: "Overview", icon: Compass },
-  { path: "/authority", label: "Agents", icon: Bot },
-  { path: "/policy-studio", label: "Governance", icon: ScrollText },
+  { path: "/agents", label: "Agents", icon: Bot },
+  { path: "/governance", label: "Governance", icon: ScrollText },
   { path: "/decisions", label: "Decisions", icon: FlaskConical },
   { path: "/evidence", label: "Evidence", icon: Database },
   { path: "/assurance", label: "Assurance", icon: Building2 },

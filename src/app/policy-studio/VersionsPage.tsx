@@ -45,7 +45,7 @@ export function VersionsPage() {
 
   return (
     <div className="p-8 max-w-2xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
-      <Link to={`/policy-studio/${policyKey}`} style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
+      <Link to={`/governance/${policyKey}`} style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
         &lt; Back
       </Link>
       <h1 className="mt-2 mb-2" style={{ color: "var(--pr-text-primary)" }}>History</h1>
@@ -127,7 +127,7 @@ export function VersionsPage() {
                 </h3>
                 {diff.affected_agents.map((a) => (
                   <p key={a.id} style={{ fontSize: 13, color: "var(--pr-text-secondary)" }}>
-                    <Link to="/authority" style={{ color: "var(--pr-authority-blue)" }}>{a.name}</Link>
+                    <Link to="/agents" style={{ color: "var(--pr-authority-blue)" }}>{a.name}</Link>
                   </p>
                 ))}
                 {diff.affected_agents.length === 0 && (
@@ -141,7 +141,7 @@ export function VersionsPage() {
                 </h3>
                 {diff.affected_policies.map((p) => (
                   <p key={p.policy_key} style={{ fontSize: 13, color: "var(--pr-text-secondary)" }}>
-                    <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>{p.name}</Link>{" "}
+                    <Link to={`/governance/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>{p.name}</Link>{" "}
                     (v{p.version}, {formatStatus(p.status)}){p.same_action ? "" : ", different action, listed for awareness only"}
                   </p>
                 ))}

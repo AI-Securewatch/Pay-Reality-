@@ -9,11 +9,28 @@ import { RequireAuth } from "./auth/RequireAuth";
 // 404ing for anyone with a bookmark or an external link.
 function RedirectToPublish() {
   const { policyKey } = useParams();
-  return <Navigate to={`/policy-studio/${policyKey}/publish`} replace />;
+  return <Navigate to={`/governance/${policyKey}/publish`} replace />;
 }
 function RedirectToVersions() {
   const { policyKey } = useParams();
-  return <Navigate to={`/policy-studio/${policyKey}/versions`} replace />;
+  return <Navigate to={`/governance/${policyKey}/versions`} replace />;
+}
+
+// /authority and /policy-studio were the URL slugs from before the UX
+// rename to "Agents" and "Governance" (see the git history on Layout.tsx's
+// nav labels). These two splat routes catch every old nested path
+// (/authority/:agentId, /policy-studio/:policyKey/publish, etc.) and
+// redirect to the same path under the new top-level segment, so no old
+// bookmark or external link 404s.
+function RedirectAuthoritySplat() {
+  const params = useParams();
+  const rest = params["*"];
+  return <Navigate to={`/agents${rest ? `/${rest}` : ""}`} replace />;
+}
+function RedirectPolicyStudioSplat() {
+  const params = useParams();
+  const rest = params["*"];
+  return <Navigate to={`/governance${rest ? `/${rest}` : ""}`} replace />;
 }
 
 // Every real page is code-split by route: the initial bundle only needs
@@ -29,8 +46,8 @@ export const router = createBrowserRouter([
       { index: true, lazy: () => import("./pages/PlatformOverview").then((m) => ({ Component: m.PlatformOverview })) },
       // Phase 9 (AGENT_LIFECYCLE.md): the Agent Directory + Detail pages
       // replaced the earlier flat Live Agents list/register-only page.
-      { path: "authority", lazy: () => import("./agents/AgentDirectoryPage").then((m) => ({ Component: m.AgentDirectoryPage })) },
-      { path: "authority/:agentId", lazy: () => import("./agents/AgentDetailPage").then((m) => ({ Component: m.AgentDetailPage })) },
+      { path: "agents", lazy: () => import("./agents/AgentDirectoryPage").then((m) => ({ Component: m.AgentDirectoryPage })) },
+      { path: "agents/:agentId", lazy: () => import("./agents/AgentDetailPage").then((m) => ({ Component: m.AgentDetailPage })) },
       { path: "decisions", lazy: () => import("./live/pages/LiveTestIntent").then((m) => ({ Component: m.LiveTestIntent })) },
       { path: "evidence", lazy: () => import("./live/pages/LiveEvidence").then((m) => ({ Component: m.LiveEvidence })) },
       { path: "assurance", lazy: () => import("./live/pages/LiveAssurance").then((m) => ({ Component: m.LiveAssurance })) },
@@ -68,47 +85,55 @@ export const router = createBrowserRouter([
       // the legacy delegation-of-authority review flow, all nested here
       // rather than as separate top-level nav items (see PolicyListPage's
       // own entry-point links).
-      { path: "policy-studio", lazy: () => import("./policy-studio/PolicyListPage").then((m) => ({ Component: m.PolicyListPage })) },
-      { path: "policy-studio/review-queue", lazy: () => import("./policy-studio/ReviewQueuePage").then((m) => ({ Component: m.ReviewQueuePage })) },
-      { path: "policy-studio/new", lazy: () => import("./policy-studio/PolicyWorkspacePage").then((m) => ({ Component: m.PolicyWorkspacePage })) },
-      { path: "policy-studio/upload", lazy: () => import("./ai-policy-builder/UploadPage").then((m) => ({ Component: m.AIPolicyBuilderUploadPage })) },
-      { path: "policy-studio/upload/:uploadId", lazy: () => import("./ai-policy-builder/ReviewPage").then((m) => ({ Component: m.AIPolicyBuilderReviewPage })) },
-      { path: "policy-studio/authority-builder", lazy: () => import("./ai-authority-builder/CorpusUploadPage").then((m) => ({ Component: m.AIAuthorityBuilderUploadPage })) },
-      { path: "policy-studio/authority-builder/:corpusId", lazy: () => import("./ai-authority-builder/CorpusReviewPage").then((m) => ({ Component: m.AIAuthorityBuilderCorpusReviewPage })) },
-      { path: "policy-studio/legacy-review", lazy: () => import("./live/pages/LiveDocuments").then((m) => ({ Component: m.LiveDocuments })) },
-      { path: "policy-studio/:policyKey", lazy: () => import("./policy-studio/PolicyWorkspacePage").then((m) => ({ Component: m.PolicyWorkspacePage })) },
+      { path: "governance", lazy: () => import("./policy-studio/PolicyListPage").then((m) => ({ Component: m.PolicyListPage })) },
+      { path: "governance/approvals", lazy: () => import("./policy-studio/ReviewQueuePage").then((m) => ({ Component: m.ReviewQueuePage })) },
+      { path: "governance/new", lazy: () => import("./policy-studio/PolicyWorkspacePage").then((m) => ({ Component: m.PolicyWorkspacePage })) },
+      { path: "governance/upload", lazy: () => import("./ai-policy-builder/UploadPage").then((m) => ({ Component: m.AIPolicyBuilderUploadPage })) },
+      { path: "governance/upload/:uploadId", lazy: () => import("./ai-policy-builder/ReviewPage").then((m) => ({ Component: m.AIPolicyBuilderReviewPage })) },
+      { path: "governance/authority-builder", lazy: () => import("./ai-authority-builder/CorpusUploadPage").then((m) => ({ Component: m.AIAuthorityBuilderUploadPage })) },
+      { path: "governance/authority-builder/:corpusId", lazy: () => import("./ai-authority-builder/CorpusReviewPage").then((m) => ({ Component: m.AIAuthorityBuilderCorpusReviewPage })) },
+      { path: "governance/legacy-review", lazy: () => import("./live/pages/LiveDocuments").then((m) => ({ Component: m.LiveDocuments })) },
+      { path: "governance/:policyKey", lazy: () => import("./policy-studio/PolicyWorkspacePage").then((m) => ({ Component: m.PolicyWorkspacePage })) },
       // Version History + Diff merged into one page (PAYREALITY_UX_REVIEW.md);
       // Compile + Dry Run + Deploy merged into one Publish page, same reason.
-      { path: "policy-studio/:policyKey/versions", lazy: () => import("./policy-studio/VersionsPage").then((m) => ({ Component: m.VersionsPage })) },
-      { path: "policy-studio/:policyKey/publish", lazy: () => import("./policy-studio/PublishPage").then((m) => ({ Component: m.PublishPage })) },
+      { path: "governance/:policyKey/versions", lazy: () => import("./policy-studio/VersionsPage").then((m) => ({ Component: m.VersionsPage })) },
+      { path: "governance/:policyKey/publish", lazy: () => import("./policy-studio/PublishPage").then((m) => ({ Component: m.PublishPage })) },
       // Old separate URLs redirect rather than 404 for anyone with a bookmark.
-      { path: "policy-studio/:policyKey/diff", element: <RedirectToVersions /> },
-      { path: "policy-studio/:policyKey/compile", element: <RedirectToPublish /> },
-      { path: "policy-studio/:policyKey/dry-run", element: <RedirectToPublish /> },
-      { path: "policy-studio/:policyKey/deploy", element: <RedirectToPublish /> },
+      { path: "governance/:policyKey/diff", element: <RedirectToVersions /> },
+      { path: "governance/:policyKey/compile", element: <RedirectToPublish /> },
+      { path: "governance/:policyKey/dry-run", element: <RedirectToPublish /> },
+      { path: "governance/:policyKey/deploy", element: <RedirectToPublish /> },
+
+      // Old /authority and /policy-studio URLs redirect to their renamed
+      // equivalents (see the two splat components above).
+      { path: "authority", element: <Navigate to="/agents" replace /> },
+      { path: "authority/*", element: <RedirectAuthoritySplat /> },
+      { path: "policy-studio", element: <Navigate to="/governance" replace /> },
+      { path: "policy-studio/review-queue", element: <Navigate to="/governance/approvals" replace /> },
+      { path: "policy-studio/*", element: <RedirectPolicyStudioSplat /> },
 
       // Legacy paths from the pre-consolidation app, kept as redirects so
       // no external link or bookmark 404s. See audit/EXECUTION_REPORT.md.
       { path: "platform-overview", element: <Navigate to="/" replace /> },
       { path: "command-center", element: <Navigate to="/assurance" replace /> },
       { path: "dashboard", element: <Navigate to="/assurance" replace /> },
-      { path: "authority-center", element: <Navigate to="/authority" replace /> },
-      { path: "ai-agents-registry", element: <Navigate to="/authority" replace /> },
-      { path: "ai-agents", element: <Navigate to="/authority" replace /> },
+      { path: "authority-center", element: <Navigate to="/agents" replace /> },
+      { path: "ai-agents-registry", element: <Navigate to="/agents" replace /> },
+      { path: "ai-agents", element: <Navigate to="/agents" replace /> },
       { path: "decision-intercepts", element: <Navigate to="/decisions" replace /> },
       { path: "evidence-vault", element: <Navigate to="/evidence" replace /> },
-      { path: "policy", element: <Navigate to="/policy-studio/legacy-review" replace /> },
-      { path: "policy-library", element: <Navigate to="/policy-studio/legacy-review" replace /> },
-      { path: "policy-center", element: <Navigate to="/policy-studio/legacy-review" replace /> },
-      { path: "ai-policy-builder", element: <Navigate to="/policy-studio/authority-builder" replace /> },
+      { path: "policy", element: <Navigate to="/governance/legacy-review" replace /> },
+      { path: "policy-library", element: <Navigate to="/governance/legacy-review" replace /> },
+      { path: "policy-center", element: <Navigate to="/governance/legacy-review" replace /> },
+      { path: "ai-policy-builder", element: <Navigate to="/governance/authority-builder" replace /> },
       { path: "governance-simulation", element: <Navigate to="/decisions" replace /> },
       { path: "approvals", element: <Navigate to="/decisions" replace /> },
       { path: "assurance-center", element: <Navigate to="/assurance" replace /> },
       { path: "insurance-readiness", element: <Navigate to="/assurance" replace /> },
       { path: "settings", element: <Navigate to="/organization" replace /> },
       { path: "live", element: <Navigate to="/" replace /> },
-      { path: "live/documents", element: <Navigate to="/policy-studio/legacy-review" replace /> },
-      { path: "live/agents", element: <Navigate to="/authority" replace /> },
+      { path: "live/documents", element: <Navigate to="/governance/legacy-review" replace /> },
+      { path: "live/agents", element: <Navigate to="/agents" replace /> },
       { path: "live/test-intent", element: <Navigate to="/decisions" replace /> },
       { path: "live/evidence", element: <Navigate to="/evidence" replace /> },
 

@@ -75,7 +75,7 @@ export function AgentDetailPage() {
 
   return (
     <div className="p-8 max-w-4xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
-      <Link to="/authority" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>&lt; Back to Authority</Link>
+      <Link to="/agents" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>&lt; Back to Agents</Link>
 
       <div className="flex items-center justify-between mt-2 mb-1">
         <h1 style={{ color: "var(--pr-text-primary)" }}>{agent.name}</h1>
@@ -211,7 +211,7 @@ export function AgentDetailPage() {
         {detail.policies.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No rules target this agent's principal yet.</p>}
         {detail.policies.map((p) => (
           <div key={p.policy_key} className="flex items-center justify-between py-1.5" style={{ borderTop: "1px solid var(--pr-overlay-05)", fontSize: 13 }}>
-            <Link to={`/policy-studio/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>{p.name || p.policy_key}</Link>
+            <Link to={`/governance/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>{p.name || p.policy_key}</Link>
             <span style={{ color: "var(--pr-text-muted)" }}>v{p.version} &middot; {formatStatus(p.status)}</span>
           </div>
         ))}
