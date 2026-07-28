@@ -69,6 +69,22 @@ def test_compiling_twice_is_byte_identical():
     assert b1.rego_source == b2.rego_source
 
 
+def test_bundle_hash_is_stable_across_different_compile_times():
+    """The regression this guards: compile_policy and deploy_policy both
+    call build_bundle with no fixed `now` (real wall-clock time), at two
+    genuinely different instants. If compiled_at were part of the hash,
+    this would always fail in production even when nothing about the
+    policies changed -- exactly what made deploy_policy's staleness
+    check (bundle_hash != row.bundle_hash) reject every single deploy.
+    test_compiling_twice_is_byte_identical alone didn't catch this: it
+    passes the same FIXED_NOW to both calls, so a timestamp-sensitive
+    hash would still match there."""
+    policies = [_policy("rp-1")]
+    b1 = build_bundle(policies, "bundle-1", 1, now=datetime(2026, 1, 1, tzinfo=timezone.utc))
+    b2 = build_bundle(policies, "bundle-1", 1, now=datetime(2026, 6, 15, tzinfo=timezone.utc))
+    assert b1.bundle_hash == b2.bundle_hash
+
+
 def test_bundle_hash_changes_when_a_condition_value_changes():
     b1 = build_bundle([_policy("rp-1", amount=100000)], "bundle-1", 1, now=FIXED_NOW)
     b2 = build_bundle([_policy("rp-1", amount=200000)], "bundle-1", 1, now=FIXED_NOW)

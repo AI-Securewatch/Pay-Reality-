@@ -146,7 +146,18 @@ def build_bundle(
         ],
     }
 
-    bundle_hash = "sha256:" + hashlib.sha256(_canonical_bytes(rego_source, manifest)).hexdigest()
+    # compiled_at is deliberately excluded from what gets hashed: it's a
+    # wall-clock timestamp, so including it would mean recompiling the
+    # exact same set of policies a second later always produces a
+    # different bundle_hash, which is exactly the bug that made
+    # deploy_policy's staleness check (bundle_hash != row.bundle_hash)
+    # fail every single time, not just when something had genuinely
+    # changed. The legacy compiler (domain/compiler/compiler.py) never
+    # had this problem since its hash input never included a timestamp;
+    # this restores the same "identical input -> identical hash"
+    # guarantee this module's own docstring already claims.
+    hashable_manifest = {k: v for k, v in manifest.items() if k != "compiled_at"}
+    bundle_hash = "sha256:" + hashlib.sha256(_canonical_bytes(rego_source, hashable_manifest)).hexdigest()
 
     return PolicyBundle(
         bundle_id=bundle_id,
