@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db.models import Agent, Certificate, Decision, Evidence, Intent, Policy
+from app.db.models import Agent, Certificate, Decision, Evidence, Intent, Policy, Principal
 from app.domain.compiler.compiler import to_utc_iso
 from app.domain.decision import engine as decision_engine
 from app.domain.decision.scope_vocabulary import is_recognized_scope
@@ -255,10 +255,24 @@ def submit_intent(
         db.refresh(decision)
         return intent, decision, evidence
 
+    # RuntimePolicy.scope.principal is authored as the Principal's free-form
+    # *name* (AUTHORING_ARCHITECTURE.md: "a reviewer references it by name
+    # directly ... which is already a free-form string"), never a foreign
+    # key -- but Agent.acting_for_principal_id is a UUID FK into
+    # `principals`. The compiled Rego's scope match compares
+    # input.agent.acting_for_principal_id against that name string, so the
+    # raw FK must be resolved to the Principal's name before it ever
+    # reaches OPA; passing the UUID straight through (as this used to)
+    # means the scope check can never match any real Agent, for any
+    # RuntimePolicy, ever -- every real Intent silently falls through to
+    # the "no_policy_covers_scope" fallback regardless of amount.
+    principal = db.get(Principal, agent.acting_for_principal_id)
+    principal_name = principal.name if principal else str(agent.acting_for_principal_id)
+
     engine_decision = decision_engine.evaluate(
         intent={"action": action, "amount": amount, "currency": currency},
         context={**context, "timestamp": to_utc_iso(requested_at)},
-        acting_for_principal_id=str(agent.acting_for_principal_id),
+        acting_for_principal_id=principal_name,
         policy_store=_DbPolicyStore(db),
         opa_client=_EngineOpaClient(HttpOpaClient()),
     )
