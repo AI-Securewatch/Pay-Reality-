@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "../live/apiClient";
 import type { LiveAgent, LivePolicy } from "../live/types";
+import { ExecutiveDemoIntro } from "./ExecutiveDemoIntro";
 
 const WORKFLOW = [
   {
@@ -75,7 +76,13 @@ export function PlatformOverview() {
   }, []);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
+    <>
+      <ExecutiveDemoIntro />
+      <div
+        id="pr-dashboard"
+        className="p-8 max-w-5xl mx-auto"
+        style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}
+      >
       {/* Hero */}
       <div className="mb-14 pt-8">
         <div className="flex items-center gap-2 mb-4">
@@ -198,6 +205,7 @@ export function PlatformOverview() {
           );
         })}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
