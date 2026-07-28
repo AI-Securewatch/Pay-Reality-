@@ -211,6 +211,37 @@ def _bundle_id_for(policy_key: uuid.UUID, version: int) -> str:
     return f"bundle_{policy_key.hex}_{version}"
 
 
+def reconcile_opa_with_active_policies(db: Session, opa_url: str = "http://localhost:8181") -> bool:
+    """Re-pushes every currently-active RuntimePolicy to OPA's live
+    "authorization" package. Meant to be called once at process startup
+    (app.main.lifespan), because OPA's REST-loaded policies live only in
+    its own process memory: PayReality runs OPA embedded in this same
+    container, on a plan that idle-spins-down and cold-restarts, and
+    nothing else re-uploads the active bundle after a restart. Without
+    this, every real Intent after a restart silently evaluates against
+    an undefined "authorization" package (HttpOpaClient.query returns
+    `{}`, which decision.engine.evaluate reads as outcome="HUMAN_REVIEW",
+    reason="undetermined") -- indistinguishable from a legitimate
+    "nothing matched" result unless you already know to suspect it.
+
+    Returns False (no-op) when there is nothing active to push: that's
+    the correct, distinct "no_active_policy" state the legacy Policy
+    table's own active-row check already reports."""
+    active_rows = list(db.scalars(select(RuntimePolicyRecord).where(RuntimePolicyRecord.status == "active")))
+    if not active_rows:
+        return False
+
+    policies = [_row_to_policy(r) for r in active_rows]
+    result = compile_bundle(policies, bundle_id="startup-reconcile", bundle_version=1)
+    if not result.ok:
+        raise CompilationRequiredError(
+            "active RuntimePolicy set no longer compiles cleanly; cannot reconcile OPA at startup"
+        )
+
+    HttpOpaClient(base_url=opa_url).upload_policy("authorization", result.bundle.rego_source)
+    return True
+
+
 def _other_active_policies(db: Session, exclude_policy_key: uuid.UUID) -> list[RuntimePolicy]:
     """Compiling one policy compiles it together with every other
     currently-active policy (POLICY_STUDIO_ARCHITECTURE.md): deploying a

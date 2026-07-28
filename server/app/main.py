@@ -78,10 +78,35 @@ def _bootstrap_organisation_owner() -> None:
         logger.exception("organisation_owner_bootstrap_failed_at_startup")
 
 
+def _reconcile_opa_with_active_policies() -> None:
+    """OPA runs embedded in this same container and its REST-loaded
+    policies live only in its own process memory (no bundle persistence
+    configured); a restart -- a deploy, a crash, or (on the free plan)
+    an idle spin-down -- silently wipes whatever was live, and nothing
+    else re-uploads it. Without this, every real Intent after a restart
+    evaluates against an undefined "authorization" package and comes
+    back HUMAN_REVIEW/"undetermined" no matter the input, indistinguish-
+    able from a legitimate no-match result. Same failure posture as the
+    other two startup hooks: never raises, logs and lets the app boot,
+    since the next restart will simply retry."""
+    try:
+        from app.db.session import SessionLocal
+        from app.services.runtime_policy_service import reconcile_opa_with_active_policies
+
+        db = SessionLocal()
+        try:
+            reconcile_opa_with_active_policies(db, opa_url=settings.opa_url)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("opa_policy_reconciliation_failed_at_startup")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _register_current_signing_key()
     _bootstrap_organisation_owner()
+    _reconcile_opa_with_active_policies()
     yield
 
 
