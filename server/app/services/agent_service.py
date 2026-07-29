@@ -233,7 +233,7 @@ def compute_health(agent: Agent, now: datetime | None = None) -> str:
     """Agent Heartbeat (AGENT_LIFECYCLE.md): Healthy / Warning / Offline,
     derived from last_seen_at. Thresholds are a deliberate default (the
     spec doesn't define them, the same kind of judgment call as
-    intent_service._classify_risk's risk bands): Healthy within 5 minutes,
+    authority_context_service.classify_risk's risk bands): Healthy within 5 minutes,
     Warning within 30 minutes, Offline beyond that or if never seen. An
     agent that isn't 'active' (or 'suspended', which can still heartbeat)
     is reported 'unknown' rather than Offline -- it was never expected to

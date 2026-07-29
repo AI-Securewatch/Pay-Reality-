@@ -23,6 +23,73 @@ def uuid_pk() -> Mapped[uuid.UUID]:
     return mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
 
+class BusinessUnit(Base):
+    """Phase 1 (PHASE_1_AUTHORITY_MODEL.md): one level of the Authority
+    Model's org hierarchy, above Department. Belongs to exactly one
+    Organization; new and additive, referenced nowhere in the existing
+    enforcement path yet."""
+
+    __tablename__ = "business_units"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class Department(Base):
+    """Phase 1: belongs to exactly one BusinessUnit. Kept as a distinct
+    level (not collapsed into BusinessUnit) so a customer with no
+    department-level subdivision simply never populates this table,
+    rather than every customer being forced into a two-level hierarchy."""
+
+    __tablename__ = "departments"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    business_unit_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("business_units.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class Team(Base):
+    """Phase 1: belongs to exactly one Department; the level a Principal
+    is most often actually assigned to day-to-day. Optional in the
+    hierarchy, same reasoning as Department."""
+
+    __tablename__ = "teams"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    department_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("departments.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class Resource(Base):
+    """Phase 1: promotes the previously-informational-only AuthorityResource
+    concept into something the enforcement path can actually reference.
+    RuntimePolicy.scope.resource remains a plain string for backward
+    compatibility -- this table is additive, never required."""
+
+    __tablename__ = "resources"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    type: Mapped[str | None] = mapped_column(Text)
+    owner_principal_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("principals.id")
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id")
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
 class Principal(Base):
     __tablename__ = "principals"
 
@@ -31,6 +98,23 @@ class Principal(Base):
     source_document_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("documents.id")
     )
+    # Phase 1 (PHASE_1_AUTHORITY_MODEL.md): additive, all nullable -- every
+    # existing Principal row, and every existing match against
+    # Principal.name (RuntimePolicy.scope.principal, Agent lookup), is
+    # completely unaffected until these are actually populated. Not a
+    # separate Role table: no current requirement demonstrates a need for
+    # role-to-role relationships beyond a label.
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id")
+    )
+    business_unit_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("business_units.id")
+    )
+    department_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("departments.id")
+    )
+    team_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("teams.id"))
+    role: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
@@ -753,10 +837,42 @@ class AuthorityRelationship(Base):
     source_location: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
+    # Phase 1 (PHASE_1_AUTHORITY_MODEL.md): from_principal/to_principal
+    # above stay exactly as they are -- they're the AI-extraction
+    # provenance (what the source document literally said), never
+    # silently overwritten by a resolved FK. These are the real,
+    # enforceable edge: null means "extracted but not yet resolved to a
+    # known Principal," populated means a real, traversable edge.
+    from_principal_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("principals.id")
+    )
+    to_principal_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("principals.id")
+    )
+    resource_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("resources.id")
+    )
+    operation: Mapped[str | None] = mapped_column(Text)
+    valid_from: Mapped[datetime | None]
+    valid_to: Mapped[datetime | None]
+    revoked_at: Mapped[datetime | None]
+    revoked_by: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default="proposed")
+    # Cross-Organisation Authority (PHASE_1_AUTHORITY_MODEL.md): a
+    # delegation edge whose two principals resolve to different
+    # organizations is not honored in traversal unless explicitly
+    # flagged -- fail-closed default, never silently possible just
+    # because a name happened to resolve across an org boundary.
+    cross_org_approved: Mapped[bool] = mapped_column(nullable=False, server_default="false")
+
     __table_args__ = (
         CheckConstraint(
             "kind IN ('delegation','escalation','inheritance')",
             name="ck_authority_relationships_kind",
+        ),
+        CheckConstraint(
+            "status IN ('proposed','active','revoked','expired')",
+            name="ck_authority_relationships_status",
         ),
         Index("idx_authority_relationships_corpus", "corpus_id"),
     )

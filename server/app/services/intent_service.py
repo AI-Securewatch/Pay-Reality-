@@ -12,6 +12,7 @@ from app.domain.decision import engine as decision_engine
 from app.domain.decision.scope_vocabulary import is_recognized_scope
 from app.domain.evidence.signing import sign_payload
 from app.opa_client import HttpOpaClient
+from app.services.authority_context_service import classify_risk, resolve_runtime_authority_context
 
 
 class AgentRevokedError(Exception):
@@ -88,19 +89,6 @@ def _build_evidence_payload(
     }
 
 
-def _classify_risk(amount: float) -> str:
-    """Same thresholds as the retired demo's heuristic (kept as a sensible
-    default: spec doesn't define risk-band boundaries itself, only that a
-    risk_classification is recorded in Evidence, spec 17.1)."""
-    if amount >= 250_000:
-        return "CRITICAL"
-    if amount >= 100_000:
-        return "HIGH"
-    if amount >= 50_000:
-        return "MEDIUM"
-    return "LOW"
-
-
 def _evidence_status_for_outcome(outcome: str) -> str:
     """spec 8.2 EvidenceRecord.status: reflects the associated decision's
     finality, not the evidence record's own signature validity (that's
@@ -133,7 +121,7 @@ def append_evidence(
         matched_mandates,
         outcome,
         approval_outcome,
-        _classify_risk(amount),
+        classify_risk(amount),
         approver,
     )
     signature = sign_payload(
@@ -269,9 +257,18 @@ def submit_intent(
     principal = db.get(Principal, agent.acting_for_principal_id)
     principal_name = principal.name if principal else str(agent.acting_for_principal_id)
 
+    # Runtime Authority Context (PHASE_2_RUNTIME_CONTEXT.md): an ephemeral,
+    # request-scoped enrichment, never stored, merged under "authority" so
+    # it can never collide with whatever a caller already put in
+    # Intent.context themselves. A policy's Condition can reference e.g.
+    # context.authority.department the moment it's authored to -- zero
+    # change to rego_generator.py, compile_bundle(), or OPA, since
+    # dot-path access into context already works for any field.
+    authority_context = resolve_runtime_authority_context(db, principal, amount)
+
     engine_decision = decision_engine.evaluate(
         intent={"action": action, "amount": amount, "currency": currency},
-        context={**context, "timestamp": to_utc_iso(requested_at)},
+        context={**context, "timestamp": to_utc_iso(requested_at), "authority": authority_context},
         acting_for_principal_id=principal_name,
         policy_store=_DbPolicyStore(db),
         opa_client=_EngineOpaClient(HttpOpaClient()),
