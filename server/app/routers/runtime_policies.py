@@ -37,6 +37,7 @@ from app.services.runtime_policy_service import (
     CompilationRequiredError,
     InvalidTransitionError,
     RuntimePolicyNotFoundError,
+    UnexpectedActiveWriterError,
 )
 
 router = APIRouter(prefix="/v1/runtime-policies", tags=["runtime-policies"])
@@ -314,6 +315,8 @@ def deploy_policy(policy_key: uuid.UUID, db: Session = Depends(get_db)):
     except CompilationRequiredError as e:
         raise HTTPException(status_code=409, detail=f"compilation_required: {e}")
     except BundleChangedSinceCompileError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except UnexpectedActiveWriterError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return DeployResponse(
         bundle_id=outcome.bundle_id, bundle_hash=outcome.bundle_hash, deployed_at=outcome.deployed_at

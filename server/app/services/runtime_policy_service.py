@@ -55,6 +55,23 @@ class BundleChangedSinceCompileError(Exception):
     deploying something that was never actually reviewed."""
 
 
+class UnexpectedActiveWriterError(Exception):
+    """Raised by deploy_policy if the currently-active Policy row wasn't
+    written by this same function (bundle_uri doesn't match this
+    module's own "runtime_policy_studio:..." format). This module and
+    the legacy domain/compiler/compiler.py + services/policy_service.py
+    pipeline both used to be able to write to the exact same OPA package
+    and the exact same active-Policy-row slot with zero coordination --
+    the legacy pipeline's authoring surface is now retired (see
+    routers/policies.py), but this check is defense in depth against any
+    writer this module isn't aware of, present or future: fail loudly
+    rather than silently overwrite something deploy_policy didn't itself
+    put there."""
+
+
+_EXPECTED_BUNDLE_URI_PREFIX = "runtime_policy_studio:"
+
+
 def _latest_version_row(db: Session, policy_key: uuid.UUID) -> RuntimePolicyRecord | None:
     return db.scalar(
         select(RuntimePolicyRecord)
@@ -345,11 +362,17 @@ def deploy_policy(db: Session, policy_key: uuid.UUID, opa_url: str = "http://loc
             "another policy's active set changed underneath this one, recompile and try again"
         )
 
+    prior_active = db.scalar(select(Policy).where(Policy.status == "active"))
+    if prior_active is not None and not prior_active.bundle_uri.startswith(_EXPECTED_BUNDLE_URI_PREFIX):
+        raise UnexpectedActiveWriterError(
+            f"the currently-active policy (id={prior_active.id}, bundle_uri={prior_active.bundle_uri!r}) "
+            "was not written by runtime_policy_service.deploy_policy -- refusing to silently overwrite it"
+        )
+
     opa = HttpOpaClient(base_url=opa_url)
     opa.upload_policy("authorization", result.bundle.rego_source)
 
     next_version = (db.scalar(select(Policy.version).order_by(Policy.version.desc()).limit(1)) or 0) + 1
-    prior_active = db.scalar(select(Policy).where(Policy.status == "active"))
     now = datetime.now(timezone.utc)
     if prior_active is not None:
         prior_active.status = "retired"
