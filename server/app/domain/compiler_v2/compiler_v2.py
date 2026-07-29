@@ -29,8 +29,7 @@ from app.domain.compiler_v2.compiler_errors import (
     CompilerDiagnostics,
     CompilerError,
 )
-
-_NUMERIC_OPERATORS = {Operator.LTE, Operator.GTE, Operator.LT, Operator.GT}
+from app.domain.compiler_v2.scope_overlap import policies_can_jointly_match
 
 
 class Vocabulary(Protocol):
@@ -95,68 +94,71 @@ def _validate_policy_against_vocabulary(
     return errors
 
 
-def _numeric_conflicts(policies: list[RuntimePolicy]) -> list[CompilerError]:
-    """Bounded, honest conflict detection (POLICY_COMPILER_V2.md): not a
-    general theorem prover. Two named, practical checks only:
+def _policy_conflicts(policies: list[RuntimePolicy]) -> list[CompilerError]:
+    """Flags any two policies whose scope and conditions could both match
+    the same real Intent (scope_overlap.policies_can_jointly_match): exact
+    for every operator except contains/exists, which fail closed to
+    "assume overlap" rather than silently claiming safety. Flagged
+    regardless of whether the two policies' effects agree -- two `allow`
+    policies with different amount caps for the same scope are still
+    ambiguous authoring, not a runtime bug, and this compiler has always
+    treated that as worth blocking (see
+    test_conflicting_numeric_limits_for_same_principal_and_action_are_detected).
 
-    1. Same (principal, action), both constrain the same field with a
-       numeric operator, different values: flagged, since two different
-       limits for what's nominally the same scope is ambiguous.
-    2. Same (principal, action), both constrain the same field with `==`,
-       different values: flagged, since no real Intent could satisfy
-       both simultaneously.
-
-    Every other combination (different fields, three-or-more-way
-    interactions, anything requiring real boolean satisfiability) is
-    explicitly out of scope, not silently treated as "no conflict" by
-    omission, named here and in COMPILER_V2_ARCHITECTURE.md.
+    Grouped by (principal, action) first, purely as a cheap pre-filter:
+    two policies for different principals or actions can never overlap,
+    so there's no need to run the full per-field check on them. agent/
+    resource narrowing (which CAN disambiguate two same-principal-action
+    policies) is checked inside policies_can_jointly_match itself, not
+    here, since scope.agent=None means "any agent" and so isn't safe to
+    bucket on directly.
     """
     errors: list[CompilerError] = []
     by_scope: dict[tuple[str, str], list[RuntimePolicy]] = {}
     for p in policies:
         by_scope.setdefault((p.scope.principal, p.scope.action), []).append(p)
 
-    for (principal, action), group in by_scope.items():
+    for group in by_scope.values():
         if len(group) < 2:
             continue
         for i, p1 in enumerate(group):
             for p2 in group[i + 1 :]:
-                errors.extend(_pairwise_conflicts(p1, p2, principal, action))
+                if policies_can_jointly_match(p1, p2) or _has_contradictory_equality(p1, p2):
+                    errors.append(_conflict_error(p1, p2))
 
     return errors
 
 
-def _pairwise_conflicts(
-    p1: RuntimePolicy, p2: RuntimePolicy, principal: str, action: str
-) -> list[CompilerError]:
-    errors: list[CompilerError] = []
+def _has_contradictory_equality(p1: RuntimePolicy, p2: RuntimePolicy) -> bool:
+    """The original, narrower rule (POLICY_COMPILER_V2.md), kept as its
+    own explicit check rather than folded into policies_can_jointly_match:
+    two EQ conditions on the same field with different values are
+    logically *disjoint* (no Intent can be both currencies at once), so
+    scope_overlap's genuine-overlap logic correctly says they can't both
+    match -- but this compiler has always flagged the authoring pattern
+    itself (two separate RuntimePolicies split by exact-match value on
+    what's arguably one field, rather than one policy with an `in` list)
+    as worth surfacing, independent of whether it's a real ambiguity."""
     for c1 in p1.conditions.all:
+        if c1.operator != Operator.EQ:
+            continue
         for c2 in p2.conditions.all:
-            if c1.field != c2.field:
-                continue
-            if c1.operator in _NUMERIC_OPERATORS and c2.operator == c1.operator:
-                if c1.value != c2.value:
-                    errors.append(
-                        _conflict_error(p1, p2, principal, action, c1.field, c1.value, c2.value)
-                    )
-            elif c1.operator == Operator.EQ and c2.operator == Operator.EQ:
-                if c1.value != c2.value:
-                    errors.append(
-                        _conflict_error(p1, p2, principal, action, c1.field, c1.value, c2.value)
-                    )
-    return errors
+            if c2.operator == Operator.EQ and c2.field == c1.field and c2.value != c1.value:
+                return True
+    return False
 
 
-def _conflict_error(p1, p2, principal, action, field_name, v1, v2) -> CompilerError:
+def _conflict_error(p1: RuntimePolicy, p2: RuntimePolicy) -> CompilerError:
+    fields = sorted({c.field for c in p1.conditions.all} | {c.field for c in p2.conditions.all})
     return CompilerError(
         code=CONFLICTING_POLICY_STRUCTURE,
         message=(
-            f"policies '{p1.id}' and '{p2.id}' both apply to principal '{principal}' "
-            f"action '{action}' and constrain '{field_name}' with conflicting values "
-            f"({v1!r} vs {v2!r})"
+            f"policies '{p1.id}' and '{p2.id}' both apply to principal '{p1.scope.principal}' "
+            f"action '{p1.scope.action}' and their conditions ({', '.join(fields) or 'none'}) "
+            "are not proven mutually exclusive -- some real Intent could match both"
         ),
         policy_id=p1.id,
-        path=field_name,
+        path=fields[0] if fields else None,
     )
 
 
@@ -189,7 +191,7 @@ def compile_bundle(
                 )
         errors.extend(_validate_policy_against_vocabulary(policy, vocabulary))
 
-    errors.extend(_numeric_conflicts(policies))
+    errors.extend(_policy_conflicts(policies))
 
     if errors:
         return CompileResult(bundle=None, diagnostics=CompilerDiagnostics(errors=tuple(errors)))

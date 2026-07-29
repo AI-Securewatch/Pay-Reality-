@@ -115,10 +115,16 @@ def test_non_overlapping_scope_does_not_trigger_conflict_detection():
     assert result.ok
 
 
-def test_different_fields_do_not_trigger_conflict_detection():
-    """Explicitly out of scope per COMPILER_V2_ARCHITECTURE.md: two
-    policies constraining different fields for the same principal/action
-    are not analyzed for cross-field tension, only named as a limit."""
+def test_cross_field_conflicts_are_now_detected():
+    """This used to be the documented gap (COMPILER_V2_ARCHITECTURE.md's
+    "different fields are not analyzed"): two policies constraining
+    different fields, for the same principal/action, with nothing in
+    either policy that actually rules the other out, so a real Intent
+    (any amount <= 100000, vendor.approved true) could satisfy both.
+    ConditionSet's flat-AND, single-field-per-Condition shape (no cross-
+    field relations expressible at all) is what makes this decomposable
+    into independent per-field checks rather than a real satisfiability
+    search -- see scope_overlap.py's module docstring."""
     p1 = _policy(
         id="rp-1",
         conditions=ConditionSet(all=(Condition(field="amount", operator=Operator.LTE, value=100000),)),
@@ -130,7 +136,114 @@ def test_different_fields_do_not_trigger_conflict_detection():
         ),
     )
     result = compile_bundle([p1, p2], "bundle-1", 1, now=FIXED_NOW)
+    assert not result.ok
+    assert any(e.code == CONFLICTING_POLICY_STRUCTURE for e in result.diagnostics.errors)
+
+
+def test_disjoint_numeric_ranges_across_different_operators_do_not_conflict():
+    """amount<=50000 and amount>=60000 can never both hold for the same
+    value, even though they're different operators on the same field (the
+    old "same operator only" heuristic wouldn't even have compared these
+    two conditions to each other)."""
+    p1 = _policy(
+        id="rp-1",
+        conditions=ConditionSet(all=(Condition(field="amount", operator=Operator.LTE, value=50000),)),
+    )
+    p2 = _policy(
+        id="rp-2",
+        conditions=ConditionSet(all=(Condition(field="amount", operator=Operator.GTE, value=60000),)),
+    )
+    result = compile_bundle([p1, p2], "bundle-1", 1, now=FIXED_NOW)
     assert result.ok
+
+
+def test_overlapping_ranges_across_different_operators_do_conflict():
+    """amount<=50000 and amount>=30000 overlap on [30000, 50000] -- a real
+    Intent in that range would satisfy both, even though LTE and GTE are
+    different operators."""
+    p1 = _policy(
+        id="rp-1",
+        conditions=ConditionSet(all=(Condition(field="amount", operator=Operator.LTE, value=50000),)),
+    )
+    p2 = _policy(
+        id="rp-2",
+        conditions=ConditionSet(all=(Condition(field="amount", operator=Operator.GTE, value=30000),)),
+    )
+    result = compile_bundle([p1, p2], "bundle-1", 1, now=FIXED_NOW)
+    assert not result.ok
+    assert any(e.code == CONFLICTING_POLICY_STRUCTURE for e in result.diagnostics.errors)
+
+
+def test_specific_agent_disambiguates_otherwise_conflicting_policies():
+    """Same principal/action/conditions, but scoped to two different,
+    specific agents: no real Intent (which names exactly one acting
+    agent) could ever match both, so this is not a conflict."""
+    p1 = _policy(
+        id="rp-1",
+        scope=Scope(principal="prin_1", action="vendor_payment", agent="agent-a"),
+    )
+    p2 = _policy(
+        id="rp-2",
+        scope=Scope(principal="prin_1", action="vendor_payment", agent="agent-b"),
+    )
+    result = compile_bundle([p1, p2], "bundle-1", 1, now=FIXED_NOW)
+    assert result.ok
+
+
+def test_unscoped_agent_still_conflicts_with_a_specific_one():
+    """scope.agent=None means "any agent," so it still overlaps with a
+    policy scoped to one specific agent -- only two *different*, both
+    *specific* agents disambiguate."""
+    p1 = _policy(id="rp-1", scope=Scope(principal="prin_1", action="vendor_payment"))
+    p2 = _policy(
+        id="rp-2",
+        scope=Scope(principal="prin_1", action="vendor_payment", agent="agent-a"),
+    )
+    result = compile_bundle([p1, p2], "bundle-1", 1, now=FIXED_NOW)
+    assert not result.ok
+
+
+def test_non_overlapping_in_sets_do_not_conflict():
+    p1 = _policy(
+        id="rp-1",
+        conditions=ConditionSet(all=(Condition(field="currency", operator=Operator.IN, value=["USD", "GBP"]),)),
+    )
+    p2 = _policy(
+        id="rp-2",
+        conditions=ConditionSet(all=(Condition(field="currency", operator=Operator.IN, value=["ZAR", "EUR"]),)),
+    )
+    result = compile_bundle([p1, p2], "bundle-1", 1, now=FIXED_NOW)
+    assert result.ok
+
+
+def test_overlapping_in_sets_do_conflict():
+    p1 = _policy(
+        id="rp-1",
+        conditions=ConditionSet(all=(Condition(field="currency", operator=Operator.IN, value=["USD", "GBP"]),)),
+    )
+    p2 = _policy(
+        id="rp-2",
+        conditions=ConditionSet(all=(Condition(field="currency", operator=Operator.IN, value=["USD", "EUR"]),)),
+    )
+    result = compile_bundle([p1, p2], "bundle-1", 1, now=FIXED_NOW)
+    assert not result.ok
+
+
+def test_contains_operator_conservatively_flags_as_a_conflict():
+    """No interval structure to reason about for `contains`, so this
+    fails closed (assumes overlap) rather than silently claiming safety
+    -- same posture as every other "can't actually prove this" case in
+    this compiler."""
+    p1 = _policy(
+        id="rp-1",
+        conditions=ConditionSet(all=(Condition(field="memo", operator=Operator.CONTAINS, value="refund"),)),
+    )
+    p2 = _policy(
+        id="rp-2",
+        conditions=ConditionSet(all=(Condition(field="memo", operator=Operator.CONTAINS, value="invoice"),)),
+    )
+    result = compile_bundle([p1, p2], "bundle-1", 1, now=FIXED_NOW)
+    assert not result.ok
 
 
 def test_custom_vocabulary_can_be_injected():
