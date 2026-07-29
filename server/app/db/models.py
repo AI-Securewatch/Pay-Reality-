@@ -418,10 +418,8 @@ class Intent(Base):
     amount: Mapped[float | None] = mapped_column(Numeric(18, 2))
     currency: Mapped[str | None] = mapped_column(String(3))
     counterparty: Mapped[str | None] = mapped_column(Text)
-    requested_scope: Mapped[str | None] = mapped_column(Text)
     context: Mapped[dict] = mapped_column(JSONB, nullable=False)
     nonce: Mapped[str] = mapped_column(Text, nullable=False)
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, server_default="{}")
     requested_at: Mapped[datetime] = mapped_column(nullable=False)
     received_at: Mapped[datetime] = mapped_column(server_default=func.now())
 

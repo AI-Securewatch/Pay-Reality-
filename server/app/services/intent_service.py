@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.models import Agent, Certificate, Decision, Evidence, Intent, Policy, Principal
-from app.domain.compiler.compiler import to_utc_iso
+from app.domain.time_utils import to_utc_iso
 from app.domain.decision import engine as decision_engine
 from app.domain.decision.scope_vocabulary import is_recognized_scope
 from app.domain.evidence.signing import sign_payload

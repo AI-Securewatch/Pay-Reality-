@@ -92,7 +92,11 @@ export const router = createBrowserRouter([
       { path: "governance/upload/:uploadId", lazy: () => import("./ai-policy-builder/ReviewPage").then((m) => ({ Component: m.AIPolicyBuilderReviewPage })) },
       { path: "governance/authority-builder", lazy: () => import("./ai-authority-builder/CorpusUploadPage").then((m) => ({ Component: m.AIAuthorityBuilderUploadPage })) },
       { path: "governance/authority-builder/:corpusId", lazy: () => import("./ai-authority-builder/CorpusReviewPage").then((m) => ({ Component: m.AIAuthorityBuilderCorpusReviewPage })) },
-      { path: "governance/legacy-review", lazy: () => import("./live/pages/LiveDocuments").then((m) => ({ Component: m.LiveDocuments })) },
+      // The legacy Authority/Mandate document-review page (LiveDocuments)
+      // and its backing endpoints were retired (PHASE_0.md): the write
+      // path it depended on now returns 410. /governance/legacy-review
+      // and every old alias below redirect to the modern equivalent.
+      { path: "governance/legacy-review", element: <Navigate to="/governance/upload" replace /> },
       { path: "governance/:policyKey", lazy: () => import("./policy-studio/PolicyWorkspacePage").then((m) => ({ Component: m.PolicyWorkspacePage })) },
       // Version History + Diff merged into one page (PAYREALITY_UX_REVIEW.md);
       // Compile + Dry Run + Deploy merged into one Publish page, same reason.
@@ -122,9 +126,9 @@ export const router = createBrowserRouter([
       { path: "ai-agents", element: <Navigate to="/agents" replace /> },
       { path: "decision-intercepts", element: <Navigate to="/decisions" replace /> },
       { path: "evidence-vault", element: <Navigate to="/evidence" replace /> },
-      { path: "policy", element: <Navigate to="/governance/legacy-review" replace /> },
-      { path: "policy-library", element: <Navigate to="/governance/legacy-review" replace /> },
-      { path: "policy-center", element: <Navigate to="/governance/legacy-review" replace /> },
+      { path: "policy", element: <Navigate to="/governance/upload" replace /> },
+      { path: "policy-library", element: <Navigate to="/governance/upload" replace /> },
+      { path: "policy-center", element: <Navigate to="/governance/upload" replace /> },
       { path: "ai-policy-builder", element: <Navigate to="/governance/authority-builder" replace /> },
       { path: "governance-simulation", element: <Navigate to="/decisions" replace /> },
       { path: "approvals", element: <Navigate to="/decisions" replace /> },
@@ -132,7 +136,7 @@ export const router = createBrowserRouter([
       { path: "insurance-readiness", element: <Navigate to="/assurance" replace /> },
       { path: "settings", element: <Navigate to="/organization" replace /> },
       { path: "live", element: <Navigate to="/" replace /> },
-      { path: "live/documents", element: <Navigate to="/governance/legacy-review" replace /> },
+      { path: "live/documents", element: <Navigate to="/governance/upload" replace /> },
       { path: "live/agents", element: <Navigate to="/agents" replace /> },
       { path: "live/test-intent", element: <Navigate to="/decisions" replace /> },
       { path: "live/evidence", element: <Navigate to="/evidence" replace /> },
