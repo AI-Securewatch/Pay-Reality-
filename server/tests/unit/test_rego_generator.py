@@ -90,6 +90,35 @@ def test_exists_false_generates_null_check():
     )
 
 
+def test_context_prefixed_field_targets_input_context_not_input_intent():
+    """PHASE_2_RUNTIME_CONTEXT.md's Runtime Authority Context enrichment
+    (organisation/department/risk/etc.) lives as a sibling of `intent` in
+    the real OPA input (build_opa_input: {"intent":..., "context":...,
+    "agent":...}), not nested under it. A condition field prefixed
+    "context." must target input.context.<rest>, not
+    input.intent.context.<rest> (which would never exist and silently
+    never match -- the actual regression this test guards, caught by
+    live end-to-end testing during Phase 2's rollout)."""
+    condition = Condition(field="context.authority.department", operator=Operator.EQ, value="Finance")
+    assert generate_condition_expression(condition) == 'input.context.authority.department == "Finance"'
+
+
+def test_context_prefixed_exists_operator_targets_input_context():
+    condition = Condition(field="context.authority.role", operator=Operator.EXISTS, value=True)
+    result = generate_condition_expression(condition)
+    assert result == (
+        'object.get(object.get(input.context, "authority", {}), "role", null) != null'
+    )
+
+
+def test_non_context_fields_are_unaffected_and_still_target_input_intent():
+    """The fix only special-cases fields prefixed "context." -- every
+    existing policy's conditions (amount, currency, vendor.approved, etc.)
+    must compile identically to before this change."""
+    condition = Condition(field="amount", operator=Operator.LTE, value=50000)
+    assert generate_condition_expression(condition) == "input.intent.amount <= 50000"
+
+
 def test_string_values_are_safely_escaped():
     condition = Condition(field="name", operator=Operator.EQ, value='has "quotes" inside')
     result = generate_condition_expression(condition)

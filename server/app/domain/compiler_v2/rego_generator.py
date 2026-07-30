@@ -81,6 +81,26 @@ def _nested_object_get(base: str, field_path: str) -> str:
     return expr
 
 
+_CONTEXT_FIELD_PREFIX = "context."
+
+
+def _resolve_base_and_field(condition_field: str, default_base: str) -> tuple[str, str]:
+    """Every condition field defaults to input.intent.<field>. A field
+    prefixed "context." targets input.context.<rest> instead, since
+    Runtime Authority Context (PHASE_2_RUNTIME_CONTEXT.md's enrichment,
+    e.g. context.authority.department) is a sibling of intent in the real
+    OPA input (build_opa_input: {"intent": ..., "context": ...,
+    "agent": ...}), not nested under it -- a condition written as
+    "context.authority.department" against the old, always-"input.intent"
+    base would silently compile to input.intent.context.authority.department,
+    which never exists, and the condition would just never match, with no
+    error. Caught by live end-to-end testing during Phase 2's rollout, not
+    by reasoning about the generator in the abstract."""
+    if condition_field.startswith(_CONTEXT_FIELD_PREFIX):
+        return "input.context", condition_field[len(_CONTEXT_FIELD_PREFIX):]
+    return default_base, condition_field
+
+
 def generate_condition_expression(condition: Condition, base: str = "input.intent") -> str:
     """One line of Rego for one Condition. Raises ValueError only for an
     Operator this function has no case for at all (a genuine programming
@@ -90,7 +110,8 @@ def generate_condition_expression(condition: Condition, base: str = "input.inten
     module's own structural checks before ever reaching generation, so by
     the time a Condition arrives here it's already been judged
     well-formed; this function trusts that and focuses on translation)."""
-    field_access = _dot_path_access(base, condition.field)
+    resolved_base, resolved_field = _resolve_base_and_field(condition.field, base)
+    field_access = _dot_path_access(resolved_base, resolved_field)
 
     if condition.operator == Operator.LTE:
         return f"{field_access} <= {_rego_literal(condition.value)}"
@@ -109,7 +130,7 @@ def generate_condition_expression(condition: Condition, base: str = "input.inten
     if condition.operator == Operator.CONTAINS:
         return f"contains({field_access}, {_rego_literal(condition.value)})"
     if condition.operator == Operator.EXISTS:
-        existence_check = _nested_object_get(base, condition.field)
+        existence_check = _nested_object_get(resolved_base, resolved_field)
         if condition.value is True:
             return f"{existence_check} != null"
         if condition.value is False:
