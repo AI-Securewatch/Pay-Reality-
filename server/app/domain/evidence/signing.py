@@ -24,6 +24,17 @@ def canonicalize(payload: dict[str, Any]) -> bytes:
     return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
+def payload_hash(payload: dict[str, Any]) -> str:
+    """SHA-256 of the canonical JSON, hex-encoded. Used for Evidence
+    chaining (PHASE_5_EVIDENCE.md): each new record's previous_hash
+    references this exact value computed over its predecessor's payload,
+    so verifying the chain means confirming that link, not just that
+    each record's own signature is independently valid -- a deleted
+    record breaks this at the gap it left, even though every remaining
+    record's own signature still checks out."""
+    return hashlib.sha256(canonicalize(payload)).hexdigest()
+
+
 @dataclass(frozen=True)
 class Signature:
     algorithm: str

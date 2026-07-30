@@ -8,6 +8,7 @@ from app.config import settings
 from app.db.session import get_db
 from app.domain.evidence.signing import public_key_b64_from_signing_key_b64
 from app.schemas.evidence import (
+    ChainVerificationResponse,
     EvidenceResponse,
     SigningKeyHistoryEntry,
     VerificationKeyHistoryResponse,
@@ -87,4 +88,24 @@ def verify_evidence(evidence_id: UUID, db: Session = Depends(get_db)):
         valid=valid,
         verified_at=datetime.now(timezone.utc),
         key_id=key_id,
+    )
+
+
+@router.get("/chain/verify", response_model=ChainVerificationResponse)
+def verify_chain(organization_id: UUID | None = None, since: datetime | None = None, db: Session = Depends(get_db)):
+    """PHASE_5_EVIDENCE.md: independent verification of an Organisation-
+    scoped chain, usable by a third party (auditor, regulator, insurer)
+    with only the published verification key -- checks both per-record
+    signature validity and previous_hash continuity, catching a deleted
+    or reordered record that per-record verification alone cannot.
+    organization_id=None verifies the chain for every record whose
+    Principal has no organisation set yet (a valid, consistent scope in
+    its own right, not an error)."""
+    result = evidence_service.verify_chain(db, organization_id, since=since)
+    return ChainVerificationResponse(
+        organization_id=organization_id,
+        total=result.total,
+        intact=result.intact,
+        invalid_signatures=list(result.invalid_signatures),
+        broken_links=list(result.broken_links),
     )

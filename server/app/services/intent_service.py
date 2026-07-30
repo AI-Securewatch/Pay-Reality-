@@ -10,7 +10,7 @@ from app.db.models import Agent, Certificate, Decision, Evidence, Intent, Policy
 from app.domain.time_utils import to_utc_iso
 from app.domain.decision import engine as decision_engine
 from app.domain.decision.scope_vocabulary import is_recognized_scope
-from app.domain.evidence.signing import sign_payload
+from app.domain.evidence.signing import payload_hash, sign_payload
 from app.opa_client import HttpOpaClient
 from app.services.authority_context_service import classify_risk, resolve_runtime_authority_context
 
@@ -73,9 +73,19 @@ def _build_evidence_payload(
     approval_outcome: str | None,
     risk_classification: str,
     approver: str | None,
+    previous_hash: str | None,
 ) -> dict:
-    """spec 17.1's Evidence payload shape, adapted to Phase 1's fields."""
+    """spec 17.1's Evidence payload shape, adapted to Phase 1's fields.
+
+    payload_version=2 (Phase 5, PHASE_5_EVIDENCE.md): the addition is
+    previous_hash, chaining this record to its predecessor within the
+    same Organisation scope (see append_evidence). Historical (v1)
+    records never had this field at all -- absence of payload_version
+    is itself how a reader identifies a pre-chaining record; this is
+    never retroactively added to them, and their signature/verification
+    story is completely unaffected by this change."""
     return {
+        "payload_version": 2,
         "decision_id": str(decision_id),
         "agent_id": str(agent_id),
         "action": action,
@@ -86,7 +96,31 @@ def _build_evidence_payload(
         "risk_classification": risk_classification,
         "approver": approver,
         "recorded_at": datetime.now(timezone.utc).isoformat(),
+        "previous_hash": previous_hash,
     }
+
+
+def _resolve_chain_scope(db: Session, agent_id: uuid.UUID) -> uuid.UUID | None:
+    """The Evidence chain's scope key (PHASE_5_EVIDENCE.md): per-
+    Organisation, not global (no natural partition) and not per-Principal
+    (fragments below what an auditor/insurer actually asks for). Resolved
+    via Agent -> Principal -> organization_id, the same path Runtime
+    Authority Context (Phase 2) already resolves. None is itself a valid,
+    consistent scope -- every record for a Principal with no organisation
+    set yet chains together, rather than chaining being a no-op until
+    real org data exists."""
+    agent = db.get(Agent, agent_id)
+    if agent is None:
+        return None
+    principal = db.get(Principal, agent.acting_for_principal_id)
+    return principal.organization_id if principal else None
+
+
+def _previous_chain_hash(db: Session, organization_id: uuid.UUID | None) -> str | None:
+    stmt = select(Evidence).where(Evidence.organization_id == organization_id)
+    stmt = stmt.order_by(Evidence.created_at.desc(), Evidence.id.desc()).limit(1)
+    prior = db.scalar(stmt)
+    return payload_hash(prior.payload) if prior is not None else None
 
 
 def _evidence_status_for_outcome(outcome: str) -> str:
@@ -113,6 +147,8 @@ def append_evidence(
     approver: str | None = None,
     status: str = "PENDING",
 ) -> Evidence:
+    organization_id = _resolve_chain_scope(db, agent_id)
+    previous_hash = _previous_chain_hash(db, organization_id)
     payload = _build_evidence_payload(
         decision_id,
         agent_id,
@@ -123,6 +159,7 @@ def append_evidence(
         approval_outcome,
         classify_risk(amount),
         approver,
+        previous_hash,
     )
     signature = sign_payload(
         payload, settings.evidence_signing_key_b64, settings.evidence_signing_key_id
@@ -135,6 +172,7 @@ def append_evidence(
         # spec 8.2 EvidenceRecord.status, distinct from Decision.status
         # (our HUMAN_REVIEW-resolution addition).
         status=status,
+        organization_id=organization_id,
     )
     db.add(evidence)
     db.flush()

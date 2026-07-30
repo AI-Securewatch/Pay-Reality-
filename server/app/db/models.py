@@ -550,9 +550,23 @@ class Evidence(Base):
     # spec 8.2 EvidenceRecord: VERIFIED|PENDING|REJECTED.
     status: Mapped[str] = mapped_column(Text, nullable=False, server_default="PENDING")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Phase 5 (PHASE_5_EVIDENCE.md): the Evidence chain's scope key,
+    # resolved via Agent -> Principal -> organization_id at creation
+    # time (same path Runtime Authority Context, Phase 2, already
+    # resolves). A real, indexed column rather than only living inside
+    # `payload`, since finding "the most recent prior record in this
+    # scope" needs to be a fast, targeted query on every single Evidence
+    # write, not a re-join through Decision/Intent/Agent/Principal every
+    # time. NULL (no organisation set on the Principal yet) is itself a
+    # valid, consistent chain scope -- every such record chains together,
+    # rather than chaining being a no-op until real org data exists.
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id")
+    )
 
     __table_args__ = (
         Index("idx_evidence_decision", "decision_id"),
+        Index("idx_evidence_organization_created", "organization_id", "created_at"),
         CheckConstraint(
             "status IN ('VERIFIED','PENDING','REJECTED')", name="ck_evidence_status"
         ),

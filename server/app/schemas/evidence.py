@@ -64,3 +64,16 @@ class SigningKeyHistoryEntry(BaseModel):
 
 class VerificationKeyHistoryResponse(BaseModel):
     keys: list[SigningKeyHistoryEntry]
+
+
+class ChainVerificationResponse(BaseModel):
+    """PHASE_5_EVIDENCE.md: independent verification of an Organisation-
+    scoped range of Evidence, both per-record signature validity and
+    previous_hash continuity -- catches a deleted or reordered record,
+    which per-record signature verification alone cannot."""
+
+    organization_id: UUID | None
+    total: int
+    intact: bool
+    invalid_signatures: list[UUID]
+    broken_links: list[UUID]
