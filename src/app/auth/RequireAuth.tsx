@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 import { useAuth } from "./AuthContext";
 
-// Guards only the new Organisation Settings / Users pages (Phase 10) --
-// every pre-existing route keeps working exactly as before, ungated by
-// this, since the Operator Key superuser bypass is untouched. A real
-// login is required for these two pages specifically because they
-// manage human identity and org-wide configuration, not runtime
-// authorization, so there's no equivalent "just paste a key" path for
-// them the way the rest of the product already has.
+// Gates the entire app: every route except /login and /setup-owner
+// (see routes.tsx's ProtectedLayout) renders only for a signed-in human.
+// This is a UI-layer decision, separate from the Operator Key superuser
+// bypass, which remains an API-level concern (verify_operator_key /
+// require_permission, server side) untouched by this component -- an
+// SDK or curl call with the Operator Key header still works exactly as
+// before; this only controls what the browser shows a human with no
+// session.
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();

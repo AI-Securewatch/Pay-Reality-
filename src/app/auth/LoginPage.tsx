@@ -27,7 +27,7 @@ export function LoginPage() {
     setError(null);
     try {
       await login(email, password);
-      const from = (location.state as { from?: string } | null)?.from ?? "/organization";
+      const from = (location.state as { from?: string } | null)?.from ?? "/";
       navigate(from, { replace: true });
     } catch (err) {
       setError(describeLoginError(err));
@@ -60,8 +60,8 @@ export function LoginPage() {
             Sign in
           </h2>
           <p className="text-xs mb-5" style={{ color: "var(--pr-text-muted)" }}>
-            Organisation Settings and user management. Everyday agent and policy work doesn't need
-            this -- it still uses the Operator Key in the sidebar.
+            Sign in to access PayReality. Once you're in, the Operator Key in the sidebar can still
+            grant elevated access for specific actions -- it isn't an alternative to signing in.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
