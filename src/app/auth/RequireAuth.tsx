@@ -25,9 +25,18 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
+  // TEMPORARY (revert before the Azure migration / Demo Workspace work):
+  // login wall disabled for public demonstrations. Nothing else about
+  // auth changed -- a real login still works exactly as before, and
+  // require_permission on the backend is completely untouched, so a
+  // visitor with no session and no Operator Key still can't mutate
+  // anything that requires a permission; they just aren't redirected to
+  // /login to view pages that are already open to reads. Restore by
+  // deleting this comment block and uncommenting the block below it.
+  //
+  // if (!user) {
+  //   return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  // }
 
   return <>{children}</>;
 }
