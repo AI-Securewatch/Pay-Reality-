@@ -19,6 +19,7 @@ import { useAuth } from "../auth/AuthContext";
 import { ROLE_LABELS } from "../auth/types";
 import { HelpButton } from "../help/HelpButton";
 import { HelpPanel } from "../help/HelpPanel";
+import { page as trackPage } from "../services/analytics";
 
 // One workflow, in order: Agents -> Governance -> Decisions -> Evidence
 // -> Assurance. No department-shaped groups, no duplicate "real" vs
@@ -195,6 +196,10 @@ function LayoutInner() {
 
   useEffect(() => {
     setDrawerOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    trackPage(location.pathname);
   }, [location.pathname]);
 
   return (

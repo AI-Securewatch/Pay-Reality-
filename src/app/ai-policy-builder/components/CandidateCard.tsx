@@ -8,6 +8,7 @@ import { ConditionRow } from "../../policy-studio/components/ConditionRow";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { ApiError } from "../../live/apiClient";
 import { describeApiError, formatStatus } from "../../live/format";
+import { track } from "../../services/analytics";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -67,6 +68,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
     try {
       await aiPolicyBuilderApi.editCandidate(candidate.candidate_id, content);
       const result = await aiPolicyBuilderApi.promoteCandidate(candidate.candidate_id);
+      track("Runtime Policy Generated", { policy_id: result.policy_key, source: "ai_candidate" });
       setMessage(`Promoted to Policy Studio as a draft (v${result.version}).`);
       onChanged();
     } catch (e) {

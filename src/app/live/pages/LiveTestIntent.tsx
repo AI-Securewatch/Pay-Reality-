@@ -6,6 +6,7 @@ import { signBody } from "../crypto";
 import { getAgentPrivateKey } from "../agentKeyStore";
 import { describeApiError, describeReason, formatStatus } from "../format";
 import { policyStudioApi } from "../../policy-studio/api";
+import { track } from "../../services/analytics";
 import { HelpIcon } from "../../help/HelpIcon";
 import { NextStepGuidance } from "../../help/NextStepGuidance";
 import type { LiveAgent, LiveDecision, SubmitIntentResult } from "../types";
@@ -88,6 +89,9 @@ export function LiveTestIntent() {
     const rawBody = JSON.stringify(body);
     const signature = signBody(new TextEncoder().encode(rawBody), privateKey);
 
+    const submittedAt = Date.now();
+    track("Runtime Intent Submitted", { agent_id: agentId, intent_type: action });
+
     try {
       const submitted = await apiClient.postSigned<SubmitIntentResult>("/v1/intents", rawBody, {
         "X-PayReality-Key-Id": agent.certificate_id,
@@ -96,6 +100,18 @@ export function LiveTestIntent() {
       setResult(submitted);
       const latest = await apiClient.get<LiveDecision>(`/v1/decisions/${submitted.decision.decision_id}`);
       setDecision(latest);
+
+      track("Runtime Decision Produced", {
+        agent_id: agentId,
+        decision_id: submitted.decision.decision_id,
+        intent_type: action,
+        decision_result: submitted.decision.outcome,
+        time_to_decision: Date.now() - submittedAt,
+      });
+      if (submitted.decision.outcome === "HUMAN_REVIEW") {
+        track("Human Review Triggered", { agent_id: agentId, decision_id: submitted.decision.decision_id });
+      }
+
       if (submitted.status === "PENDING") startPolling(submitted.decision.decision_id);
     } catch (e) {
       setError(describeApiError(e, "Submission"));
@@ -114,6 +130,7 @@ export function LiveTestIntent() {
       });
       const latest = await apiClient.get<LiveDecision>(`/v1/decisions/${decision.id}`);
       setDecision(latest);
+      track("Human Review Completed", { decision_id: decision.id, decision_result: resolution });
     } catch (e) {
       setResolveError(describeApiError(e, "Resolution"));
     } finally {

@@ -5,6 +5,7 @@ import type { Corpus } from "./types";
 import { describeApiError, formatStatus } from "../live/format";
 import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
 import { NextStepGuidance } from "../help/NextStepGuidance";
+import { track } from "../services/analytics";
 
 const STATUS_COLOR: Record<string, string> = {
   uploaded: "var(--pr-text-muted)",
@@ -50,7 +51,9 @@ export function AIAuthorityBuilderUploadPage() {
     setJustCreated(null);
     try {
       const corpus = await aiAuthorityBuilderApi.createCorpus(name.trim() || "Untitled corpus", files);
+      track("Governance Document Uploaded", { document_count: files.length });
       if (corpus.status === "extracted") {
+        track("Authority Graph Generated", { corpus_id: corpus.corpus_id });
         setJustCreated(corpus);
         setFiles([]);
         setName("");

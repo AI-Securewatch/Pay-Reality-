@@ -5,6 +5,7 @@ import type { Upload } from "./types";
 import { describeApiError, formatStatus } from "../live/format";
 import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
 import { NextStepGuidance } from "../help/NextStepGuidance";
+import { track } from "../services/analytics";
 
 const STATUS_COLOR: Record<string, string> = {
   uploaded: "var(--pr-text-muted)",
@@ -34,6 +35,7 @@ export function AIPolicyBuilderUploadPage() {
     setJustUploaded(null);
     try {
       const upload = await aiPolicyBuilderApi.upload(file);
+      track("Governance Document Uploaded", { document_count: 1 });
       if (upload.status === "extracted") {
         setJustUploaded(upload);
         load();

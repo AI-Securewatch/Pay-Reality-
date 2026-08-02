@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { authApi } from "./authApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "../live/sessionToken";
+import { identify, reset as resetAnalytics } from "../services/analytics";
 import type { CurrentUser } from "./types";
 
 interface AuthContextValue {
@@ -27,7 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     authApi
       .me()
-      .then(setUser)
+      .then((current) => {
+        setUser(current);
+        // Restoring an existing session on reload identifies the same way a
+        // fresh login does -- Mixpanel should know who this is regardless of
+        // whether the session token came from this page load or an earlier one.
+        identify({ id: current.id, role: current.role, organization_id: current.organization_id });
+      })
       .catch(() => clearSessionToken())
       .finally(() => setLoading(false));
   }, []);
@@ -36,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authApi.login(email, password);
     setSessionToken(response.token);
     setUser(response.user);
+    identify({ id: response.user.id, role: response.user.role, organization_id: response.user.organization_id });
   }
 
   async function logout() {
@@ -44,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       clearSessionToken();
       setUser(null);
+      resetAnalytics();
     }
   }
 

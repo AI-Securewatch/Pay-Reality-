@@ -7,6 +7,7 @@ import { ConditionRow } from "./components/ConditionRow";
 import { ScopeFields } from "./components/ScopeFields";
 import { describeApiError } from "../live/format";
 import { describePolicy, EFFECT_LABEL } from "./describePolicy";
+import { track } from "../services/analytics";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -70,6 +71,7 @@ export function PolicyWorkspacePage() {
     setMessage(null);
     try {
       const saved = isNew ? await policyStudioApi.create(form) : await policyStudioApi.edit(policyKey!, form);
+      if (isNew) track("Runtime Policy Generated", { policy_id: saved.policy_key, source: "manual" });
       setMessage(`Saved as draft, v${saved.version}.`);
       if (isNew) navigate(`/governance/${saved.policy_key}`);
       else setExisting(saved);
