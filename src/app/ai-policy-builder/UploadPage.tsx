@@ -33,9 +33,10 @@ export function AIPolicyBuilderUploadPage() {
     setUploading(true);
     setMessage(null);
     setJustUploaded(null);
+    const startedAt = Date.now();
     try {
       const upload = await aiPolicyBuilderApi.upload(file);
-      track("Governance Document Uploaded", { document_count: 1 });
+      track("Governance Document Uploaded", { document_count: 1, document_processing_ms: Date.now() - startedAt });
       if (upload.status === "extracted") {
         setJustUploaded(upload);
         load();

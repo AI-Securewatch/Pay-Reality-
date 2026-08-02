@@ -7,7 +7,7 @@ import { ConditionRow } from "./components/ConditionRow";
 import { ScopeFields } from "./components/ScopeFields";
 import { describeApiError } from "../live/format";
 import { describePolicy, EFFECT_LABEL } from "./describePolicy";
-import { track } from "../services/analytics";
+import { track, trackError } from "../services/analytics";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -69,14 +69,28 @@ export function PolicyWorkspacePage() {
   async function handleSave() {
     setSaving(true);
     setMessage(null);
+    const startedAt = Date.now();
     try {
       const saved = isNew ? await policyStudioApi.create(form) : await policyStudioApi.edit(policyKey!, form);
-      if (isNew) track("Runtime Policy Generated", { policy_id: saved.policy_key, source: "manual" });
+      if (isNew) {
+        track("Runtime Policy Generated", {
+          policy_id: saved.policy_key,
+          source: "manual",
+          runtime_policy_generation_ms: Date.now() - startedAt,
+        });
+      }
       setMessage(`Saved as draft, v${saved.version}.`);
       if (isNew) navigate(`/governance/${saved.policy_key}`);
       else setExisting(saved);
     } catch (e) {
       setMessage(describeApiError(e, "Save"));
+      if (isNew) {
+        trackError("Runtime Policy Generation Failed", {
+          error_type: e instanceof Error ? e.name : "unknown_error",
+          component: "policy_studio_manual",
+          duration_ms: Date.now() - startedAt,
+        });
+      }
     } finally {
       setSaving(false);
     }

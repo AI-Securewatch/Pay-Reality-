@@ -6,7 +6,7 @@ import { signBody } from "../crypto";
 import { getAgentPrivateKey } from "../agentKeyStore";
 import { describeApiError, describeReason, formatStatus } from "../format";
 import { policyStudioApi } from "../../policy-studio/api";
-import { track } from "../../services/analytics";
+import { track, trackError } from "../../services/analytics";
 import { HelpIcon } from "../../help/HelpIcon";
 import { NextStepGuidance } from "../../help/NextStepGuidance";
 import type { LiveAgent, LiveDecision, SubmitIntentResult } from "../types";
@@ -92,21 +92,41 @@ export function LiveTestIntent() {
     const submittedAt = Date.now();
     track("Runtime Intent Submitted", { agent_id: agentId, intent_type: action });
 
+    // Split into two try/catches (previously one) so a failure submitting
+    // the signed Intent and a failure fetching its resulting Decision are
+    // distinguishable for analytics -- they're different failure modes
+    // (Runtime Intent Submission Failed vs Runtime Decision Failed) that
+    // used to be indistinguishable, both landing in the same catch block.
+    let submitted: SubmitIntentResult;
     try {
-      const submitted = await apiClient.postSigned<SubmitIntentResult>("/v1/intents", rawBody, {
+      submitted = await apiClient.postSigned<SubmitIntentResult>("/v1/intents", rawBody, {
         "X-PayReality-Key-Id": agent.certificate_id,
         "X-PayReality-Signature": signature,
       });
       setResult(submitted);
+    } catch (e) {
+      setError(describeApiError(e, "Submission"));
+      trackError("Runtime Intent Submission Failed", {
+        error_type: e instanceof Error ? e.name : "unknown_error",
+        component: "live_test_intent",
+        duration_ms: Date.now() - submittedAt,
+      });
+      return;
+    }
+
+    try {
       const latest = await apiClient.get<LiveDecision>(`/v1/decisions/${submitted.decision.decision_id}`);
       setDecision(latest);
 
+      const latencyMs = Date.now() - submittedAt;
       track("Runtime Decision Produced", {
         agent_id: agentId,
         decision_id: submitted.decision.decision_id,
         intent_type: action,
         decision_result: submitted.decision.outcome,
-        time_to_decision: Date.now() - submittedAt,
+        time_to_decision: latencyMs,
+        runtime_decision_latency_ms: latencyMs,
+        evidence_generation_ms: latencyMs, // Evidence is produced in the same server round-trip as the Decision; there's no separate client-observable generation step to time.
       });
       if (submitted.decision.outcome === "HUMAN_REVIEW") {
         track("Human Review Triggered", { agent_id: agentId, decision_id: submitted.decision.decision_id });
@@ -115,6 +135,11 @@ export function LiveTestIntent() {
       if (submitted.status === "PENDING") startPolling(submitted.decision.decision_id);
     } catch (e) {
       setError(describeApiError(e, "Submission"));
+      trackError("Runtime Decision Failed", {
+        error_type: e instanceof Error ? e.name : "unknown_error",
+        component: "decision_fetch",
+        duration_ms: Date.now() - submittedAt,
+      });
     }
   };
 
@@ -122,6 +147,7 @@ export function LiveTestIntent() {
     if (!decision) return;
     setResolving(true);
     setResolveError(null);
+    const startedAt = Date.now();
     try {
       await apiClient.post(`/v1/decisions/${decision.id}/resolve`, {
         resolution,
@@ -133,6 +159,11 @@ export function LiveTestIntent() {
       track("Human Review Completed", { decision_id: decision.id, decision_result: resolution });
     } catch (e) {
       setResolveError(describeApiError(e, "Resolution"));
+      trackError("Runtime Decision Failed", {
+        error_type: e instanceof Error ? e.name : "unknown_error",
+        component: "decision_resolution",
+        duration_ms: Date.now() - startedAt,
+      });
     } finally {
       setResolving(false);
     }

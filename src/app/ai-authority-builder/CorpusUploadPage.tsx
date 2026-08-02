@@ -5,7 +5,7 @@ import type { Corpus } from "./types";
 import { describeApiError, formatStatus } from "../live/format";
 import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
 import { NextStepGuidance } from "../help/NextStepGuidance";
-import { track } from "../services/analytics";
+import { track, trackError } from "../services/analytics";
 
 const STATUS_COLOR: Record<string, string> = {
   uploaded: "var(--pr-text-muted)",
@@ -49,21 +49,33 @@ export function AIAuthorityBuilderUploadPage() {
     setUploading(true);
     setMessage(null);
     setJustCreated(null);
+    const startedAt = Date.now();
     try {
       const corpus = await aiAuthorityBuilderApi.createCorpus(name.trim() || "Untitled corpus", files);
-      track("Governance Document Uploaded", { document_count: files.length });
+      const documentProcessingMs = Date.now() - startedAt;
+      track("Governance Document Uploaded", { document_count: files.length, document_processing_ms: documentProcessingMs });
       if (corpus.status === "extracted") {
-        track("Authority Graph Generated", { corpus_id: corpus.corpus_id });
+        track("Authority Graph Generated", { corpus_id: corpus.corpus_id, authority_graph_generation_ms: documentProcessingMs });
         setJustCreated(corpus);
         setFiles([]);
         setName("");
         load();
       } else {
         setMessage(`Corpus failed to extract (status: ${corpus.status}). ${corpus.error ?? ""}`);
+        trackError("Authority Graph Generation Failed", {
+          error_type: "extraction_failed",
+          component: "ai_authority_builder",
+          duration_ms: documentProcessingMs,
+        });
         load();
       }
     } catch (e) {
       setMessage(describeApiError(e, "Upload"));
+      trackError("Authority Graph Generation Failed", {
+        error_type: e instanceof Error ? e.name : "unknown_error",
+        component: "ai_authority_builder",
+        duration_ms: Date.now() - startedAt,
+      });
     } finally {
       setUploading(false);
     }

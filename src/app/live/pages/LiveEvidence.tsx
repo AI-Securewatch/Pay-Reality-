@@ -3,6 +3,7 @@ import { CheckCircle2, Database, ShieldCheck, ShieldX } from "lucide-react";
 import { apiClient } from "../apiClient";
 import { formatStatus } from "../format";
 import { HelpIcon } from "../../help/HelpIcon";
+import { trackError } from "../../services/analytics";
 import type { LiveEvidence as LiveEvidenceType } from "../types";
 
 const FIELD_LABEL: Record<string, string> = {
@@ -18,7 +19,18 @@ export function LiveEvidence() {
   const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    apiClient.get<LiveEvidenceType[]>("/v1/evidence").then(setRecords);
+    // Evidence generation itself has no separate client-triggered step to
+    // instrument (it's an automatic server-side side effect of decision
+    // evaluation) -- a failure to load the Evidence list here is the
+    // closest available signal for "Evidence Generation Failed" from the
+    // frontend, so that's what a failure on this fetch is attributed to.
+    // This request had no .catch() at all before this change.
+    apiClient.get<LiveEvidenceType[]>("/v1/evidence").then(setRecords).catch((e) => {
+      trackError("Evidence Generation Failed", {
+        error_type: e instanceof Error ? e.name : "unknown_error",
+        component: "evidence_list_fetch",
+      });
+    });
   }, []);
 
   const verify = async (id: string) => {

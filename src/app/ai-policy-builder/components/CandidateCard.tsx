@@ -8,7 +8,7 @@ import { ConditionRow } from "../../policy-studio/components/ConditionRow";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { ApiError } from "../../live/apiClient";
 import { describeApiError, formatStatus } from "../../live/format";
-import { track } from "../../services/analytics";
+import { track, trackError } from "../../services/analytics";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -65,17 +65,32 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
     setSaving(true);
     setMessage(null);
     setErrors([]);
+    const startedAt = Date.now();
     try {
       await aiPolicyBuilderApi.editCandidate(candidate.candidate_id, content);
       const result = await aiPolicyBuilderApi.promoteCandidate(candidate.candidate_id);
-      track("Runtime Policy Generated", { policy_id: result.policy_key, source: "ai_candidate" });
+      track("Runtime Policy Generated", {
+        policy_id: result.policy_key,
+        source: "ai_candidate",
+        runtime_policy_generation_ms: Date.now() - startedAt,
+      });
       setMessage(`Promoted to Policy Studio as a draft (v${result.version}).`);
       onChanged();
     } catch (e) {
       if (e instanceof ApiError && e.body && typeof e.body === "object" && "errors" in (e.body as object)) {
         setErrors((e.body as { errors: ValidationErrorItem[] }).errors);
+        trackError("Runtime Policy Generation Failed", {
+          error_type: "validation_error",
+          component: "ai_candidate_promote",
+          duration_ms: Date.now() - startedAt,
+        });
       } else {
         setMessage(describeApiError(e, "Promote"));
+        trackError("Runtime Policy Generation Failed", {
+          error_type: e instanceof Error ? e.name : "unknown_error",
+          component: "ai_candidate_promote",
+          duration_ms: Date.now() - startedAt,
+        });
       }
     } finally {
       setSaving(false);
