@@ -152,10 +152,13 @@ export function VersionsPage() {
 
               <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20 }}>
                 <h3 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-primary)" }}>
-                  Risk impact:{" "}
+                  Estimated risk impact:{" "}
                   <span style={{ color: RISK_COLOR[diff.risk_impact], textTransform: "uppercase" }}>{diff.risk_impact}</span>
                 </h3>
-                <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>{diff.risk_reason}</p>
+                <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>
+                  {diff.risk_reason} Based on the rules and agents this change affects, not a
+                  judgement on the change itself.
+                </p>
               </div>
             </>
           )}

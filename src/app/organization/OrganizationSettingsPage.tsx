@@ -287,7 +287,11 @@ function ApiKeysSection() {
 
   return (
     <div style={{ ...cardStyle, padding: 16 }}>
-      <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>API Keys</h3>
+      <h3 className="text-sm font-medium mb-1" style={{ color: "var(--pr-text-primary)" }}>API Keys</h3>
+      <p className="text-xs mb-3" style={{ color: "var(--pr-text-muted)" }}>
+        Each key is scoped to a role, and each role carries the same decision rights whether a
+        person or an API key is exercising it, not a separate credential-only permission set.
+      </p>
       <div className="flex flex-wrap gap-2 mb-3">
         <input
           style={{ ...inputStyle(), width: 200 }}
@@ -373,6 +377,10 @@ function RuntimeAuthorityTab({ settings, onSaved }: { settings: OrganizationSett
 
   return (
     <div className="max-w-md space-y-4">
+      <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>
+        These are the organisation-wide defaults Runtime Authority falls back to when a specific
+        rule doesn't cover a case, not a replacement for your own delegated authority and rules.
+      </p>
       <div>
         <label style={fieldLabelStyle()}>Default Human Review Behaviour</label>
         <select style={inputStyle()} value={reviewBehavior} onChange={(e) => setReviewBehavior(e.target.value)}>
@@ -420,6 +428,11 @@ function IntegrationsTab() {
 
   return (
     <div style={{ ...cardStyle, padding: 16, maxWidth: 480 }}>
+      <p className="text-xs mb-4" style={{ color: "var(--pr-text-muted)" }}>
+        These are the components Runtime Authority itself runs on. The enterprise systems it
+        protects, the ERP, CRM, procurement, and finance systems an agent's action ultimately
+        reaches, connect separately and are not yet listed here.
+      </p>
       <div className="space-y-3">
         {rows.map((row) => (
           <div key={row.key} className="flex items-center justify-between">

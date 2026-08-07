@@ -39,7 +39,7 @@ export const LEARN_ARTICLES: LearnArticle[] = [
     id: "evidence",
     term: "Evidence",
     summary: "A signed, unchangeable record of exactly what was decided, and why -- proof you can hand to an auditor.",
-    body: "Every decision the platform makes produces an Evidence record: what was requested, what rule applied, what the outcome was, and a cryptographic signature over the whole thing. That signature means the record can't be altered afterward without it being detectable -- not by this platform, not by anyone. An auditor, insurer, or regulator can verify a piece of Evidence independently, without having to trust this system's own word for it.",
+    body: "Every action Runtime Authority enforces produces an Evidence record: what was requested, which of your organisation's rules applied, what the outcome was, and a cryptographic signature over the whole thing. That signature means the record can't be altered afterward without it being detectable -- not by this platform, not by anyone. An auditor, insurer, or regulator can verify a piece of Evidence independently, without having to trust this system's own word for it.",
   },
   {
     id: "agent_certificate",
@@ -56,14 +56,14 @@ export const LEARN_ARTICLES: LearnArticle[] = [
   {
     id: "runtime_decision",
     term: "Runtime Decision",
-    summary: "The actual outcome when an agent tries to act: approved, denied, or sent to a human.",
-    body: "A Runtime Decision is the record of one specific moment: an agent tried to do something, and the platform decided what happened next. There are exactly three outcomes: Approved (it matched an active rule cleanly), Denied (a rule explicitly forbids it), or Human Review (nothing clearly matched, so a person decides rather than the system guessing). Every decision, regardless of outcome, produces its own signed Evidence record.",
+    summary: "The actual outcome when an agent tries to act: allowed, denied, or sent to a human.",
+    body: "A Runtime Decision is the record of one specific moment: an agent tried to do something, and Runtime Authority checked it against the authority your organisation already delegated. There are exactly three outcomes: Allow (it matched an active rule cleanly), Deny (a rule explicitly forbids it), or Human Review (nothing clearly matched, so a person decides rather than the system guessing). Every decision, regardless of outcome, produces its own signed Evidence record.",
   },
   {
     id: "assurance",
     term: "Assurance",
     summary: "The at-a-glance view of whether your governance is actually working the way you think it is.",
-    body: "Assurance is where you check the platform's overall health as a governance system: how many decisions have been made, how often agents get sent to human review versus approved automatically, whether any agents are behaving unexpectedly, and whether the underlying engine itself (the rule checker, the signing system, the database) is healthy. It's built for the person who needs the summary, not the detail underneath it.",
+    body: "Assurance is where you see whether your organisation's delegated authority is actually being enforced the way you expect: how many actions were within delegated authority, how many were escalated to a human, how many fell outside it, and whether the underlying enforcement engine itself (the rule checker, the signing system, the database) is healthy. It's built for the person who needs the summary, not the detail underneath it.",
   },
 ];
 

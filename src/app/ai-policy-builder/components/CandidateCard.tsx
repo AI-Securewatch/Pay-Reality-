@@ -193,7 +193,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
         </button>
       )}
 
-      <div className="grid grid-cols-3 gap-4 mb-3 mt-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-3 mt-2">
         <div>
           <label htmlFor={`${formId}-effect`} style={labelStyle}>Effect</label>
           <select
@@ -229,6 +229,25 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           </select>
         </div>
         <div>
+          <label htmlFor={`${formId}-delegated-by`} style={labelStyle}>Delegated by</label>
+          <input
+            id={`${formId}-delegated-by`}
+            style={inputStyle}
+            placeholder="Role or person"
+            value={content.constraints.delegated_by ?? ""}
+            readOnly={readOnly}
+            onChange={(e) =>
+              setContent((c) => ({
+                ...c,
+                constraints: { ...c.constraints, delegated_by: e.target.value || null },
+              }))
+            }
+          />
+          <p style={{ fontSize: 11, color: "var(--pr-text-muted)", marginTop: 3 }}>
+            The organisational authority this rule enforces.
+          </p>
+        </div>
+        <div>
           <label htmlFor={`${formId}-owner`} style={labelStyle}>Owner</label>
           <input
             id={`${formId}-owner`}
@@ -237,8 +256,26 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
             readOnly={readOnly}
             onChange={(e) => setContent((c) => ({ ...c, metadata: { ...c.metadata, owner: e.target.value || null } }))}
           />
+          <p style={{ fontSize: 11, color: "var(--pr-text-muted)", marginTop: 3 }}>
+            Who maintains this rule, distinct from who delegated it.
+          </p>
         </div>
       </div>
+
+      <label className="flex items-center gap-2 mb-3" style={{ fontSize: 12, color: "var(--pr-text-muted)" }}>
+        <input
+          type="checkbox"
+          checked={content.constraints.evidence_required}
+          disabled={readOnly}
+          onChange={(e) =>
+            setContent((c) => ({
+              ...c,
+              constraints: { ...c.constraints, evidence_required: e.target.checked },
+            }))
+          }
+        />
+        Evidence required for every decision under this rule
+      </label>
 
       <div className="flex items-center gap-2 flex-wrap mb-3">
         {content.metadata.tags.map((t) => (

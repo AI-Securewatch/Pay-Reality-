@@ -147,9 +147,9 @@ export function AgentDirectoryPage() {
       <div className="mb-6">
         <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Agents</h1>
         <p style={{ color: "var(--pr-text-muted)", fontSize: 13, maxWidth: 640 }}>
-          Every AI agent operating under this platform, managed the same way an enterprise manages a
-          human workforce identity: registered, activated, suspended, rotated, retired, or revoked,
-          with a signed audit trail for every change.
+          Every AI worker operating under this platform, managed the same way an enterprise manages
+          a human workforce identity and delegates authority to it: registered, activated,
+          suspended, rotated, retired, or revoked, with a signed audit trail for every change.
         </p>
       </div>
 
@@ -171,7 +171,7 @@ export function AgentDirectoryPage() {
           </div>
           <div>
             <label htmlFor={`${formId}-principal`} className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
-              Acting for principal
+              Acting for principal <span style={{ fontWeight: 400, color: "var(--pr-text-disabled)" }}>(whose delegated authority it acts under)</span>
             </label>
             <select
               id={`${formId}-principal`}

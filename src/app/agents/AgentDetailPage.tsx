@@ -108,7 +108,10 @@ export function AgentDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div style={cardStyle}>
-          <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Identity</h2>
+          <h2 className="text-sm font-medium mb-1" style={{ color: "var(--pr-text-primary)" }}>Identity</h2>
+          <p className="mb-3" style={{ fontSize: 12, color: "var(--pr-text-muted)" }}>
+            Acting under {detail.principal_name ? <strong style={{ color: "var(--pr-text-secondary)" }}>{detail.principal_name}</strong> : "its principal"}'s delegated authority, the same way a human employee's actions are governed by the role they hold, not by the employee personally.
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Principal" value={detail.principal_name} />
             <Field label="Owner" value={agent.owner} />

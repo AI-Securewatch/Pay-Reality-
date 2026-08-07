@@ -61,7 +61,8 @@ export function LoginPage() {
           </h2>
           <p className="text-xs mb-5" style={{ color: "var(--pr-text-muted)" }}>
             Sign in to access PayReality. Once you're in, the Operator Key in the sidebar can still
-            grant elevated access for specific actions -- it isn't an alternative to signing in.
+            exercise authority your organisation has already delegated to specific actions --
+            it isn't an alternative to signing in, and it doesn't grant anything on its own.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

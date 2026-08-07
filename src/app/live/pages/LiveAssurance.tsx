@@ -57,9 +57,9 @@ export function LiveAssurance() {
       value: activePolicy ? `v${activePolicy.version}` : "None",
       color: activePolicy ? "var(--pr-trust-green)" : "var(--pr-warning-amber)",
     },
-    { icon: ShieldCheck, label: "Allowed", value: outcomeCounts.ALLOW ?? 0, color: "var(--pr-trust-green)" },
-    { icon: ShieldAlert, label: "Escalated to review", value: outcomeCounts.HUMAN_REVIEW ?? 0, color: "var(--pr-warning-amber)" },
-    { icon: ShieldX, label: "Denied", value: outcomeCounts.DENY ?? 0, color: "var(--pr-critical-red)" },
+    { icon: ShieldCheck, label: "Within delegated authority", value: outcomeCounts.ALLOW ?? 0, color: "var(--pr-trust-green)" },
+    { icon: ShieldAlert, label: "Escalated to a human", value: outcomeCounts.HUMAN_REVIEW ?? 0, color: "var(--pr-warning-amber)" },
+    { icon: ShieldX, label: "Outside delegated authority", value: outcomeCounts.DENY ?? 0, color: "var(--pr-critical-red)" },
   ];
 
   return (

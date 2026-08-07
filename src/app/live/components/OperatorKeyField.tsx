@@ -3,9 +3,10 @@ import { KeyRound } from "lucide-react";
 import { getOperatorKey, setOperatorKey } from "../operatorKey";
 
 // The backend requires this key for policy review/compile/activate and
-// decision-resolution calls (app/security.py::verify_operator_key). There's
-// no human login system yet, so this is the real, working credential entry
-// point for the single shared operator key, not a placeholder.
+// decision-resolution calls (app/security.py::verify_operator_key). Real
+// per-user login and RBAC now exist (RBAC.md, Phase 10), but this shared
+// operator key remains a separate, full-bypass credential for those same
+// actions -- not a placeholder, and not yet superseded.
 export function OperatorKeyField() {
   const [value, setValue] = useState(getOperatorKey());
   const [saved, setSaved] = useState(false);

@@ -59,7 +59,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
               Pay<span style={{ color: "var(--pr-warning-amber)" }}>Reality</span>
             </h1>
             <p className="text-[10px] leading-none" style={{ color: "var(--pr-text-muted)" }}>
-              Runtime Trust Platform
+              Runtime Authority
             </p>
           </div>
         </div>

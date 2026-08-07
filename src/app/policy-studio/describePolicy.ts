@@ -4,8 +4,12 @@ import type { Condition, Effect, RuntimePolicyRequest } from "./types";
 // as the literal backend enum token (PAYREALITY_UX_REVIEW.md, "Enum
 // values are shown as literal code tokens"). Used everywhere an Effect
 // or a Condition operator is displayed, not just here.
+// "Allow," not "Approve": "Approve" is reserved for the human act of
+// approving a rule itself on the Approvals screen. Using the same word
+// for a rule's own enforcement outcome collided with that different
+// concept (Platform Audit, Governance/Policy Studio section).
 export const EFFECT_LABEL: Record<Effect, string> = {
-  allow: "Approve automatically",
+  allow: "Allow automatically",
   deny: "Block",
   require_human_review: "Send to a human",
 };

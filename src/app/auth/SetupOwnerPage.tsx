@@ -15,13 +15,16 @@ function describeSetupError(e: unknown): string {
   return "Couldn't set up the account. Check your connection and try again.";
 }
 
-// The Organisation Owner account is created automatically on first boot
-// (RBAC.md), but its password only ever exists as a one-time line in the
-// deploy log -- there was no way for a real person to actually retrieve
-// it or create their own login. This page is that missing path: anyone
-// who holds the Operator Key (already a full administrative credential
-// everywhere else in this platform) can use it here to set the Owner's
-// real email and password, once or again later if it's ever lost.
+// The Organisation Owner role is established automatically on first boot
+// (RBAC.md) -- the organisation's own deployment already designates it,
+// the same way an org chart designates a role before a specific person
+// is hired into it. But the Owner account's password only ever existed
+// as a one-time line in the deploy log, with no way for a real person to
+// actually retrieve it or create their own login. This page is that
+// missing path: the Operator Key lets whoever holds it securely claim
+// the Owner role the organisation already established, with their own
+// email and password. The key is a secure way to exercise that
+// pre-existing authority, not the source of it.
 export function SetupOwnerPage() {
   const formId = useId();
   const { login } = useAuth();
@@ -81,9 +84,11 @@ export function SetupOwnerPage() {
             Set up your account
           </h2>
           <p className="text-xs mb-5" style={{ color: "var(--pr-text-muted)" }}>
-            The Operator Key is the same credential the sidebar's "Operator Key" field asks for --
-            whoever holds it already has full administrative access to this platform. Use it once here
-            to become the Organisation Owner with your own email and password.
+            The Operator Key is the same credential the sidebar's "Operator Key" field asks for.
+            Your organisation already established the Owner role when this platform was deployed;
+            holding the Operator Key lets you securely claim that existing role with your own
+            email and password. It doesn't grant you anything the deployment didn't already
+            authorise.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

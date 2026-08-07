@@ -81,18 +81,18 @@ export function PlatformOverview() {
         <div className="flex items-center gap-2 mb-4">
           <Shield className="w-4 h-4" style={{ color: "var(--pr-authority-blue)" }} />
           <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--pr-authority-blue)" }}>
-            Runtime Trust Platform
+            Enterprise AI Authority Infrastructure
           </span>
         </div>
         <h1 className="text-4xl font-bold mb-4" style={{ color: "var(--pr-text-primary)" }}>
-          Is this AI authorised to execute this action?
+          Does this AI agent's action fall within the authority your organization already delegated?
         </h1>
         <p className="text-lg max-w-2xl mb-2" style={{ color: "var(--pr-text-secondary)" }}>
-          PayReality is Enterprise Trust Infrastructure for autonomous AI. Every enterprise already
-          knows how to delegate authority to people. This platform makes that authority
-          machine-enforceable: every AI action is evaluated against your actual policy,
-          deterministically, before it executes, and every decision produces evidence you can
-          verify independently.
+          PayReality is Enterprise AI Authority Infrastructure: Runtime Authority checks every AI
+          action against the authority your organization has already delegated, before it
+          executes. Every enterprise already knows how to delegate authority to people; this
+          platform makes that authority machine-enforceable, deterministically, and every decision
+          produces evidence you can verify independently.
         </p>
         <p className="text-sm max-w-2xl mb-8" style={{ color: "var(--pr-text-muted)" }}>
           Not a model's judgment call. A rule, evaluated the same way every time, fail-closed by
@@ -105,7 +105,7 @@ export function PlatformOverview() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-90"
             style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
           >
-            Show me what your agents are allowed to do
+            See what your organization has already authorized
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link

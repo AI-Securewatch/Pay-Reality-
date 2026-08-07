@@ -54,10 +54,18 @@ export function AIPolicyBuilderUploadPage() {
   return (
     <div className="p-8 max-w-3xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>AI Policy Builder</h1>
-      <p style={{ color: "var(--pr-text-muted)", fontSize: 13, marginBottom: 16, maxWidth: 560 }}>
+      <p style={{ color: "var(--pr-text-muted)", fontSize: 13, marginBottom: 8, maxWidth: 560 }}>
         Upload an enterprise authority document (PDF, Word, Excel, CSV, or plain text). It is analyzed
         into candidate Runtime Policies, each with a confidence score and any fields the model could
         not determine highlighted. Nothing is created until you review and promote a candidate.
+      </p>
+      <p style={{ color: "var(--pr-text-disabled)", fontSize: 12, marginBottom: 16, maxWidth: 560 }}>
+        For most organisations, start with the{" "}
+        <Link to="/governance/authority-builder" style={{ color: "var(--pr-authority-blue)" }}>
+          Authority Builder
+        </Link>{" "}
+        instead: it reconciles multiple documents together and models your organisation's actual
+        delegation chains. Use this single-document tool only for a quick one-off extraction.
       </p>
 
       {!aiEnabled && <AiComingSoonBanner />}
