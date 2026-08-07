@@ -15,8 +15,9 @@ from app.db.models import (
     AuthorityRelationship,
     AuthorityResource,
 )
+from app.db.models import Organization
 from app.db.session import get_db
-from app.dependencies import require_permission
+from app.dependencies import get_current_organization, require_permission
 from app.domain.ai_authority_builder.claude_provider import ClaudeAuthorityGraphExtractionProvider
 from app.domain.ai_authority_builder.fake_provider import FakeAuthorityGraphExtractionProvider
 from app.domain.ai_policy_builder.text_extraction import UnsupportedFormatError, detect_format
@@ -28,14 +29,26 @@ from app.schemas.ai_authority_builder import (
     GapResponse,
     GraphSummaryResponse,
     OperationResponse,
+    PrincipalCandidateResponse,
     PrincipalResponse,
     ProviderStatusResponse,
     QuestionResponse,
     RelationshipResponse,
+    ResolvePrincipalRequest,
     ResourceResponse,
 )
 from app.services import ai_authority_builder_service as svc
-from app.services.ai_authority_builder_service import CorpusNotFoundError, QuestionNotFoundError
+from app.services.ai_authority_builder_service import (
+    AlreadyResolvedError,
+    AuthorityPrincipalNotFoundError,
+    AuthorityRelationshipNotFoundError,
+    CorpusNotFoundError,
+    CrossOrganizationMatchError,
+    PrincipalNotFoundError,
+    QuestionNotFoundError,
+    RelationshipNotResolvableError,
+    RelationshipNotResolvedError,
+)
 
 router = APIRouter(prefix="/v1/ai-authority-builder", tags=["ai-authority-builder"])
 
@@ -61,6 +74,7 @@ def _principal_to_response(p: AuthorityPrincipal) -> PrincipalResponse:
     return PrincipalResponse(
         id=str(p.id), name=p.name, role=p.role, reports_to=p.reports_to, confidence=p.confidence,
         source_excerpt=p.source_excerpt, source_location=p.source_location,
+        resolved_principal_id=str(p.resolved_principal_id) if p.resolved_principal_id else None,
     )
 
 
@@ -83,6 +97,9 @@ def _relationship_to_response(r: AuthorityRelationship) -> RelationshipResponse:
         id=str(r.id), kind=r.kind, from_principal=r.from_principal, to_principal=r.to_principal,
         description=r.description, confidence=r.confidence,
         source_excerpt=r.source_excerpt, source_location=r.source_location,
+        from_principal_id=str(r.from_principal_id) if r.from_principal_id else None,
+        to_principal_id=str(r.to_principal_id) if r.to_principal_id else None,
+        status=r.status,
     )
 
 
@@ -113,12 +130,24 @@ def get_status():
     "/corpora", response_model=CorpusResponse, status_code=201,
     dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
-async def create_corpus(files: list[UploadFile], name: str = Form(...), db: Session = Depends(get_db)):
+async def create_corpus(
+    files: list[UploadFile],
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+    organization: Organization = Depends(get_current_organization),
+):
     """AI_AUTHORITY_BUILDER_ARCHITECTURE.md: every file in `files` is
     treated as one Authority Corpus and analyzed together, never
     document-by-document. Extraction runs synchronously, the same
-    choice every extraction pipeline in this platform already makes."""
-    corpus = svc.create_corpus(db, name=name)
+    choice every extraction pipeline in this platform already makes.
+
+    Authority-as-a-continuous-object, Stage E: the corpus is now scoped
+    to the caller's organisation (get_current_organization already
+    supports the Operator Key, session, and API-key paths identically to
+    require_permission above). Everything discovered from it inherits
+    that scope, which is what makes Principal resolution below safe to
+    do automatically within an organisation and never across one."""
+    corpus = svc.create_corpus(db, name=name, organization_id=organization.id)
 
     documents = []
     for file in files:
@@ -178,6 +207,61 @@ def get_principals(corpus_id: uuid.UUID, db: Session = Depends(get_db)):
     return [_principal_to_response(p) for p in svc.list_principals(db, corpus_id)]
 
 
+@router.get(
+    "/principals/{authority_principal_id}/candidates",
+    response_model=list[PrincipalCandidateResponse],
+)
+def get_principal_candidates(authority_principal_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Stage E's reviewer workflow, step one: suggest, never apply.
+    Empty list is a completely valid, common answer -- it means no
+    existing Principal in this organisation matches by name, and the
+    reviewer's next step is naturally 'create' rather than 'match'."""
+    try:
+        candidates = svc.find_principal_candidates(db, authority_principal_id)
+    except AuthorityPrincipalNotFoundError:
+        raise HTTPException(status_code=404, detail="authority_principal_not_found")
+    return [
+        PrincipalCandidateResponse(
+            id=str(c.id), name=c.name, role=c.role,
+            organization_id=str(c.organization_id) if c.organization_id else None,
+        )
+        for c in candidates
+    ]
+
+
+@router.post(
+    "/principals/{authority_principal_id}/resolve",
+    response_model=PrincipalResponse,
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
+)
+def resolve_principal(
+    authority_principal_id: uuid.UUID, body: ResolvePrincipalRequest, db: Session = Depends(get_db)
+):
+    """Stage E's reviewer workflow, step two: the only code path allowed
+    to populate resolved_principal_id. Gated the same way promoting a
+    candidate Rule already is -- this is the same kind of consequential,
+    reviewed action."""
+    try:
+        principal_id = uuid.UUID(body.principal_id) if body.principal_id else None
+        principal = svc.resolve_principal(
+            db, authority_principal_id, action=body.action,
+            principal_id=principal_id, name=body.name, role=body.role,
+        )
+    except AuthorityPrincipalNotFoundError:
+        raise HTTPException(status_code=404, detail="authority_principal_not_found")
+    except PrincipalNotFoundError:
+        raise HTTPException(status_code=404, detail="principal_not_found")
+    except AlreadyResolvedError:
+        raise HTTPException(status_code=409, detail="already_resolved")
+    except CrossOrganizationMatchError:
+        raise HTTPException(status_code=409, detail="cross_organization_match")
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    discovery = db.get(AuthorityPrincipal, authority_principal_id)
+    return _principal_to_response(discovery)
+
+
 @router.get("/corpora/{corpus_id}/resources", response_model=list[ResourceResponse])
 def get_resources(corpus_id: uuid.UUID, db: Session = Depends(get_db)):
     return [_resource_to_response(r) for r in svc.list_resources(db, corpus_id)]
@@ -191,6 +275,43 @@ def get_operations(corpus_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.get("/corpora/{corpus_id}/relationships", response_model=list[RelationshipResponse])
 def get_relationships(corpus_id: uuid.UUID, db: Session = Depends(get_db)):
     return [_relationship_to_response(r) for r in svc.list_relationships(db, corpus_id)]
+
+
+@router.post(
+    "/relationships/{relationship_id}/resolve",
+    response_model=RelationshipResponse,
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
+)
+def resolve_relationship(relationship_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Stage F, step one: mechanically derive from_principal_id/
+    to_principal_id from Principals already resolved in Stage E. Safe to
+    call more than once as more of a corpus's people get resolved."""
+    try:
+        relationship = svc.resolve_relationship(db, relationship_id)
+    except AuthorityRelationshipNotFoundError:
+        raise HTTPException(status_code=404, detail="relationship_not_found")
+    except RelationshipNotResolvableError:
+        raise HTTPException(status_code=409, detail="neither_party_resolved_yet")
+    return _relationship_to_response(relationship)
+
+
+@router.post(
+    "/relationships/{relationship_id}/activate",
+    response_model=RelationshipResponse,
+    dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
+)
+def activate_relationship(relationship_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Stage F, step two: the explicit decision that a resolved
+    delegation should actually govern live enforcement. Only after this
+    does authority_context_service start returning this edge as an
+    active inbound delegation."""
+    try:
+        relationship = svc.activate_relationship(db, relationship_id)
+    except AuthorityRelationshipNotFoundError:
+        raise HTTPException(status_code=404, detail="relationship_not_found")
+    except RelationshipNotResolvedError:
+        raise HTTPException(status_code=409, detail="relationship_not_resolved")
+    return _relationship_to_response(relationship)
 
 
 @router.get("/corpora/{corpus_id}/conflicts", response_model=list[ConflictResponse])

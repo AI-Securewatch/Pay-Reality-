@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db.models import Agent
+from app.db.models import Agent, User
 from app.db.session import get_db
-from app.dependencies import require_permission, verify_agent_signature
+from app.dependencies import get_current_user_if_session, require_permission, verify_agent_signature
 from app.domain.auth.signature import check_timestamp_window
 from app.domain.rbac.permissions import Permission
 from app.schemas.intent import (
@@ -82,6 +82,7 @@ def submit_intent(
             outcome=decision.outcome,
             decision_id=decision.id,
             evaluated_mandates=decision.evaluated_mandates or [],
+            evaluated_mandate_ids=decision.evaluated_mandate_ids or [],
             reason=decision.reason,
         ),
         evidence_id=evidence.id,
@@ -123,6 +124,7 @@ def get_decision(decision_id: UUID, db: Session = Depends(get_db)):
         amount=float(intent.amount),
         currency=intent.currency,
         evaluated_mandates=decision.evaluated_mandates or [],
+        evaluated_mandate_ids=decision.evaluated_mandate_ids or [],
         resolution=resolution,
     )
 
@@ -133,12 +135,22 @@ def get_decision(decision_id: UUID, db: Session = Depends(get_db)):
     dependencies=[Depends(require_permission(Permission.DECISIONS_RESOLVE))],
 )
 def resolve_decision(
-    decision_id: UUID, body: ResolveDecisionRequest, db: Session = Depends(get_db)
+    decision_id: UUID,
+    body: ResolveDecisionRequest,
+    db: Session = Depends(get_db),
+    session_user: User | None = Depends(get_current_user_if_session),
 ):
     """The Phase 1 addition (see plan's 'The one addition: resolving
     HUMAN_REVIEW'). Gated by permission (RBAC.md) so not anyone can resolve
-    a review; resolved_by is still a free-text identity string until a
-    later phase ties it to the resolving User directly."""
+    a review.
+
+    Authority-as-a-continuous-object, Stage D: `resolved_by` (free text)
+    is still the field every existing reader displays, and the caller can
+    still send whatever name they like there. Where the request actually
+    carried a real session (not the Operator Key, not a bare API key),
+    `resolved_by_user_id` now also records the exact, authenticated User
+    who clicked, so the audit trail can't diverge from who was actually
+    permitted to act."""
     if body.resolution not in ("approved", "denied"):
         raise HTTPException(status_code=422, detail="invalid_resolution")
 
@@ -149,6 +161,7 @@ def resolve_decision(
             resolution=body.resolution,
             resolved_by=body.resolved_by,
             reason=body.reason,
+            resolved_by_user_id=session_user.id if session_user else None,
         )
     except DecisionNotFoundError:
         raise HTTPException(status_code=404, detail="decision_not_found")

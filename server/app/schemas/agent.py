@@ -9,15 +9,31 @@ class CreatePrincipalRequest(BaseModel):
     normally created implicitly during document onboarding (spec 8.2's
     lifecycle: "Created when a DoA document is onboarded"). This endpoint is
     a Phase 1 convenience so an Agent/Mandate can be bootstrapped and tested
-    before any document has been uploaded and reviewed."""
+    before any document has been uploaded and reviewed.
+
+    Authority-as-a-continuous-object, Stage B: role and the organisational
+    hierarchy are additive and optional. Every existing caller sending only
+    `name` keeps working exactly as before; these fields exist so a
+    Principal can actually carry the organisational identity the rest of
+    the platform's copy already claims it does."""
 
     name: str
+    role: str | None = None
+    organization_id: UUID | None = None
+    business_unit_id: UUID | None = None
+    department_id: UUID | None = None
+    team_id: UUID | None = None
 
 
 class PrincipalResponse(BaseModel):
     id: UUID
     name: str
     created_at: datetime
+    role: str | None = None
+    organization_id: UUID | None = None
+    business_unit_id: UUID | None = None
+    department_id: UUID | None = None
+    team_id: UUID | None = None
 
     model_config = {"from_attributes": True}
 

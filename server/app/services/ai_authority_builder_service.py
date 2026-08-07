@@ -11,7 +11,7 @@ operate on.
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -25,6 +25,7 @@ from app.db.models import (
     AuthorityRelationship,
     AuthorityResource,
     PolicyExtractionCandidate,
+    Principal,
 )
 from app.domain.ai_authority_builder.provider import AuthorityGraph, AuthorityGraphExtractionProvider
 from app.domain.ai_policy_builder.text_extraction import extract_text
@@ -39,8 +40,41 @@ class QuestionNotFoundError(Exception):
     pass
 
 
-def create_corpus(db: Session, name: str) -> AuthorityCorpus:
-    corpus = AuthorityCorpus(id=uuid.uuid4(), name=name, status="uploaded")
+class AuthorityPrincipalNotFoundError(Exception):
+    pass
+
+
+class AlreadyResolvedError(Exception):
+    """Stage E's 'never overwrite existing Principals automatically':
+    once a discovery has a resolved_principal_id, resolving it again is
+    refused rather than silently replacing the link. A reviewer who
+    genuinely wants to change it must be an explicit, separate action
+    this service does not yet expose, deliberately -- the audit's
+    ownership of that decision matters more than the convenience."""
+
+
+class PrincipalNotFoundError(Exception):
+    pass
+
+
+class CrossOrganizationMatchError(Exception):
+    """Fail-closed, matching AuthorityRelationship's own
+    cross_org_approved precedent (PHASE_1_AUTHORITY_MODEL.md): a
+    discovery from one organisation's corpus is never silently matched
+    to a Principal belonging to a different organisation."""
+
+
+def create_corpus(
+    db: Session, name: str, organization_id: uuid.UUID | None = None
+) -> AuthorityCorpus:
+    # Authority-as-a-continuous-object, Stage E: organization_id is what
+    # scopes every later resolution (Principal matching, and eventually
+    # Authority/Mandate creation) to the right tenant. Optional so any
+    # caller that predates this change keeps working, but the router now
+    # always supplies it via get_current_organization.
+    corpus = AuthorityCorpus(
+        id=uuid.uuid4(), name=name, status="uploaded", organization_id=organization_id
+    )
     db.add(corpus)
     db.commit()
     db.refresh(corpus)
@@ -223,3 +257,176 @@ def answer_question(db: Session, question_id: uuid.UUID, answer: str) -> Authori
     db.commit()
     db.refresh(question)
     return question
+
+
+# --- Stage E: Principal Resolution ------------------------------------
+#
+# AuthorityPrincipal is a discovery: a name, a role, a reporting line,
+# extracted from a real document and cited to it, but by design (see the
+# model's own docstring, AI_AUTHORITY_BUILDER_ARCHITECTURE.md) not a
+# first-class identity. This section is the resolver that was designed
+# for but never built: match the discovery against a real Principal
+# already in this organisation, or, if the reviewer confirms none
+# exists, create one. Nothing here is automatic. A discovery's
+# resolved_principal_id is only ever set by an explicit reviewer action.
+
+
+def _get_authority_principal(db: Session, authority_principal_id: uuid.UUID) -> AuthorityPrincipal:
+    row = db.get(AuthorityPrincipal, authority_principal_id)
+    if row is None:
+        raise AuthorityPrincipalNotFoundError(str(authority_principal_id))
+    return row
+
+
+def find_principal_candidates(
+    db: Session, authority_principal_id: uuid.UUID
+) -> list[Principal]:
+    """Suggests, never applies. A case-insensitive name match within the
+    discovery's own corpus organisation (or, if the corpus predates
+    Stage E and has no organisation, among Principals that likewise have
+    none set) -- exactly the same fail-closed posture
+    AuthorityRelationship's cross_org_approved already established for
+    the analogous problem."""
+    discovery = _get_authority_principal(db, authority_principal_id)
+    corpus = db.get(AuthorityCorpus, discovery.corpus_id)
+    organization_id = corpus.organization_id if corpus else None
+
+    stmt = select(Principal).where(func.lower(Principal.name) == discovery.name.strip().lower())
+    stmt = stmt.where(Principal.organization_id == organization_id)
+    return list(db.scalars(stmt))
+
+
+def resolve_principal(
+    db: Session,
+    authority_principal_id: uuid.UUID,
+    action: str,
+    principal_id: uuid.UUID | None = None,
+    name: str | None = None,
+    role: str | None = None,
+) -> Principal:
+    """The reviewer's confirmed decision, and the only code path allowed
+    to set resolved_principal_id. `action="match"` links to an existing
+    Principal (rejecting a cross-organisation match, fail-closed).
+    `action="create"` makes a new, real Principal from this discovery,
+    inheriting the corpus's organisation and this discovery's role
+    unless the reviewer overrides either."""
+    discovery = _get_authority_principal(db, authority_principal_id)
+    if discovery.resolved_principal_id is not None:
+        raise AlreadyResolvedError(str(authority_principal_id))
+
+    corpus = db.get(AuthorityCorpus, discovery.corpus_id)
+    organization_id = corpus.organization_id if corpus else None
+
+    if action == "match":
+        if principal_id is None:
+            raise ValueError("principal_id is required to match an existing Principal")
+        principal = db.get(Principal, principal_id)
+        if principal is None:
+            raise PrincipalNotFoundError(str(principal_id))
+        if principal.organization_id is not None and principal.organization_id != organization_id:
+            raise CrossOrganizationMatchError(
+                f"principal {principal_id} belongs to a different organisation than this corpus"
+            )
+    elif action == "create":
+        principal = Principal(
+            name=(name or discovery.name),
+            role=(role or discovery.role),
+            organization_id=organization_id,
+        )
+        db.add(principal)
+        db.flush()
+    else:
+        raise ValueError(f"unknown resolution action: {action!r}")
+
+    discovery.resolved_principal_id = principal.id
+    db.commit()
+    db.refresh(principal)
+    return principal
+
+
+# --- Stage F: Delegated Authority Resolution --------------------------
+#
+# AuthorityRelationship already carries from_principal_id/to_principal_id
+# (PHASE_1_AUTHORITY_MODEL.md); nothing in the codebase has ever written
+# to them. This section finishes that design: once the people on both
+# ends of a discovered relationship have themselves been resolved to
+# real Principals (Stage E), the relationship's own FKs can be derived
+# mechanically -- no new judgement is being made, only propagating a
+# judgement a reviewer already confirmed. Making the relationship
+# actually count in live enforcement (status "proposed" -> "active") is
+# kept a separate, explicit step.
+
+
+class AuthorityRelationshipNotFoundError(Exception):
+    pass
+
+
+class RelationshipNotResolvableError(Exception):
+    """Raised when one or both named parties have no corresponding,
+    already-resolved AuthorityPrincipal in the same corpus yet. The
+    caller should resolve those Principals first (Stage E) rather than
+    this function guessing or inferring a match on its own."""
+
+
+class RelationshipNotResolvedError(Exception):
+    """Raised by activate_relationship: a relationship's FKs must be
+    resolved before it can be activated. Prevents a delegation with an
+    unknown party from ever silently becoming live."""
+
+
+def _match_resolved_principal_id(
+    db: Session, corpus_id: uuid.UUID, name: str
+) -> uuid.UUID | None:
+    stmt = (
+        select(AuthorityPrincipal)
+        .where(AuthorityPrincipal.corpus_id == corpus_id)
+        .where(func.lower(AuthorityPrincipal.name) == name.strip().lower())
+        .where(AuthorityPrincipal.resolved_principal_id.is_not(None))
+    )
+    match = db.scalar(stmt)
+    return match.resolved_principal_id if match else None
+
+
+def resolve_relationship(
+    db: Session, relationship_id: uuid.UUID
+) -> AuthorityRelationship:
+    """Derives from_principal_id/to_principal_id from already-resolved
+    AuthorityPrincipal rows in the same corpus. Idempotent and safe to
+    call repeatedly, including before both sides are resolvable -- it
+    fills in whichever side it can and leaves the other null rather than
+    failing outright, so resolving principals one at a time still makes
+    incremental progress visible."""
+    relationship = db.get(AuthorityRelationship, relationship_id)
+    if relationship is None:
+        raise AuthorityRelationshipNotFoundError(str(relationship_id))
+
+    from_id = _match_resolved_principal_id(db, relationship.corpus_id, relationship.from_principal)
+    to_id = _match_resolved_principal_id(db, relationship.corpus_id, relationship.to_principal)
+
+    if from_id is None and to_id is None:
+        raise RelationshipNotResolvableError(str(relationship_id))
+
+    if from_id is not None:
+        relationship.from_principal_id = from_id
+    if to_id is not None:
+        relationship.to_principal_id = to_id
+    db.commit()
+    db.refresh(relationship)
+    return relationship
+
+
+def activate_relationship(db: Session, relationship_id: uuid.UUID) -> AuthorityRelationship:
+    """The explicit reviewer decision that a resolved delegation should
+    actually govern live enforcement. Only once this runs does
+    authority_context_service._active_inbound_delegations start
+    returning this edge -- resolving names into ids and deciding the
+    delegation is real are kept deliberately separate."""
+    relationship = db.get(AuthorityRelationship, relationship_id)
+    if relationship is None:
+        raise AuthorityRelationshipNotFoundError(str(relationship_id))
+    if relationship.from_principal_id is None or relationship.to_principal_id is None:
+        raise RelationshipNotResolvedError(str(relationship_id))
+    relationship.status = "active"
+    db.commit()
+    db.refresh(relationship)
+    return relationship

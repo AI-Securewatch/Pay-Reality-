@@ -25,6 +25,11 @@ class DecisionSummary(BaseModel):
     outcome: str
     decision_id: UUID
     evaluated_mandates: list[str]
+    # Authority-as-a-continuous-object, Stage H: real Mandate row ids,
+    # additive alongside the legacy `evaluated_mandates` policy_key list
+    # above -- empty whenever none of the matched policies have a
+    # Stage-G-created Mandate yet.
+    evaluated_mandate_ids: list[str] = []
     reason: str | None = None
 
 
@@ -70,4 +75,5 @@ class GetDecisionResponse(BaseModel):
     amount: float
     currency: str
     evaluated_mandates: list[str]
+    evaluated_mandate_ids: list[str] = []
     resolution: ResolutionSummary | None = None

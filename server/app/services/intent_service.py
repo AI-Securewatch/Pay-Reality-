@@ -6,12 +6,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db.models import Agent, Certificate, Decision, Evidence, Intent, Policy, Principal
+from app.db.models import Agent, Certificate, Decision, Evidence, Intent, Mandate, Policy, Principal
 from app.domain.time_utils import to_utc_iso
 from app.domain.decision import engine as decision_engine
 from app.domain.decision.scope_vocabulary import is_recognized_scope
 from app.domain.evidence.signing import payload_hash, sign_payload
 from app.opa_client import HttpOpaClient
+from app.services import runtime_policy_service
 from app.services.authority_context_service import classify_risk, resolve_runtime_authority_context
 
 
@@ -74,6 +75,10 @@ def _build_evidence_payload(
     risk_classification: str,
     approver: str | None,
     previous_hash: str | None,
+    principal_id: uuid.UUID | None = None,
+    authority_context: dict | None = None,
+    mandate_ids: list[str] | None = None,
+    authority_ids: list[str] | None = None,
 ) -> dict:
     """spec 17.1's Evidence payload shape, adapted to Phase 1's fields.
 
@@ -83,8 +88,27 @@ def _build_evidence_payload(
     records never had this field at all -- absence of payload_version
     is itself how a reader identifies a pre-chaining record; this is
     never retroactively added to them, and their signature/verification
-    story is completely unaffected by this change."""
-    return {
+    story is completely unaffected by this change.
+
+    Authority-as-a-continuous-object, Stage C: `principal_id` and
+    `authority_context` are the exact values `submit_intent` already
+    resolves via `resolve_runtime_authority_context` before querying OPA
+    (PHASE_2_RUNTIME_CONTEXT.md) -- nothing here is recomputed. Both are
+    optional and default to None so the two call sites that reject an
+    Intent before a Principal is ever resolved (suspended agent,
+    unrecognized action) are completely unaffected. `payload_version`
+    stays 2: this is an additive key on the same version, not a new
+    payload shape a verifier needs to branch on.
+
+    Authority-as-a-continuous-object, Stage H: `matched_mandate_ids`
+    (legacy, spec 17.1's original name) keeps storing the matched
+    RuntimePolicy policy_key strings unchanged, exactly as every
+    existing reader already expects -- despite the name, it was never
+    real Mandate ids. `mandate_ids`/`authority_ids` are the new,
+    additive fields carrying real Mandate/Authority row ids, present
+    only once Stage G has actually created them for at least one
+    matched policy."""
+    payload = {
         "payload_version": 2,
         "decision_id": str(decision_id),
         "agent_id": str(agent_id),
@@ -98,6 +122,21 @@ def _build_evidence_payload(
         "recorded_at": datetime.now(timezone.utc).isoformat(),
         "previous_hash": previous_hash,
     }
+    if principal_id is not None:
+        payload["principal_id"] = str(principal_id)
+    if authority_context is not None:
+        payload["authority_context"] = authority_context
+        # Surfaced as its own top-level key, not buried inside
+        # authority_context, since "why was this allowed" is the single
+        # highest-value field on this record and readers of Evidence
+        # shouldn't have to know the enrichment dict's internal shape to
+        # find it.
+        payload["delegation_chain"] = authority_context.get("delegations", [])
+    if mandate_ids:
+        payload["evaluated_mandate_ids"] = list(mandate_ids)
+    if authority_ids:
+        payload["authority_ids"] = list(authority_ids)
+    return payload
 
 
 def _resolve_chain_scope(db: Session, agent_id: uuid.UUID) -> uuid.UUID | None:
@@ -135,6 +174,23 @@ def _evidence_status_for_outcome(outcome: str) -> str:
     )
 
 
+def _resolve_authority_ids_for_mandates(db: Session, mandate_ids: list[str]) -> list[str]:
+    """Authority-as-a-continuous-object, Stage H: Mandate is the
+    canonical authority object, so its own `authority_id` FK is the
+    single source of truth for "why was this allowed" -- never
+    recomputed independently, always read back from the real Mandate
+    row a matched policy already referenced."""
+    authority_ids: list[str] = []
+    for mandate_id in mandate_ids:
+        try:
+            mandate = db.get(Mandate, uuid.UUID(mandate_id))
+        except ValueError:
+            continue
+        if mandate is not None and str(mandate.authority_id) not in authority_ids:
+            authority_ids.append(str(mandate.authority_id))
+    return authority_ids
+
+
 def append_evidence(
     db: Session,
     decision_id: uuid.UUID,
@@ -146,9 +202,13 @@ def append_evidence(
     approval_outcome: str | None = None,
     approver: str | None = None,
     status: str = "PENDING",
+    principal_id: uuid.UUID | None = None,
+    authority_context: dict | None = None,
+    mandate_ids: list[str] | None = None,
 ) -> Evidence:
     organization_id = _resolve_chain_scope(db, agent_id)
     previous_hash = _previous_chain_hash(db, organization_id)
+    authority_ids = _resolve_authority_ids_for_mandates(db, mandate_ids) if mandate_ids else []
     payload = _build_evidence_payload(
         decision_id,
         agent_id,
@@ -160,6 +220,10 @@ def append_evidence(
         classify_risk(amount),
         approver,
         previous_hash,
+        principal_id=principal_id,
+        authority_context=authority_context,
+        mandate_ids=mandate_ids,
+        authority_ids=authority_ids,
     )
     signature = sign_payload(
         payload, settings.evidence_signing_key_b64, settings.evidence_signing_key_id
@@ -313,12 +377,19 @@ def submit_intent(
     )
 
     policy_id = uuid.UUID(engine_decision.policy_id) if engine_decision.policy_id else None
+    # Authority-as-a-continuous-object, Stage H: `evaluated_mandates`
+    # (legacy) keeps storing the matched RuntimePolicy policy_key
+    # strings exactly as before -- `evaluated_mandate_ids` is the new,
+    # additive column resolving those same keys to real Mandate row ids
+    # wherever Stage G has actually created one.
+    mandate_ids = runtime_policy_service.resolve_mandate_ids(db, engine_decision.evaluated_mandates)
     decision = Decision(
         intent_id=intent.id,
         policy_id=policy_id,
         outcome=engine_decision.outcome,
         reason=engine_decision.reason,
         evaluated_mandates=engine_decision.evaluated_mandates,
+        evaluated_mandate_ids=mandate_ids,
     )
     db.add(decision)
     db.flush()
@@ -332,6 +403,13 @@ def submit_intent(
         engine_decision.evaluated_mandates,
         decision.outcome,
         status=_evidence_status_for_outcome(decision.outcome),
+        # Authority-as-a-continuous-object, Stage C: the exact Principal
+        # and authority_context already resolved above for the OPA query
+        # itself, carried into Evidence instead of being discarded once
+        # the decision is made. Nothing here is recomputed.
+        principal_id=principal.id if principal else None,
+        authority_context=authority_context,
+        mandate_ids=mandate_ids,
     )
     db.commit()
     db.refresh(intent)

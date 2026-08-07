@@ -19,10 +19,16 @@ here, not just a documented intent.
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import PolicyExtractionCandidate, PolicyExtractionUpload
+from app.db.models import (
+    Authority,
+    AuthorityPrincipal,
+    Principal,
+    PolicyExtractionCandidate,
+    PolicyExtractionUpload,
+)
 from app.domain.ai_policy_builder.provider import CandidateRuntimePolicy, RuntimePolicyExtractionProvider
 from app.domain.ai_policy_builder.text_extraction import extract_text
 from app.domain.runtime_policy.conditions import Condition, ConditionSet, Operator
@@ -192,13 +198,18 @@ def dismiss_candidate(db: Session, candidate_id: uuid.UUID) -> PolicyExtractionC
     return row
 
 
-def build_runtime_policy_from_candidate(content: dict) -> RuntimePolicy:
+def build_runtime_policy_from_candidate(content: dict, authority_id: str | None = None) -> RuntimePolicy:
     """RUNTIME_POLICY_MAPPING.md's "stored candidate content -> RuntimePolicy"
     table. Stamps a fresh AuditTrail(created=now()) up front: the exact
     field whose omission caused a real, since-fixed production bug in
     Policy Studio's own create path (see the commit that added the
     from_dict() partial-audit-merge regression test); this construction
-    gets it right from the start."""
+    gets it right from the start.
+
+    Authority-as-a-continuous-object, Stage G: `authority_id`, when the
+    caller (promote_candidate) resolved one, is stamped onto the new
+    policy's constraints alongside the existing free-text `delegated_by`
+    -- never instead of it."""
     scope_data = content["scope"]
     constraints_data = content.get("constraints") or {}
     metadata_data = content.get("metadata") or {}
@@ -228,6 +239,7 @@ def build_runtime_policy_from_candidate(content: dict) -> RuntimePolicy:
             expires=None,
             evidence_required=constraints_data.get("evidence_required", True),
             risk_level=risk_level,
+            authority_id=authority_id,
         ),
         metadata=Metadata(
             owner=metadata_data.get("owner"),
@@ -238,7 +250,79 @@ def build_runtime_policy_from_candidate(content: dict) -> RuntimePolicy:
     )
 
 
-def promote_candidate(db: Session, candidate_id: uuid.UUID):
+def _infer_amount_limit(content: dict) -> float | None:
+    """Reads a real upper-bound already present in the candidate's own
+    conditions (an `amount` field compared with `<` or `<=`), never a
+    guess. None, honestly, when no such condition exists -- the
+    resulting Authority simply has no stated limit_amount, exactly like
+    a real Delegation of Authority clause with no dollar cap."""
+    for c in content.get("conditions", []):
+        if c.get("field") == "amount" and c.get("operator") in ("<", "<="):
+            try:
+                return float(c["value"])
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def _find_resolved_principal_for_candidate(db: Session, row: PolicyExtractionCandidate) -> Principal | None:
+    """Authority-as-a-continuous-object, Stage G: only applies to
+    candidates discovered by the AI Authority Builder (row.corpus_id is
+    set) -- the single-document AI Policy Builder has no AuthorityPrincipal
+    graph to resolve against, and correctly falls back to free text only,
+    exactly as it always has. Matches the candidate's stated
+    delegated_by (or, failing that, its scope.principal) against an
+    AuthorityPrincipal in the same corpus that a reviewer has already
+    resolved to a real Principal in Stage E -- never a fresh judgement
+    made here."""
+    if row.corpus_id is None:
+        return None
+
+    constraints_data = row.content.get("constraints") or {}
+    scope_data = row.content.get("scope") or {}
+    name = constraints_data.get("delegated_by") or scope_data.get("principal")
+    if not name:
+        return None
+
+    stmt = (
+        select(AuthorityPrincipal)
+        .where(AuthorityPrincipal.corpus_id == row.corpus_id)
+        .where(func.lower(AuthorityPrincipal.name) == name.strip().lower())
+        .where(AuthorityPrincipal.resolved_principal_id.is_not(None))
+    )
+    discovery = db.scalar(stmt)
+    if discovery is None:
+        return None
+    return db.get(Principal, discovery.resolved_principal_id)
+
+
+def _create_authority_for_candidate(
+    db: Session, row: PolicyExtractionCandidate, principal: Principal, reviewer_id: str | None
+) -> Authority:
+    """The Authority this promotion is exercising, created once, cited to
+    its corpus and to the specific candidate's own source excerpt. Marked
+    'approved' immediately: promoting a candidate is itself the reviewed,
+    explicit human action (see AUTHORITY_REVIEW's gate on this endpoint)
+    that a legacy-pipeline Authority would otherwise need a separate
+    review step for."""
+    scope_data = row.content.get("scope") or {}
+    authority = Authority(
+        corpus_id=row.corpus_id,
+        principal_id=principal.id,
+        scope=scope_data.get("action") or row.content.get("name") or "unspecified",
+        limit_amount=_infer_amount_limit(row.content),
+        currency=None,
+        source_excerpt=row.source_excerpt,
+        status="approved",
+        reviewer_id=reviewer_id,
+        reviewed_at=datetime.now(timezone.utc),
+    )
+    db.add(authority)
+    db.flush()
+    return authority
+
+
+def promote_candidate(db: Session, candidate_id: uuid.UUID, promoted_by: str | None = None):
     """AI_EXTRACTION_PIPELINE.md Stage 6. Builds the RuntimePolicy,
     validates it (domain/runtime_policy/validators.py, imported not
     modified), and on success calls the unmodified
@@ -246,12 +330,27 @@ def promote_candidate(db: Session, candidate_id: uuid.UUID):
     between the AI Policy Builder and Policy Studio. Raises
     CandidateValidationError (never silently creates an invalid draft)
     if validation fails; the candidate stays pending_review so the
-    reviewer can fix it and retry."""
+    reviewer can fix it and retry.
+
+    Authority-as-a-continuous-object, Stage G: if this candidate came
+    from the AI Authority Builder and its delegation resolves to a real,
+    already-reviewed Principal (Stage E), a real Authority row is
+    created here and referenced by the new policy's constraints.
+    authority_id. If it doesn't resolve -- a single-document Policy
+    Builder candidate, or a name that doesn't match any resolved
+    Principal -- nothing here changes: the policy is created exactly as
+    it always has been, with only the free-text delegated_by."""
     row = get_candidate(db, candidate_id)
     if row.status != "pending_review":
         raise CandidateNotPendingReviewError(f"cannot promote a candidate in status '{row.status}'")
 
-    policy = build_runtime_policy_from_candidate(row.content)
+    authority_id: str | None = None
+    principal = _find_resolved_principal_for_candidate(db, row)
+    if principal is not None:
+        authority = _create_authority_for_candidate(db, row, principal, reviewer_id=promoted_by)
+        authority_id = str(authority.id)
+
+    policy = build_runtime_policy_from_candidate(row.content, authority_id=authority_id)
     result = validate(policy)
     if not result.ok:
         raise CandidateValidationError(result)

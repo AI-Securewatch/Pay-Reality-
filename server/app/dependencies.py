@@ -91,6 +91,25 @@ def require_permission(permission: Permission):
     return _check
 
 
+def get_current_user_if_session(
+    authorization: str | None = Header(None),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Authority-as-a-continuous-object, Stage D: for routes gated by
+    `require_permission` (Operator Key OR session OR API key) that also
+    want to record *which real person* acted, not just that the caller
+    was authorized to. Returns the real User only when a human session
+    token was actually used; returns None for the Operator Key, for an
+    API key (a service credential with no single acting person), or for
+    no credential at all. Callers must keep a free-text fallback for the
+    None case -- this is additive alongside `require_permission`, never
+    a replacement for it, and never itself a gate."""
+    token = _bearer_token(authorization)
+    if token is None:
+        return None
+    return auth_service.resolve_user_for_session_token(db, token)
+
+
 def get_current_user(
     authorization: str | None = Header(None),
     db: Session = Depends(get_db),

@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.db.models import User
 from app.db.session import get_db
-from app.dependencies import require_permission
+from app.dependencies import get_current_user_if_session, require_permission
 from app.domain.compiler_v2.compiler_v2 import FINANCIAL_VOCABULARY
 from app.domain.runtime_policy.conditions import Condition, ConditionSet, Operator
 from app.domain.runtime_policy.constraints import Constraints, RiskLevel
@@ -48,8 +49,15 @@ def _opa_url() -> str:
 
 
 def _build_runtime_policy(
-    req: RuntimePolicyRequest, policy_id: str, version: int, status: PolicyStatus, audit: AuditTrail
+    req: RuntimePolicyRequest, policy_id: str, version: int, status: PolicyStatus, audit: AuditTrail,
+    preserve_authority_id: str | None = None, preserve_mandate_id: str | None = None,
 ) -> RuntimePolicy:
+    """Authority-as-a-continuous-object, Stage G: `preserve_authority_id`/
+    `preserve_mandate_id` exist because today's Policy Studio UI has no
+    field for either (Stage I is what adds one) -- if edit_policy simply
+    trusted whatever the client's RuntimePolicyRequest sent for these,
+    every edit through the existing, unmodified frontend would silently
+    erase them. When set, these always win over whatever `req` carries."""
     try:
         conditions = tuple(
             Condition(field=c.field, operator=Operator(c.operator), value=c.value)
@@ -84,6 +92,12 @@ def _build_runtime_policy(
             expires=req.constraints.expires,
             evidence_required=req.constraints.evidence_required,
             risk_level=risk_level,
+            authority_id=(
+                preserve_authority_id if preserve_authority_id is not None else req.constraints.authority_id
+            ),
+            mandate_id=(
+                preserve_mandate_id if preserve_mandate_id is not None else req.constraints.mandate_id
+            ),
         ),
         metadata=Metadata(
             owner=req.metadata.owner,
@@ -184,8 +198,11 @@ def edit_policy(policy_key: uuid.UUID, body: RuntimePolicyRequest, db: Session =
         created=datetime.fromisoformat(original_created) if original_created else now,
         modified=now,
     )
+    prior_constraints = latest.content.get("constraints") or {}
     policy = _build_runtime_policy(
-        body, policy_id=str(policy_key), version=latest.version + 1, status=PolicyStatus.DRAFT, audit=audit
+        body, policy_id=str(policy_key), version=latest.version + 1, status=PolicyStatus.DRAFT, audit=audit,
+        preserve_authority_id=prior_constraints.get("authority_id"),
+        preserve_mandate_id=prior_constraints.get("mandate_id"),
     )
     row = svc.edit_policy(db, policy_key, policy)
     return _record_to_response(row)
@@ -211,9 +228,17 @@ def submit_for_review(policy_key: uuid.UUID, db: Session = Depends(get_db)):
     response_model=RuntimePolicyResponse,
     dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
-def approve_policy(policy_key: uuid.UUID, body: ApproveRequest, db: Session = Depends(get_db)):
+def approve_policy(
+    policy_key: uuid.UUID,
+    body: ApproveRequest,
+    db: Session = Depends(get_db),
+    session_user: User | None = Depends(get_current_user_if_session),
+):
     try:
-        row = svc.approve(db, policy_key, approver=body.approver)
+        row = svc.approve(
+            db, policy_key, approver=body.approver,
+            approver_user_id=session_user.id if session_user else None,
+        )
     except RuntimePolicyNotFoundError:
         raise HTTPException(status_code=404, detail="runtime_policy_not_found")
     except InvalidTransitionError as e:
@@ -226,9 +251,17 @@ def approve_policy(policy_key: uuid.UUID, body: ApproveRequest, db: Session = De
     response_model=RuntimePolicyResponse,
     dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
-def reject_policy(policy_key: uuid.UUID, body: RejectRequest, db: Session = Depends(get_db)):
+def reject_policy(
+    policy_key: uuid.UUID,
+    body: RejectRequest,
+    db: Session = Depends(get_db),
+    session_user: User | None = Depends(get_current_user_if_session),
+):
     try:
-        row = svc.reject(db, policy_key, reviewer=body.reviewer, reason=body.reason)
+        row = svc.reject(
+            db, policy_key, reviewer=body.reviewer, reason=body.reason,
+            reviewer_user_id=session_user.id if session_user else None,
+        )
     except RuntimePolicyNotFoundError:
         raise HTTPException(status_code=404, detail="runtime_policy_not_found")
     except InvalidTransitionError as e:

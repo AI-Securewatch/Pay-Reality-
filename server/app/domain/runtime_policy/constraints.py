@@ -29,3 +29,15 @@ class Constraints:
     # Defaults to True to match today's actual unconditional behavior.
     evidence_required: bool = True
     risk_level: RiskLevel | None = None
+    # Authority-as-a-continuous-object, Stage G: `delegated_by` above
+    # stays exactly what every existing reader displays and what a
+    # reviewer can still type freely. `authority_id` is set at promotion
+    # time when the candidate's delegation resolves to a real Principal
+    # (a real `authorities` row is created citing that Principal and its
+    # source corpus). `mandate_id` is set later, at publish/deploy time,
+    # once a real Policy bundle exists for the Mandate to reference --
+    # Mandate.policy_id is NOT NULL, so a Mandate cannot exist before
+    # that moment. Both are string ids (not UUID) to match every other
+    # id already stored in this JSON-serialized dataclass.
+    authority_id: str | None = None
+    mandate_id: str | None = None

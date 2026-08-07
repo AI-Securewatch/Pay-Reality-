@@ -17,7 +17,15 @@ router = APIRouter(prefix="/v1/principals", tags=["principals"])
     dependencies=[Depends(require_permission(Permission.PRINCIPAL_MANAGE))],
 )
 def create_principal(body: CreatePrincipalRequest, db: Session = Depends(get_db)):
-    principal = agent_service.create_principal(db, name=body.name)
+    principal = agent_service.create_principal(
+        db,
+        name=body.name,
+        role=body.role,
+        organization_id=body.organization_id,
+        business_unit_id=body.business_unit_id,
+        department_id=body.department_id,
+        team_id=body.team_id,
+    )
     return principal
 
 

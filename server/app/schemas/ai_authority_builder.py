@@ -28,6 +28,33 @@ class PrincipalResponse(BaseModel):
     confidence: float
     source_excerpt: str | None
     source_location: str | None
+    # Authority-as-a-continuous-object, Stage E: None until a reviewer
+    # resolves this discovery to a real Principal (match or create).
+    resolved_principal_id: str | None = None
+
+
+class PrincipalCandidateResponse(BaseModel):
+    """A real, existing Principal that might be the same person/role this
+    discovery describes, offered as a suggestion only -- never applied
+    without a reviewer explicitly confirming via ResolvePrincipalRequest."""
+
+    id: str
+    name: str
+    role: str | None
+    organization_id: str | None
+
+
+class ResolvePrincipalRequest(BaseModel):
+    """Stage E's reviewer workflow. `action="match"` requires
+    `principal_id` (one of the candidates offered, or any other real
+    Principal id the reviewer already knows); `action="create"` makes a
+    new Principal from this discovery's own name/role, optionally
+    overridden."""
+
+    action: str  # "match" | "create"
+    principal_id: str | None = None
+    name: str | None = None
+    role: str | None = None
 
 
 class ResourceResponse(BaseModel):
@@ -57,6 +84,15 @@ class RelationshipResponse(BaseModel):
     confidence: float
     source_excerpt: str | None
     source_location: str | None
+    # Authority-as-a-continuous-object, Stage F: populated once resolution
+    # finds a matching, already-resolved Principal on each side. status
+    # stays "proposed" (the schema's own existing default) until a
+    # reviewer explicitly activates it -- resolving the names into real
+    # ids and deciding this delegation should actually govern live
+    # enforcement are two different, deliberately separate steps.
+    from_principal_id: str | None = None
+    to_principal_id: str | None = None
+    status: str = "proposed"
 
 
 class ConflictResponse(BaseModel):

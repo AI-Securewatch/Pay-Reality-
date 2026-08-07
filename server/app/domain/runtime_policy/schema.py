@@ -61,6 +61,8 @@ def to_dict(policy: RuntimePolicy) -> dict[str, Any]:
             "risk_level": policy.constraints.risk_level.value
             if policy.constraints.risk_level is not None
             else None,
+            "authority_id": policy.constraints.authority_id,
+            "mandate_id": policy.constraints.mandate_id,
         },
         "metadata": {
             "owner": policy.metadata.owner,
@@ -116,6 +118,8 @@ def from_dict(data: dict[str, Any]) -> RuntimePolicy:
             risk_level=RiskLevel(constraints_data["risk_level"])
             if constraints_data.get("risk_level")
             else None,
+            authority_id=constraints_data.get("authority_id"),
+            mandate_id=constraints_data.get("mandate_id"),
         ),
         metadata=Metadata(
             owner=metadata_data.get("owner"),
@@ -195,6 +199,8 @@ JSON_SCHEMA: dict[str, Any] = {
                     "type": ["string", "null"],
                     "enum": [r.value for r in RiskLevel] + [None],
                 },
+                "authority_id": {"type": ["string", "null"]},
+                "mandate_id": {"type": ["string", "null"]},
             },
         },
         "metadata": {

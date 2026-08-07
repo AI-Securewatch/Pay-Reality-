@@ -14,12 +14,12 @@ one; the two are not in tension.
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Agent, Policy, RuntimePolicyRecord
+from app.db.models import Agent, Authority, Mandate, Policy, RuntimePolicyRecord
 from app.domain.compiler_v2.compiler_errors import CompilerDiagnostics
 from app.domain.compiler_v2.compiler_v2 import compile_bundle
 from app.domain.compiler_v2.dry_run import DryRunResult, dry_run as run_dry_run
@@ -120,6 +120,38 @@ def get_latest(db: Session, policy_key: uuid.UUID) -> RuntimePolicyRecord:
     return row
 
 
+def resolve_mandate_ids(db: Session, policy_keys: list[str]) -> list[str]:
+    """Authority-as-a-continuous-object, Stage H: `policy_keys` is
+    decision_engine.evaluate()'s `evaluated_mandates` output -- despite
+    the name, these are RuntimePolicy policy_key strings
+    (bundle_builder.py's own `evaluated_mandates contains {policy.id}`
+    rule, where `policy.id` is a RuntimePolicy's id, i.e. its
+    policy_key), not real Mandate ids. This resolves each key's ACTIVE
+    record and reads back whatever real Mandate Stage G's
+    `_ensure_mandate` already stamped into its constraints at deploy
+    time. A RuntimePolicy deployed before Stage G existed, or one whose
+    Authority Builder principal was never resolved, simply contributes
+    nothing here -- additive, never a hard requirement."""
+    mandate_ids: list[str] = []
+    for key in policy_keys:
+        try:
+            policy_key = uuid.UUID(key)
+        except ValueError:
+            continue
+        row = db.scalar(
+            select(RuntimePolicyRecord).where(
+                RuntimePolicyRecord.policy_key == policy_key,
+                RuntimePolicyRecord.status == "active",
+            )
+        )
+        if row is None:
+            continue
+        mandate_id = (row.content.get("constraints") or {}).get("mandate_id")
+        if mandate_id and mandate_id not in mandate_ids:
+            mandate_ids.append(mandate_id)
+    return mandate_ids
+
+
 def list_versions(db: Session, policy_key: uuid.UUID) -> list[RuntimePolicyRecord]:
     rows = list(
         db.scalars(
@@ -196,7 +228,17 @@ def submit_for_review(db: Session, policy_key: uuid.UUID) -> RuntimePolicyRecord
     return row
 
 
-def approve(db: Session, policy_key: uuid.UUID, approver: str) -> RuntimePolicyRecord:
+def approve(
+    db: Session,
+    policy_key: uuid.UUID,
+    approver: str,
+    approver_user_id: uuid.UUID | None = None,
+) -> RuntimePolicyRecord:
+    """Authority-as-a-continuous-object, Stage D: `approver` (free text)
+    stays exactly what every existing reader displays. `approver_user_id`
+    is additive, populated only when the caller resolved a real session
+    user (see dependencies.get_current_user_if_session); None for the
+    Operator Key or a bare API key, both of which remain fully supported."""
     row = get_latest(db, policy_key)
     if row.status != "pending_review":
         raise InvalidTransitionError(row.status, "approve")
@@ -204,6 +246,7 @@ def approve(db: Session, policy_key: uuid.UUID, approver: str) -> RuntimePolicyR
     audit = dict(content.get("audit") or {})
     audit["approved"] = datetime.now(timezone.utc).isoformat()
     audit["approved_by"] = approver
+    audit["approved_by_user_id"] = str(approver_user_id) if approver_user_id else None
     content["audit"] = audit
     row.content = content
     row.status = "approved"
@@ -212,12 +255,31 @@ def approve(db: Session, policy_key: uuid.UUID, approver: str) -> RuntimePolicyR
     return row
 
 
-def reject(db: Session, policy_key: uuid.UUID, reviewer: str, reason: str) -> RuntimePolicyRecord:
+def reject(
+    db: Session,
+    policy_key: uuid.UUID,
+    reviewer: str,
+    reason: str,
+    reviewer_user_id: uuid.UUID | None = None,
+) -> RuntimePolicyRecord:
     row = get_latest(db, policy_key)
     if row.status != "pending_review":
         raise InvalidTransitionError(row.status, "reject")
     if not reason or not reason.strip():
         raise ValueError("a rejection reason is required")
+    # Incidental correctness fix found while wiring Stage D: neither the
+    # reviewer nor the reason this function already validates was ever
+    # persisted anywhere. Recorded the same way approve() already does,
+    # rather than adding a real identity field to an audit trail entry
+    # that didn't otherwise exist.
+    content = dict(row.content)
+    audit = dict(content.get("audit") or {})
+    audit["rejected"] = datetime.now(timezone.utc).isoformat()
+    audit["rejected_by"] = reviewer
+    audit["rejected_by_user_id"] = str(reviewer_user_id) if reviewer_user_id else None
+    audit["rejection_reason"] = reason
+    content["audit"] = audit
+    row.content = content
     row.status = "rejected"
     db.commit()
     db.refresh(row)
@@ -338,6 +400,53 @@ class DeployOutcome:
     deployed_at: datetime
 
 
+# Authority-as-a-continuous-object, Stage G: a Runtime Policy with no
+# stated Constraints.expires is not meant to lapse on its own -- its own
+# draft/approved/compiled/active/retired lifecycle is the actual control
+# over whether it's in force. A Mandate's valid_to is NOT NULL, so
+# something has to be recorded; 100 years is a deliberately-long,
+# clearly-arbitrary horizon that reads as "no stated expiry" rather than
+# a real, meaningful date, the same spirit as Evidence's 2555-day
+# (7-year) retention default elsewhere in this codebase.
+_DEFAULT_MANDATE_VALIDITY = timedelta(days=365 * 100)
+
+
+def _ensure_mandate(db: Session, constraints: dict, policy_row: Policy, now: datetime) -> dict:
+    """Creates the Mandate this policy's Authority (if any) has been
+    waiting for since promotion -- Mandate.policy_id is NOT NULL, so this
+    is the earliest point in the lifecycle a real one can exist. Returns
+    `constraints` with mandate_id populated; a policy whose promotion
+    never resolved an authority_id (single-document Policy Builder, or
+    an unresolved delegation) passes through unchanged, exactly as it
+    always has."""
+    authority_id = constraints.get("authority_id")
+    if not authority_id or constraints.get("mandate_id"):
+        return constraints
+
+    authority = db.get(Authority, uuid.UUID(authority_id))
+    if authority is None:
+        return constraints
+
+    expires_str = constraints.get("expires")
+    valid_to = datetime.fromisoformat(expires_str) if expires_str else now + _DEFAULT_MANDATE_VALIDITY
+
+    mandate = Mandate(
+        policy_id=policy_row.id,
+        authority_id=authority.id,
+        principal_id=authority.principal_id,
+        scope=authority.scope,
+        max_amount=authority.limit_amount,
+        currency=authority.currency,
+        valid_from=now,
+        valid_to=valid_to,
+    )
+    db.add(mandate)
+    db.flush()
+
+    constraints["mandate_id"] = str(mandate.id)
+    return constraints
+
+
 def deploy_policy(db: Session, policy_key: uuid.UUID, opa_url: str = "http://localhost:8181") -> DeployOutcome:
     """Real deploy, confirmed with the user before implementing
     (POLICY_STUDIO_ARCHITECTURE.md's "Deploy is real" section): pushes to
@@ -387,6 +496,11 @@ def deploy_policy(db: Session, policy_key: uuid.UUID, opa_url: str = "http://loc
         activated_at=now,
     )
     db.add(policy_row)
+    # Flushed (not just added) so policy_row.id exists below: Mandate.
+    # policy_id is NOT NULL, and this is the first point in this
+    # policy's lifecycle a real Policy row -- and therefore a real id --
+    # exists at all.
+    db.flush()
 
     prior_active_rp = db.scalar(
         select(RuntimePolicyRecord).where(
@@ -398,6 +512,7 @@ def deploy_policy(db: Session, policy_key: uuid.UUID, opa_url: str = "http://loc
         prior_active_rp.status = "retired"
 
     content = dict(row.content)
+    content["constraints"] = _ensure_mandate(db, dict(content.get("constraints") or {}), policy_row, now)
     audit = dict(content.get("audit") or {})
     audit["deployed"] = now.isoformat()
     content["audit"] = audit

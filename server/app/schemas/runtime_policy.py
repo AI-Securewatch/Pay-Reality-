@@ -22,6 +22,13 @@ class ConstraintsSchema(BaseModel):
     expires: datetime | None = None
     evidence_required: bool = True
     risk_level: str | None = None
+    # Authority-as-a-continuous-object, Stage G: read-only in practice --
+    # set by promotion (authority_id) and by publish/deploy (mandate_id),
+    # never by a client submitting a RuntimePolicyRequest by hand. Present
+    # here so _record_to_response's existing **content["constraints"]
+    # unpacking surfaces them without a separate response shape.
+    authority_id: str | None = None
+    mandate_id: str | None = None
 
 
 class MetadataSchema(BaseModel):

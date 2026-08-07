@@ -60,8 +60,28 @@ class AuditEventNotFoundError(Exception):
     pass
 
 
-def create_principal(db: Session, name: str) -> Principal:
-    principal = Principal(name=name)
+def create_principal(
+    db: Session,
+    name: str,
+    role: str | None = None,
+    organization_id: uuid.UUID | None = None,
+    business_unit_id: uuid.UUID | None = None,
+    department_id: uuid.UUID | None = None,
+    team_id: uuid.UUID | None = None,
+) -> Principal:
+    # Authority-as-a-continuous-object, Stage B: every new parameter is
+    # optional and defaults to None, exactly matching the column
+    # defaults Phase 1's schema already established. A caller passing
+    # only `name`, as every existing caller does, gets identical
+    # behaviour to before this change.
+    principal = Principal(
+        name=name,
+        role=role,
+        organization_id=organization_id,
+        business_unit_id=business_unit_id,
+        department_id=department_id,
+        team_id=team_id,
+    )
     db.add(principal)
     db.commit()
     db.refresh(principal)

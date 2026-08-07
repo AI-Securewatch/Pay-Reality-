@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db.models import PolicyExtractionCandidate, PolicyExtractionUpload
+from app.db.models import PolicyExtractionCandidate, PolicyExtractionUpload, User
 from app.db.session import get_db
-from app.dependencies import require_permission
+from app.dependencies import get_current_user_if_session, require_permission
 from app.domain.ai_policy_builder.claude_provider import ClaudeRuntimePolicyExtractionProvider
 from app.domain.ai_policy_builder.fake_provider import FakeRuntimePolicyExtractionProvider
 from app.domain.ai_policy_builder.text_extraction import UnsupportedFormatError, detect_format
@@ -178,12 +178,24 @@ def dismiss_candidate(candidate_id: uuid.UUID, db: Session = Depends(get_db)):
     response_model=PromoteCandidateResponse,
     dependencies=[Depends(require_permission(Permission.AUTHORITY_REVIEW))],
 )
-def promote_candidate(candidate_id: uuid.UUID, db: Session = Depends(get_db)):
+def promote_candidate(
+    candidate_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    session_user: User | None = Depends(get_current_user_if_session),
+):
     """AI_EXTRACTION_PIPELINE.md Stage 6: the one integration point with
     Policy Studio. Never deploys, never compiles; the result is a new
-    draft RuntimePolicy at the very start of its own review lifecycle."""
+    draft RuntimePolicy at the very start of its own review lifecycle.
+
+    Authority-as-a-continuous-object, Stage G: when a real session user
+    promotes a candidate, their name is recorded as the new Authority's
+    reviewer (if one is created) -- the same identity pattern Stage D
+    already established for approvals, extended to this reviewed action."""
     try:
-        created = svc.promote_candidate(db, candidate_id)
+        created = svc.promote_candidate(
+            db, candidate_id,
+            promoted_by=session_user.name if session_user else None,
+        )
     except CandidateNotFoundError:
         raise HTTPException(status_code=404, detail="candidate_not_found")
     except CandidateNotPendingReviewError as e:

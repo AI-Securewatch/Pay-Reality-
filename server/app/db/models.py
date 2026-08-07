@@ -145,8 +145,17 @@ class Authority(Base):
     __tablename__ = "authorities"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    document_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False
+    # Authority-as-a-continuous-object, Stage G: nullable, was NOT NULL.
+    # This table predates the AI Authority Builder's corpus pipeline,
+    # which has its own, separate document table (authority_corpus_
+    # documents) and no row in `documents` at all. An Authority now cites
+    # EITHER a legacy single document OR a corpus (see corpus_id below
+    # and ck_authorities_has_a_source), never neither.
+    document_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.id")
+    )
+    corpus_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("authority_corpora.id")
     )
     principal_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("principals.id"), nullable=False
@@ -176,7 +185,12 @@ class Authority(Base):
             "status IN ('pending_review','approved','rejected')",
             name="ck_authorities_status",
         ),
+        CheckConstraint(
+            "(document_id IS NOT NULL) OR (corpus_id IS NOT NULL)",
+            name="ck_authorities_has_a_source",
+        ),
         Index("idx_authorities_document", "document_id"),
+        Index("idx_authorities_corpus", "corpus_id"),
         Index("idx_authorities_status", "status"),
     )
 
@@ -490,6 +504,42 @@ class SigningKey(Base):
     retired_at: Mapped[datetime | None]
 
 
+class EnterpriseSystem(Base):
+    """Authority-as-a-continuous-object, Stage A/J: a minimal, honest
+    representation of the systems Runtime Authority protects (ERP, CRM,
+    Finance, HR, Procurement, ...), distinct from the AI-provider/infra
+    rows Organisation Settings' Integrations tab already lists. This
+    table does not model an actual integration -- no connector code
+    exists for any row here -- it only lets a Decision say which class of
+    downstream system an allowed action ultimately reaches. `status`
+    defaults to 'configuration_required' and stays there until real
+    connector work exists, following the same no-fabrication pattern the
+    Integrations tab already uses for Azure OpenAI/AWS Bedrock."""
+
+    __tablename__ = "enterprise_systems"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    type: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default="configuration_required")
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "type IN ('erp','crm','finance','hr','procurement','legal','manufacturing','other')",
+            name="ck_enterprise_systems_type",
+        ),
+        CheckConstraint(
+            "status IN ('configuration_required','connected')",
+            name="ck_enterprise_systems_status",
+        ),
+        Index("idx_enterprise_systems_organization", "organization_id"),
+    )
+
+
 class Intent(Base):
     __tablename__ = "intents"
 
@@ -525,8 +575,24 @@ class Decision(Base):
     )
     outcome: Mapped[str] = mapped_column(Text, nullable=False)
     reason: Mapped[str | None] = mapped_column(Text)
+    # Despite its name, this has never referenced the real `mandates`
+    # table -- bundle_builder.py's own comment admits the name is reused,
+    # not accurate; it actually holds matched RuntimePolicy ids. Left
+    # untouched and still the source of truth read by every existing
+    # caller. See evaluated_mandate_ids below for its replacement.
     evaluated_mandates: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Authority-as-a-continuous-object, Stage A: the correctly-named
+    # replacement for evaluated_mandates above, intended to hold real
+    # `mandates.id` values once Stage G/H exist. Additive; not yet
+    # written or read by any code path.
+    evaluated_mandate_ids: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
+    # Stage J: which protected system this action, if allowed, ultimately
+    # reaches. Nullable forever until a real Enterprise System is
+    # registered and a Decision is deliberately tied to one.
+    enterprise_system_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("enterprise_systems.id")
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -585,12 +651,21 @@ class DecisionResolution(Base):
         UUID(as_uuid=True), ForeignKey("decisions.id"), nullable=False, unique=True
     )
     resolution: Mapped[str] = mapped_column(Text, nullable=False)
+    # Free text, kept exactly as-is: still what's read/rendered by every
+    # existing caller. See resolved_by_user_id below for its replacement.
     resolved_by: Mapped[str] = mapped_column(Text, nullable=False)
     reason: Mapped[str | None] = mapped_column(Text)
     evidence_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("evidence.id")
     )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Authority-as-a-continuous-object, Stage A: the real, authenticated
+    # user behind this resolution, once Stage D wires it up. Null
+    # whenever the Operator Key bypass (no session) was used instead,
+    # which remains a fully supported path.
+    resolved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -732,12 +807,20 @@ class AuthorityCorpus(Base):
     status: Mapped[str] = mapped_column(Text, nullable=False)
     error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Authority-as-a-continuous-object, Stage A: additive, nullable so
+    # every existing corpus (uploaded before an organisation could be
+    # attributed) is unaffected. Stage E's resolver is what starts
+    # actually setting this on new uploads; nothing reads it before then.
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id")
+    )
 
     __table_args__ = (
         CheckConstraint(
             "status IN ('uploaded','extracted','failed')",
             name="ck_authority_corpora_status",
         ),
+        Index("idx_authority_corpora_organization", "organization_id"),
     )
 
 
@@ -786,6 +869,14 @@ class AuthorityPrincipal(Base):
     source_excerpt: Mapped[str | None] = mapped_column(Text)
     source_location: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Authority-as-a-continuous-object, Stage A: the eventual link to the
+    # real, canonical Principal this discovery resolves to (Stage E).
+    # Null means "discovered, not yet matched or promoted" -- the same
+    # meaning AuthorityRelationship's from_principal_id/to_principal_id
+    # already carry for the same reason.
+    resolved_principal_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("principals.id")
+    )
 
     __table_args__ = (Index("idx_authority_principals_corpus", "corpus_id"),)
 

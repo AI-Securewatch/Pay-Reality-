@@ -24,12 +24,20 @@ def resolve_decision(
     resolution: str,
     resolved_by: str,
     reason: str | None = None,
+    resolved_by_user_id: uuid.UUID | None = None,
 ) -> DecisionResolution:
     """The Phase 1 addition described in the plan: closes the HUMAN_REVIEW
     loop without mutating the immutable Decision row (spec 8.2's lifecycle
     guarantee: "created once, immutable, never updated"). Appends a new
     chained Evidence record capturing the resolution as a separate fact
-    (spec 17's evidence-by-default principle applied to this new event)."""
+    (spec 17's evidence-by-default principle applied to this new event).
+
+    Authority-as-a-continuous-object, Stage D: `resolved_by` (free text)
+    is kept exactly as every existing caller and reader depends on it.
+    `resolved_by_user_id` is additive: populated only when the caller
+    actually resolved a real session user (see
+    dependencies.get_current_user_if_session), None for the Operator Key
+    or API-key paths, which remain fully supported."""
     decision = db.get(Decision, decision_id)
     if decision is None:
         raise DecisionNotFoundError(str(decision_id))
@@ -55,6 +63,10 @@ def resolve_decision(
         approval_outcome=resolution.upper(),
         approver=resolved_by,
         status="VERIFIED" if resolution == "approved" else "REJECTED",
+        # Authority-as-a-continuous-object, Stage H: reuses the real
+        # Mandate ids already resolved and persisted on the original
+        # Decision row at submit_intent time -- nothing recomputed here.
+        mandate_ids=decision.evaluated_mandate_ids or [],
     )
 
     resolution_row = DecisionResolution(
@@ -63,6 +75,7 @@ def resolve_decision(
         resolved_by=resolved_by,
         reason=reason,
         evidence_id=evidence.id,
+        resolved_by_user_id=resolved_by_user_id,
     )
     db.add(resolution_row)
     db.commit()
