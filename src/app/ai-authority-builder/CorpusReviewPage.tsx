@@ -8,6 +8,10 @@ import { ConfidenceBadge } from "../ai-policy-builder/components/ConfidenceBadge
 import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
 import { HelpIcon } from "../help/HelpIcon";
 import { NextStepGuidance } from "../help/NextStepGuidance";
+import { useAuth } from "../auth/AuthContext";
+import { agentsApi } from "../agents/api";
+import { describeApiError } from "../live/format";
+import { ResolvePrincipalDialog } from "./components/ResolvePrincipalDialog";
 import type {
   Conflict,
   Corpus,
@@ -85,6 +89,7 @@ function Section({
 
 export function AIAuthorityBuilderCorpusReviewPage() {
   const { corpusId } = useParams();
+  const { user, hasPermission } = useAuth();
   const [corpus, setCorpus] = useState<Corpus | null>(null);
   const [summary, setSummary] = useState<GraphSummary | null>(null);
   const [policies, setPolicies] = useState<Candidate[] | null>(null);
@@ -97,6 +102,21 @@ export function AIAuthorityBuilderCorpusReviewPage() {
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
   const [aiEnabled, setAiEnabled] = useState(true);
+
+  // Stage I.2/I.3: same permissive-when-no-session pattern ReviewQueuePage
+  // already uses (Operator Key bypass stays fully usable) -- only disable
+  // once we positively know a signed-in user lacks the permission.
+  const lacksReviewPermission = !!user && !hasPermission("authority.review");
+
+  // AuthorityPrincipal only carries resolved_principal_id (a bare FK), not
+  // the resolved Principal's own name -- resolved separately here via the
+  // same real Principal list AgentDirectoryPage.tsx already fetches, so
+  // "Resolved -> {name}" is correct for principals resolved in an earlier
+  // session too, not just ones resolved through this page just now.
+  const [resolvedPrincipalNameById, setResolvedPrincipalNameById] = useState<Record<string, string>>({});
+  const [resolvingDiscovery, setResolvingDiscovery] = useState<Principal | null>(null);
+  const [relationshipBusyId, setRelationshipBusyId] = useState<string | null>(null);
+  const [relationshipError, setRelationshipError] = useState<string | null>(null);
 
   useEffect(() => {
     aiAuthorityBuilderApi.getStatus().then((s) => setAiEnabled(s.ai_enabled));
@@ -114,9 +134,43 @@ export function AIAuthorityBuilderCorpusReviewPage() {
     aiAuthorityBuilderApi.getConflicts(corpusId).then(setConflicts);
     aiAuthorityBuilderApi.getGaps(corpusId).then(setGaps);
     aiAuthorityBuilderApi.getQuestions(corpusId).then(setQuestions);
+    agentsApi.listPrincipals().then((list) => {
+      setResolvedPrincipalNameById(Object.fromEntries(list.map((p) => [p.id, p.name])));
+    });
   }
 
   useEffect(loadAll, [corpusId]);
+
+  function refreshRelationships() {
+    if (!corpusId) return;
+    aiAuthorityBuilderApi.getRelationships(corpusId).then(setRelationships);
+  }
+
+  async function handleResolveRelationship(relationshipId: string) {
+    setRelationshipError(null);
+    setRelationshipBusyId(relationshipId);
+    try {
+      await aiAuthorityBuilderApi.resolveRelationship(relationshipId);
+      refreshRelationships();
+    } catch (e) {
+      setRelationshipError(describeApiError(e, "Resolve relationship"));
+    } finally {
+      setRelationshipBusyId(null);
+    }
+  }
+
+  async function handleActivateRelationship(relationshipId: string) {
+    setRelationshipError(null);
+    setRelationshipBusyId(relationshipId);
+    try {
+      await aiAuthorityBuilderApi.activateRelationship(relationshipId);
+      refreshRelationships();
+    } catch (e) {
+      setRelationshipError(describeApiError(e, "Activate relationship"));
+    } finally {
+      setRelationshipBusyId(null);
+    }
+  }
 
   async function submitAnswer(questionId: string) {
     const answer = answerDrafts[questionId];
@@ -186,7 +240,30 @@ export function AIAuthorityBuilderCorpusReviewPage() {
               <span style={{ color: "var(--pr-text-primary)" }}>
                 {p.name}{p.role ? `, ${p.role}` : ""}{p.reports_to ? ` (reports to ${p.reports_to})` : ""}
               </span>
-              <ConfidenceBadge confidence={p.confidence} />
+              <div className="flex items-center gap-2">
+                {p.resolved_principal_id ? (
+                  <span style={{ fontSize: 12, color: "var(--pr-trust-green)" }}>
+                    Resolved &rarr; {resolvedPrincipalNameById[p.resolved_principal_id] ?? p.resolved_principal_id}
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setResolvingDiscovery(p)}
+                    disabled={lacksReviewPermission}
+                    title={lacksReviewPermission ? "Requires Reviewer, Governance Administrator, or Organisation Owner" : undefined}
+                    className="rounded-lg border"
+                    style={{
+                      color: lacksReviewPermission ? "var(--pr-text-disabled)" : "var(--pr-authority-blue)",
+                      fontSize: 12,
+                      padding: "4px 10px",
+                      borderColor: lacksReviewPermission ? "var(--pr-overlay-10)" : "var(--pr-authority-blue)",
+                      opacity: lacksReviewPermission ? 0.6 : 1,
+                    }}
+                  >
+                    Resolve
+                  </button>
+                )}
+                <ConfidenceBadge confidence={p.confidence} />
+              </div>
             </div>
             <Citation excerpt={p.source_excerpt} location={p.source_location} />
           </div>
@@ -222,21 +299,76 @@ export function AIAuthorityBuilderCorpusReviewPage() {
       </Section>
 
       <Section title="Relationships" count={relationships?.length ?? 0} emptyLabel="No delegation, escalation, or inheritance links were found in this corpus.">
-        {relationships?.map((r) => (
-          <div key={r.id} style={rowStyle}>
-            <div className="flex items-center justify-between">
-              <span style={{ color: "var(--pr-text-primary)" }}>
-                <span style={{ textTransform: "uppercase", fontSize: 11, color: "var(--pr-authority-blue)", marginRight: 8 }}>
-                  {r.kind}
+        {relationshipError && (
+          <p role="alert" style={{ ...rowStyle, color: "var(--pr-critical-red)" }}>{relationshipError}</p>
+        )}
+        {relationships?.map((r) => {
+          const bothResolved = !!r.from_principal_id && !!r.to_principal_id;
+          const busy = relationshipBusyId === r.id;
+          return (
+            <div key={r.id} style={rowStyle}>
+              <div className="flex items-center justify-between">
+                <span style={{ color: "var(--pr-text-primary)" }}>
+                  <span style={{ textTransform: "uppercase", fontSize: 11, color: "var(--pr-authority-blue)", marginRight: 8 }}>
+                    {r.kind}
+                  </span>
+                  {r.from_principal} &rarr; {r.to_principal}
                 </span>
-                {r.from_principal} &rarr; {r.to_principal}
-              </span>
-              <ConfidenceBadge confidence={r.confidence} />
+                <div className="flex items-center gap-2">
+                  <span
+                    style={{
+                      fontSize: 11,
+                      textTransform: "uppercase",
+                      padding: "2px 8px",
+                      borderRadius: 99,
+                      color: r.status === "active" ? "var(--pr-trust-green)" : "var(--pr-warning-amber)",
+                      backgroundColor: r.status === "active" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)",
+                    }}
+                  >
+                    {r.status === "active" ? "Active" : "Proposed"}
+                  </span>
+                  {r.status !== "active" && !bothResolved && (
+                    <button
+                      onClick={() => handleResolveRelationship(r.id)}
+                      disabled={lacksReviewPermission || busy}
+                      title={lacksReviewPermission ? "Requires Reviewer, Governance Administrator, or Organisation Owner" : undefined}
+                      className="rounded-lg border"
+                      style={{
+                        color: lacksReviewPermission ? "var(--pr-text-disabled)" : "var(--pr-authority-blue)",
+                        fontSize: 12,
+                        padding: "4px 10px",
+                        borderColor: lacksReviewPermission ? "var(--pr-overlay-10)" : "var(--pr-authority-blue)",
+                        opacity: lacksReviewPermission || busy ? 0.6 : 1,
+                      }}
+                    >
+                      {busy ? "Resolving..." : "Resolve"}
+                    </button>
+                  )}
+                  {r.status !== "active" && bothResolved && (
+                    <button
+                      onClick={() => handleActivateRelationship(r.id)}
+                      disabled={lacksReviewPermission || busy}
+                      title={lacksReviewPermission ? "Requires Reviewer, Governance Administrator, or Organisation Owner" : undefined}
+                      className="rounded-lg border"
+                      style={{
+                        color: lacksReviewPermission ? "var(--pr-text-disabled)" : "var(--pr-trust-green)",
+                        fontSize: 12,
+                        padding: "4px 10px",
+                        borderColor: lacksReviewPermission ? "var(--pr-overlay-10)" : "rgba(34,197,94,0.3)",
+                        opacity: lacksReviewPermission || busy ? 0.6 : 1,
+                      }}
+                    >
+                      {busy ? "Activating..." : "Activate"}
+                    </button>
+                  )}
+                  <ConfidenceBadge confidence={r.confidence} />
+                </div>
+              </div>
+              {r.description && <p style={{ fontSize: 13, color: "var(--pr-text-secondary)", marginTop: 4 }}>{r.description}</p>}
+              <Citation excerpt={r.source_excerpt} location={r.source_location} />
             </div>
-            {r.description && <p style={{ fontSize: 13, color: "var(--pr-text-secondary)", marginTop: 4 }}>{r.description}</p>}
-            <Citation excerpt={r.source_excerpt} location={r.source_location} />
-          </div>
-        ))}
+          );
+        })}
       </Section>
 
       <Section title="Conflicts" count={conflicts?.length ?? 0} emptyLabel="No contradictory or duplicate authority was found in this corpus.">
@@ -304,6 +436,16 @@ export function AIAuthorityBuilderCorpusReviewPage() {
           message="This corpus is fully reviewed. Promote a Rule from above, then publish it so it starts governing real agent actions."
           actionLabel="Publish Runtime Policies"
           actionPath="/governance"
+        />
+      )}
+
+      {resolvingDiscovery && (
+        <ResolvePrincipalDialog
+          authorityPrincipalId={resolvingDiscovery.id}
+          discoveryName={resolvingDiscovery.name}
+          discoveryRole={resolvingDiscovery.role}
+          onResolved={loadAll}
+          onClose={() => setResolvingDiscovery(null)}
         />
       )}
     </div>
