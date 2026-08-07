@@ -6,8 +6,10 @@ import type {
   GraphSummary,
   Operation,
   Principal,
+  PrincipalCandidate,
   Question,
   Relationship,
+  ResolvePrincipalRequest,
   Resource,
 } from "./types";
 
@@ -33,4 +35,14 @@ export const aiAuthorityBuilderApi = {
   getQuestions: (corpusId: string) => apiClient.get<Question[]>(`${BASE}/corpora/${corpusId}/questions`),
   answerQuestion: (questionId: string, answer: string) =>
     apiClient.post<Question>(`${BASE}/questions/${questionId}/answer`, { answer }),
+
+  // Authority-as-a-continuous-object, Stage E/F reviewer workflow.
+  getPrincipalCandidates: (authorityPrincipalId: string) =>
+    apiClient.get<PrincipalCandidate[]>(`${BASE}/principals/${authorityPrincipalId}/candidates`),
+  resolvePrincipal: (authorityPrincipalId: string, body: ResolvePrincipalRequest) =>
+    apiClient.post<Principal>(`${BASE}/principals/${authorityPrincipalId}/resolve`, body),
+  resolveRelationship: (relationshipId: string) =>
+    apiClient.post<Relationship>(`${BASE}/relationships/${relationshipId}/resolve`),
+  activateRelationship: (relationshipId: string) =>
+    apiClient.post<Relationship>(`${BASE}/relationships/${relationshipId}/activate`),
 };

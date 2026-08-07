@@ -79,6 +79,10 @@ export interface LiveDecisionSummary {
   outcome: DecisionOutcome;
   decision_id: string;
   evaluated_mandates: string[];
+  // Authority-as-a-continuous-object, Stage H: real Mandate row ids,
+  // additive alongside the legacy policy-key list above. Empty whenever
+  // none of the matched policies have a Stage-G-created Mandate yet.
+  evaluated_mandate_ids: string[];
   reason: string | null;
 }
 
@@ -106,13 +110,61 @@ export interface LiveDecision {
   amount: number;
   currency: string;
   evaluated_mandates: string[];
+  evaluated_mandate_ids: string[];
   resolution: LiveResolution | null;
+}
+
+// Runtime Authority Context (PHASE_2_RUNTIME_CONTEXT.md), as assembled by
+// authority_context_service.resolve_runtime_authority_context and carried
+// into Evidence unchanged (Stage C). Every field is additive: a Principal
+// with none of these resolved yet produces a context of mostly-null
+// fields, never an error.
+export interface AuthorityContext {
+  organization: string | null;
+  business_unit: string | null;
+  department: string | null;
+  team: string | null;
+  role: string | null;
+  risk_level: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  delegations: DelegationEdge[];
+}
+
+export interface DelegationEdge {
+  id: string;
+  from_principal_id: string | null;
+  resource_id: string | null;
+  operation: string | null;
+}
+
+// Evidence.payload's signed JSON shape (intent_service._build_evidence_payload).
+// Every field from principal_id onward is optional/additive (Stage C/H):
+// absent on records predating that work, or whenever the acting
+// Principal or its authority chain never resolved -- absence here is
+// never rendered as a claim that no authority applied.
+export interface EvidencePayload {
+  payload_version: number;
+  decision_id: string;
+  agent_id: string;
+  action: string;
+  amount: string;
+  matched_mandate_ids: string[];
+  authority_outcome: DecisionOutcome;
+  approval_outcome: string | null;
+  risk_classification: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  approver: string | null;
+  recorded_at: string;
+  previous_hash: string | null;
+  principal_id?: string;
+  authority_context?: AuthorityContext;
+  delegation_chain?: DelegationEdge[];
+  evaluated_mandate_ids?: string[];
+  authority_ids?: string[];
 }
 
 export interface LiveEvidence {
   evidence_id: string;
   decision_id: string;
-  payload: Record<string, unknown>;
+  payload: EvidencePayload;
   key_id: string;
   signature: string;
   status: "VERIFIED" | "PENDING" | "REJECTED";

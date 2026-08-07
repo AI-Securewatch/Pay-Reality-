@@ -9,6 +9,7 @@ import { policyStudioApi } from "../../policy-studio/api";
 import { track, trackError } from "../../services/analytics";
 import { HelpIcon } from "../../help/HelpIcon";
 import { NextStepGuidance } from "../../help/NextStepGuidance";
+import { useAuth } from "../../auth/AuthContext";
 import type { LiveAgent, LiveDecision, SubmitIntentResult } from "../types";
 
 const OUTCOME_STYLE: Record<string, { bg: string; fg: string; icon: typeof CheckCircle2 }> = {
@@ -18,6 +19,7 @@ const OUTCOME_STYLE: Record<string, { bg: string; fg: string; icon: typeof Check
 };
 
 export function LiveTestIntent() {
+  const { user } = useAuth();
   const [agents, setAgents] = useState<LiveAgent[] | null>(null);
   const [actions, setActions] = useState<string[]>([]);
   const [agentId, setAgentId] = useState("");
@@ -48,6 +50,15 @@ export function LiveTestIntent() {
       if (pollRef.current) window.clearInterval(pollRef.current);
     };
   }, []);
+
+  // Session identity replaces free-text reviewer entry (Stage I.6): a
+  // logged-in user's name is already known server-side (Stage D records
+  // resolved_by_user_id from the session regardless of what string this
+  // field sends), so there's no reason to ask them to type it. The
+  // Operator-Key-only path (no session) keeps the free-text field as is.
+  useEffect(() => {
+    if (user) setResolverName(user.name);
+  }, [user]);
 
   const signableAgents = (agents ?? []).filter((a) => getAgentPrivateKey(a.id) && a.certificate_id);
 
@@ -281,6 +292,12 @@ export function LiveTestIntent() {
             </div>
           </div>
 
+          {decision.evaluated_mandate_ids.length > 0 && (
+            <p className="text-xs font-mono mb-4" style={{ color: "var(--pr-text-muted)" }}>
+              Authorized under Mandate{decision.evaluated_mandate_ids.length > 1 ? "s" : ""}: {decision.evaluated_mandate_ids.join(", ")}
+            </p>
+          )}
+
           {decision.status === "PENDING" && (
             <div className="flex items-center gap-2 mb-4 p-3 rounded-lg" style={{ backgroundColor: "rgba(245,158,11,0.06)" }}>
               <Clock className="w-4 h-4 animate-pulse" style={{ color: "var(--pr-warning-amber)" }} />
@@ -293,15 +310,20 @@ export function LiveTestIntent() {
           {decision.outcome === "HUMAN_REVIEW" && decision.status === "PENDING" && (
             <div>
               <label htmlFor="resolver-name" className="block text-xs font-medium mb-1.5" style={{ color: "var(--pr-text-muted)" }}>
-                Your name (recorded as the reviewer for this decision)
+                {user ? "Reviewer (you)" : "Your name (recorded as the reviewer for this decision)"}
               </label>
               <input
                 id="resolver-name"
                 value={resolverName}
                 onChange={(e) => setResolverName(e.target.value)}
+                readOnly={!!user}
                 placeholder="Jane Smith"
                 className="w-full max-w-xs mb-3 px-3 py-2 rounded-lg border text-sm"
-                style={{ backgroundColor: "var(--pr-bg-hover)", borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-primary)" }}
+                style={{
+                  backgroundColor: user ? "var(--pr-bg-primary)" : "var(--pr-bg-hover)",
+                  borderColor: "var(--pr-overlay-10)",
+                  color: user ? "var(--pr-text-muted)" : "var(--pr-text-primary)",
+                }}
               />
               <div className="flex gap-3">
                 <button

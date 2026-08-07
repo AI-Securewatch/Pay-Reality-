@@ -32,6 +32,12 @@ export interface Constraints {
   expires: string | null;
   evidence_required: boolean;
   risk_level: string | null;
+  // Authority-as-a-continuous-object, Stage G: system-set at promotion
+  // (authority_id) and deploy (mandate_id), never client-editable. Null
+  // whenever this policy has no resolved Authority Builder principal
+  // behind it -- delegated_by above remains the fallback in that case.
+  authority_id: string | null;
+  mandate_id: string | null;
 }
 
 export interface Metadata {

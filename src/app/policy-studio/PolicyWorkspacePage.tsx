@@ -34,7 +34,7 @@ const EMPTY: RuntimePolicyRequest = {
   scope: { principal: "", action: "", agent: null, resource: null },
   conditions: [],
   effect: "require_human_review",
-  constraints: { delegated_by: null, expires: null, evidence_required: true, risk_level: null },
+  constraints: { delegated_by: null, expires: null, evidence_required: true, risk_level: null, authority_id: null, mandate_id: null },
   metadata: { owner: null, created_by: null, tags: [] },
 };
 
@@ -238,9 +238,13 @@ export function PolicyWorkspacePage() {
             <input
               id={`${formId}-delegated-by`}
               style={inputStyle}
+              placeholder="Role or person"
               value={form.constraints.delegated_by ?? ""}
               onChange={(e) => updateConstraints({ ...form.constraints, delegated_by: e.target.value || null })}
             />
+            <p style={{ fontSize: 11, color: "var(--pr-text-muted)", marginTop: 3 }}>
+              The organisational authority this rule enforces, not who wrote it.
+            </p>
           </div>
           <div>
             <label htmlFor={`${formId}-risk-level`} style={labelStyle}>Risk level</label>
@@ -266,6 +270,26 @@ export function PolicyWorkspacePage() {
           />
           Evidence required
         </label>
+        {(form.constraints.authority_id || form.constraints.mandate_id) && (
+          <div className="grid grid-cols-2 gap-4 mt-4 pt-3" style={{ borderTop: "1px solid var(--pr-overlay-05)" }}>
+            {form.constraints.authority_id && (
+              <div>
+                <p style={labelStyle}>Authority</p>
+                <p style={{ fontSize: 13, color: "var(--pr-text-primary)", fontFamily: "monospace" }}>
+                  {form.constraints.authority_id}
+                </p>
+              </div>
+            )}
+            {form.constraints.mandate_id && (
+              <div>
+                <p style={labelStyle}>Mandate</p>
+                <p style={{ fontSize: 13, color: "var(--pr-text-primary)", fontFamily: "monospace" }}>
+                  {form.constraints.mandate_id}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={sectionStyle}>
@@ -285,10 +309,13 @@ export function PolicyWorkspacePage() {
         <label htmlFor={`${formId}-owner`} style={labelStyle}>Owner</label>
         <input
           id={`${formId}-owner`}
-          style={{ ...inputStyle, marginBottom: 10 }}
+          style={{ ...inputStyle, marginBottom: 3 }}
           value={form.metadata.owner ?? ""}
           onChange={(e) => updateMetadata({ ...form.metadata, owner: e.target.value || null })}
         />
+        <p style={{ fontSize: 11, color: "var(--pr-text-muted)", marginTop: 0, marginBottom: 10 }}>
+          Who maintains this rule day to day, distinct from "Delegated by" above.
+        </p>
         <label htmlFor={`${formId}-tag-input`} style={labelStyle}>Tags</label>
         <div className="flex gap-2 flex-wrap mb-2">
           {form.metadata.tags.map((t) => (

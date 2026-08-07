@@ -4,18 +4,43 @@ import { policyStudioApi } from "./api";
 import type { RuntimePolicy } from "./types";
 import { describeApiError } from "../live/format";
 import { describePolicy } from "./describePolicy";
+import { useAuth } from "../auth/AuthContext";
+import { ROLE_LABELS } from "../auth/types";
+
+// The real decision-rights model for this screen, mirrored from
+// server/app/domain/rbac/permissions.py's ROLE_PERMISSIONS (Reviewer,
+// Governance Administrator, and Organisation Owner are the only roles
+// granted authority.review). Shown here so decision rights are visible
+// up front rather than discovered only after a failed approve/reject
+// call (Platform Audit, Governance/Policy Studio section).
+const APPROVAL_ROLE_LABEL = "Reviewer, Governance Administrator, or Organisation Owner";
 
 export function ReviewQueuePage() {
+  const { user, hasPermission } = useAuth();
   const [pending, setPending] = useState<RuntimePolicy[] | null>(null);
   const [approver, setApprover] = useState("");
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
+
+  // Only disable when we positively know the signed-in user lacks the
+  // permission -- with no session (Operator Key bypass still active),
+  // stay permissive rather than guessing.
+  const lacksPermission = !!user && !hasPermission("authority.review");
 
   function load() {
     policyStudioApi.list("pending_review").then(setPending);
   }
 
   useEffect(load, []);
+
+  // Session identity replaces free-text reviewer entry (Stage I.6): a
+  // logged-in user's name is already known server-side (Stage D records
+  // approver_user_id/reviewer_user_id from the session regardless of what
+  // string this field sends), so there's no reason to ask them to type
+  // it. The Operator-Key-only path (no session) keeps free text.
+  useEffect(() => {
+    if (user) setApprover(user.name);
+  }, [user]);
 
   async function handleApprove(policyKey: string) {
     if (!approver.trim()) {
@@ -47,20 +72,29 @@ export function ReviewQueuePage() {
   return (
     <div className="p-8 max-w-2xl" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
       <h1 className="mb-2" style={{ color: "var(--pr-text-primary)" }}>Approvals</h1>
-      <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 16 }}>
-        Enter your name to record who reviewed each rule below.
+      <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 4 }}>
+        {user ? "Recorded as the reviewer for each rule below." : "Enter your name to record who reviewed each rule below."}
+      </p>
+      <p style={{ color: "var(--pr-text-disabled)", fontSize: 12, marginBottom: 16 }}>
+        Requires: {APPROVAL_ROLE_LABEL}.
+        {lacksPermission && (
+          <span style={{ color: "var(--pr-warning-amber)" }}> Your role ({user ? ROLE_LABELS[user.role] ?? user.role : ""}) doesn't include this permission.</span>
+        )}
       </p>
 
-      <label htmlFor="reviewer-name" className="sr-only">Your name</label>
+      <label htmlFor="reviewer-name" className={user ? undefined : "sr-only"}>
+        {user ? "Reviewer (you)" : "Your name"}
+      </label>
       <input
         id="reviewer-name"
         placeholder="Your name"
         value={approver}
         onChange={(e) => setApprover(e.target.value)}
+        readOnly={!!user}
         style={{
-          backgroundColor: "var(--pr-bg-hover)",
+          backgroundColor: user ? "var(--pr-bg-primary)" : "var(--pr-bg-hover)",
           border: "1px solid var(--pr-overlay-10)",
-          color: "var(--pr-text-primary)",
+          color: user ? "var(--pr-text-muted)" : "var(--pr-text-primary)",
           borderRadius: 6,
           padding: "6px 8px",
           fontSize: 13,
@@ -87,15 +121,31 @@ export function ReviewQueuePage() {
             <div className="flex gap-2">
               <button
                 onClick={() => handleApprove(p.policy_key)}
+                disabled={lacksPermission}
+                title={lacksPermission ? `Requires ${APPROVAL_ROLE_LABEL}` : undefined}
                 className="rounded-lg border"
-                style={{ color: "var(--pr-trust-green)", fontSize: 13, padding: "6px 12px", borderColor: "rgba(34,197,94,0.3)" }}
+                style={{
+                  color: lacksPermission ? "var(--pr-text-disabled)" : "var(--pr-trust-green)",
+                  fontSize: 13,
+                  padding: "6px 12px",
+                  borderColor: lacksPermission ? "var(--pr-overlay-10)" : "rgba(34,197,94,0.3)",
+                  opacity: lacksPermission ? 0.6 : 1,
+                }}
               >
                 Approve
               </button>
               <button
                 onClick={() => handleReject(p.policy_key)}
+                disabled={lacksPermission}
+                title={lacksPermission ? `Requires ${APPROVAL_ROLE_LABEL}` : undefined}
                 className="rounded-lg border"
-                style={{ color: "var(--pr-critical-red)", fontSize: 13, padding: "6px 12px", borderColor: "rgba(239,68,68,0.3)" }}
+                style={{
+                  color: lacksPermission ? "var(--pr-text-disabled)" : "var(--pr-critical-red)",
+                  fontSize: 13,
+                  padding: "6px 12px",
+                  borderColor: lacksPermission ? "var(--pr-overlay-10)" : "rgba(239,68,68,0.3)",
+                  opacity: lacksPermission ? 0.6 : 1,
+                }}
               >
                 Reject
               </button>

@@ -138,6 +138,7 @@ export function PolicyListPage() {
               <th className="pb-2">Status</th>
               <th className="pb-2">Last Modified</th>
               <th className="pb-2">Owner</th>
+              <th className="pb-2" title="Whether this policy enforces a resolved Authority Builder Authority, or free-text delegation only">Authority</th>
             </tr>
           </thead>
           <tbody>
@@ -164,11 +165,18 @@ export function PolicyListPage() {
                 <td className="py-2" style={{ color: "var(--pr-text-muted)" }}>
                   {p.metadata.owner ?? "N/A"}
                 </td>
+                <td className="py-2" title={p.constraints.authority_id ? "Enforces a resolved Authority" : "Free-text delegation only"}>
+                  {p.constraints.authority_id ? (
+                    <span aria-label="Linked to a resolved Authority" style={{ color: "var(--pr-authority-blue)" }}>&#9679;</span>
+                  ) : (
+                    <span aria-label="No resolved Authority" style={{ color: "var(--pr-text-muted)" }}>&#9675;</span>
+                  )}
+                </td>
               </tr>
             ))}
             {visible.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-center" style={{ color: "var(--pr-text-muted)" }}>
+                <td colSpan={6} className="py-6 text-center" style={{ color: "var(--pr-text-muted)" }}>
                   {policies.length === 0 ? "No policies yet." : "No policies match your filters."}
                 </td>
               </tr>

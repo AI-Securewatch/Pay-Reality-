@@ -4,14 +4,16 @@ import { apiClient } from "../apiClient";
 import { formatStatus } from "../format";
 import { HelpIcon } from "../../help/HelpIcon";
 import { trackError } from "../../services/analytics";
-import type { LiveEvidence as LiveEvidenceType } from "../types";
+import type { EvidencePayload, LiveEvidence as LiveEvidenceType } from "../types";
 
 const FIELD_LABEL: Record<string, string> = {
   action: "Action",
   amount: "Amount",
-  authority_outcome: "Outcome",
+  authority_outcome: "Authority outcome",
   risk_classification: "Risk level",
 };
+
+const SUMMARY_FIELDS: (keyof EvidencePayload)[] = ["action", "amount", "authority_outcome", "risk_classification"];
 
 export function LiveEvidence() {
   const [records, setRecords] = useState<LiveEvidenceType[] | null>(null);
@@ -52,8 +54,9 @@ export function LiveEvidence() {
           <HelpIcon articleId="evidence" />
         </div>
         <p style={{ color: "var(--pr-text-muted)" }}>
-          Every decision produces a cryptographically signed, unchangeable record. Verify a
-          signature to detect any tampering.
+          Every decision produces a cryptographically signed, unchangeable record of which of your
+          organisation's rules allowed it, not just what happened. Verify a signature to detect
+          any tampering.
         </p>
       </div>
 
@@ -90,13 +93,64 @@ export function LiveEvidence() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-xs">
-                {["action", "amount", "authority_outcome", "risk_classification"].map((k) => (
+                {SUMMARY_FIELDS.map((k) => (
                   <div key={k}>
                     <p style={{ color: "var(--pr-text-muted)" }}>{FIELD_LABEL[k] ?? k}</p>
                     <p style={{ color: "var(--pr-text-primary)" }}>{String(e.payload[k] ?? "N/A")}</p>
                   </div>
                 ))}
               </div>
+
+              {(e.payload.principal_id || e.payload.authority_context) && (
+                <div className="mb-4 p-3 rounded-lg text-xs" style={{ backgroundColor: "var(--pr-bg-hover)" }}>
+                  <p className="font-medium mb-1.5" style={{ color: "var(--pr-text-secondary)" }}>
+                    Authorization
+                  </p>
+                  {e.payload.principal_id && (
+                    <p className="mb-1" style={{ color: "var(--pr-text-muted)" }}>
+                      Acting principal:{" "}
+                      <span style={{ color: "var(--pr-text-primary)", fontFamily: "monospace" }}>
+                        {e.payload.principal_id}
+                      </span>
+                    </p>
+                  )}
+                  {e.payload.authority_context &&
+                    [
+                      e.payload.authority_context.role,
+                      e.payload.authority_context.team,
+                      e.payload.authority_context.department,
+                      e.payload.authority_context.business_unit,
+                      e.payload.authority_context.organization,
+                    ].some(Boolean) && (
+                      <p className="mb-1" style={{ color: "var(--pr-text-muted)" }}>
+                        {[
+                          e.payload.authority_context.role,
+                          e.payload.authority_context.team,
+                          e.payload.authority_context.department,
+                          e.payload.authority_context.business_unit,
+                          e.payload.authority_context.organization,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
+                  {e.payload.delegation_chain && e.payload.delegation_chain.length > 0 && (
+                    <p className="mb-1" style={{ color: "var(--pr-text-muted)" }}>
+                      Delegated via {e.payload.delegation_chain.length} active relationship
+                      {e.payload.delegation_chain.length > 1 ? "s" : ""}
+                    </p>
+                  )}
+                  {(!!e.payload.authority_ids?.length || !!e.payload.evaluated_mandate_ids?.length) && (
+                    <p className="font-mono" style={{ color: "var(--pr-text-disabled)" }}>
+                      {e.payload.authority_ids?.length ? `Authority: ${e.payload.authority_ids.join(", ")}` : null}
+                      {e.payload.authority_ids?.length && e.payload.evaluated_mandate_ids?.length ? " · " : null}
+                      {e.payload.evaluated_mandate_ids?.length
+                        ? `Mandate: ${e.payload.evaluated_mandate_ids.join(", ")}`
+                        : null}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center gap-3 mb-2">
                 <button
