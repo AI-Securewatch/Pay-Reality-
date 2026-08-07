@@ -1,0 +1,47 @@
+# Part 16 — Current Limitations
+
+**Supersedes/synthesizes:** the "known gaps" sections scattered across `SECURITY.md`, `ARCHITECTURE.md`, `PRODUCTION_CHECKLIST.md`, `VERSION_3_ROADMAP.md`. This part is the single, current, consolidated list — every item here was either directly confirmed against the code/production this session or flagged inline in the parts above; each entry links back to where it's discussed in depth.
+
+This list exists for the same reason `PRODUCT.md` states as an operating principle: *"an enterprise buyer who catches a vendor overclaiming once stops trusting everything else that vendor says."* Nothing below is a hidden gap — each is either already named in an existing document or newly surfaced by this specification's direct verification pass.
+
+## 16.1 Known and named, unresolved
+
+| Gap | Detail | Where discussed |
+|---|---|---|
+| **Fake/simulated AI providers on the hosted demo** | The hosted Render deployment does not have `ANTHROPIC_API_KEY` configured for at least some environments, so the AI Authority Builder and AI Policy Builder fall back to their deterministic fake providers rather than real Claude-backed extraction. This is a configuration gap, not a code gap — both pipelines are built for the real provider and switch automatically once the key is set. | [09_AI_AUTHORITY_BUILDER.md](09_AI_AUTHORITY_BUILDER.md) §9.6, [10_AI_POLICY_BUILDER.md](10_AI_POLICY_BUILDER.md) §10.7 |
+| **SDK's default onboarding flow needs the shared operator key** | `Agent._resolve_principal_id` passes `operator_auth=True` when creating a new Principal — meaning a fresh SDK integration onboarding a new Principal needs the shared, full-bypass operator key configured, not just a scoped RBAC API key. A production integration onboarding many principals routinely would be over-provisioned relative to what it actually needs to do. | [11_AGENT_ARCHITECTURE.md](11_AGENT_ARCHITECTURE.md) §11.8 |
+| **Several live SDK/Deploy paths are unverified end-to-end** | The SDK's `register`/`authorize`/`heartbeat` flows are tested with the SDK's own local test suite (`sdk-python/tests/`), but a fully live, production-hosted round trip — a real external process using the SDK against the real hosted API, not this session's own direct API calls — has not been exercised as part of this specification's verification pass. | This part; see also [22_BUILD_FROM_SCRATCH.md](22_BUILD_FROM_SCRATCH.md) for what a rebuild should verify explicitly before calling the SDK production-ready |
+| **MFA is schema-ready, not enforced** | `User.mfa_enabled` exists and Organisation Settings can toggle a requirement flag, but no actual TOTP/MFA challenge is implemented in the login flow. | [14_SECURITY_MODEL.md](14_SECURITY_MODEL.md) §14.7 |
+| **No account lockout after repeated failed logins** | `authenticate()` has no failure-count tracking; only rate limiting (IP-based, in-process) provides any friction against brute force. | [14_SECURITY_MODEL.md](14_SECURITY_MODEL.md) §14.6 |
+| **Rate limiting is single-instance** | In-process memory (`_request_log` dict); a second backend instance shares no state with the first, so the effective limit multiplies with instance count rather than staying fixed. | [02_SYSTEM_ARCHITECTURE.md](02_SYSTEM_ARCHITECTURE.md) §2.5 |
+| **Field-vocabulary validation gap in Compiler V2** | `Vocabulary.is_valid_action` validates the *action* name against a known set; nothing validates that a condition's *field* is a real, meaningful field. A typo'd condition field compiles cleanly and simply never matches at runtime, silently — no compile-time error, no runtime error, just a policy that never does what its author intended. | [07_RUNTIME_POLICY_ENGINE.md](07_RUNTIME_POLICY_ENGINE.md) §7.11 |
+| **No automatic promotion from AI Authority Builder discovery to the real Authority Model** | Discovered Principals/Resources/Relationships are informational; a human must manually create the equivalent real `Principal`/`Resource`/`AuthorityRelationship` rows. No code path connects a reviewed `AuthorityRelationship` (corpus-scoped, discovery) to a real, enforceable `AuthorityRelationship` (Phase 1, resolved-FK) automatically. | [08_RUNTIME_AUTHORITY.md](08_RUNTIME_AUTHORITY.md) §8.6, [09_AI_AUTHORITY_BUILDER.md](09_AI_AUTHORITY_BUILDER.md) §9.5 |
+| **No frontend UI for the org hierarchy or delegation graph** | `BusinessUnit`/`Department`/`Team`/`AuthorityRelationship` rows are populated via direct API calls or discovery-promotion only — there is no dedicated management page to view or edit the org hierarchy directly. | [08_RUNTIME_AUTHORITY.md](08_RUNTIME_AUTHORITY.md) §8.6 |
+| **No dedicated UI for chain verification** | `GET /v1/evidence/chain/verify` is a real, callable, unauthenticated endpoint, but `LiveEvidence.tsx` only surfaces per-record `/verify`, not a chain-level view. | [13_EVIDENCE_ENGINE.md](13_EVIDENCE_ENGINE.md) §13.7 |
+| **Agent Directory has no column-level sort** | Always `created_at desc`; no sort parameter on `GET /v1/agents`. | [11_AGENT_ARCHITECTURE.md](11_AGENT_ARCHITECTURE.md) §11.9 |
+| **Bulk agent operations are N sequential transactions**, not a set-based update | Fine at Directory-driven batch sizes; not a substitute for a true bulk-migration tool at 10,000+-agent scale. | [11_AGENT_ARCHITECTURE.md](11_AGENT_ARCHITECTURE.md) §11.7 |
+| **Domain-agnostic adapter model is partial** | The `Vocabulary` protocol seam exists and is used by Compiler V2, but only one vocabulary (`FinancialVocabulary`) has ever been built — the broader `DOMAIN_REFACTOR_PLAN.md` itemized plan for a second domain adapter has not been executed. | [02_SYSTEM_ARCHITECTURE.md](02_SYSTEM_ARCHITECTURE.md) §2.8, [07_RUNTIME_POLICY_ENGINE.md](07_RUNTIME_POLICY_ENGINE.md) §7.12 |
+| **Single-tenant routing, multi-tenant-shaped schema** | `Organization`/`organization_id` columns exist throughout, but no code path routes a request across two organisations, and no isolation boundary has been built or tested for that case. | [08_RUNTIME_AUTHORITY.md](08_RUNTIME_AUTHORITY.md) §8.5, [14_SECURITY_MODEL.md](14_SECURITY_MODEL.md) §14.6 |
+| **OPA runs embedded, loopback-only, in the same container as the API** | A cost-driven interim choice for the zero-cost pilot deployment, not the documented target topology (OPA as its own private network service once billing exists). | [02_SYSTEM_ARCHITECTURE.md](02_SYSTEM_ARCHITECTURE.md) §2.7 |
+
+## 16.2 Corrections this specification made to existing documents' stated status
+
+Every item below was found stated as "not yet built" or "proposed" in an existing top-level document, and confirmed via direct code/migration/production inspection to actually be shipped:
+
+| Document | Stale claim | Actual status |
+|---|---|---|
+| `PHASE_0.md` | `Status: proposed` | **Implemented** — legacy pipeline fully retired, migration `805e62a44ac1` applied |
+| `PHASE_1_AUTHORITY_MODEL.md` | `Status: proposed` | **Implemented** — migration `b58b031aeb21` applied, live-verified |
+| `PHASE_2_RUNTIME_CONTEXT.md` | `Status: proposed`; also claimed "dot-path access into context already works for any field today" | **Implemented**, but that specific claim was **false until this session's fix** — see §16.3 |
+| `PHASE_5_EVIDENCE.md` | `Status: proposed` | **Implemented** — migration `411edb414123` applied, live-verified |
+| `README.md` / `PRODUCT.md` | "No human login/RBAC system yet"; "no key rotation"; "no evidence hash-chaining" | **All three shipped** — RBAC (Phase 10), signing-key registry, Evidence chaining (Phase 5) |
+| `ARCHITECTURE.md` | Describes the legacy Authority/Mandate pipeline as the live decision path | **Superseded** — Compiler V2 is the sole OPA writer; the legacy pipeline's write endpoints are `410` |
+| `POLICY_COMPILER_V2.md` | "Today's compiler doesn't enforce most conditions at all" | **False today** — every condition compiles to real, evaluated Rego ([07_RUNTIME_POLICY_ENGINE.md](07_RUNTIME_POLICY_ENGINE.md)) |
+
+## 16.3 The one verified-in-production bug this session found and fixed
+
+Worth restating here as the clearest illustration of why this specification insists on direct verification over trusting prior documentation: `PHASE_2_RUNTIME_CONTEXT.md` asserted, without having actually tested it, that a condition field like `context.authority.department` would resolve correctly against the real OPA input. It did not — it silently compiled to `input.intent.context.authority.department`, a path that never exists, so the condition simply never matched, with **no error anywhere**. This was only caught because a real signed Intent was pushed end-to-end against a live compiled policy and the expected `ALLOW` came back `DENY`. Fixed (`_resolve_base_and_field` in `rego_generator.py`), tested, and re-verified live (the same Intent flipped to `ALLOW` after the fix). See [07_RUNTIME_POLICY_ENGINE.md](07_RUNTIME_POLICY_ENGINE.md) §7.5 for the full mechanics.
+
+## 16.4 What "current limitation" does not mean here
+
+None of the items above are secretly broken production paths silently failing right now — every core enforcement path (§2.3's sequence) is live, tested, and verified. These are scope boundaries and unfinished edges, named the same way `PRODUCT.md` names them: honestly, and specifically, so a reader can decide what matters to their own use case rather than discovering a gap the hard way.

@@ -1,0 +1,61 @@
+# PayReality Platform — Architecture Specification
+
+**Status:** canonical. **Supersedes:** the 63 top-level `.md` files in the repo root wherever they conflict with this document (see "Relationship to existing documents" below). **Audience:** the founder, or any engineer who needs to understand the platform well enough to redesign it from scratch without reading the source first.
+
+This is not a README and not a pitch deck. It is an internal architecture handbook: for every subsystem, it explains what exists, why it exists, who calls it, whether it is active/deprecated/partial/dead, and what it would take to rebuild it. Where the codebase and an existing doc disagree, this specification follows the codebase — verified by reading the actual files, in most cases the same files this session already modified, migrated, and live-tested end-to-end.
+
+## How this specification is organized
+
+22 numbered parts plus this index and a glossary, one file each, in [SPECIFICATION/](.):
+
+| # | File | Covers |
+|---|------|--------|
+| 1 | [01_PRODUCT_OVERVIEW.md](01_PRODUCT_OVERVIEW.md) | What PayReality is, who it's for, the core pitch |
+| 2 | [02_SYSTEM_ARCHITECTURE.md](02_SYSTEM_ARCHITECTURE.md) | The whole system, one diagram at a time |
+| 3 | [03_FRONTEND.md](03_FRONTEND.md) | React/Vite app: routing, pages, components, state |
+| 4 | [04_BACKEND.md](04_BACKEND.md) | FastAPI app: structure, layering, every module |
+| 5 | [05_DATABASE.md](05_DATABASE.md) | All 33 tables, relationships, migrations |
+| 6 | [06_APIS.md](06_APIS.md) | All ~90 endpoints, request/response shapes |
+| 7 | [07_RUNTIME_POLICY_ENGINE.md](07_RUNTIME_POLICY_ENGINE.md) | Compiler V2, Rego generation, OPA |
+| 8 | [08_RUNTIME_AUTHORITY.md](08_RUNTIME_AUTHORITY.md) | Authority Model + Runtime Authority Context (Phases 1–2) |
+| 9 | [09_AI_AUTHORITY_BUILDER.md](09_AI_AUTHORITY_BUILDER.md) | Document → extracted authority candidates |
+| 10 | [10_AI_POLICY_BUILDER.md](10_AI_POLICY_BUILDER.md) | Document → draft Runtime Policy |
+| 11 | [11_AGENT_ARCHITECTURE.md](11_AGENT_ARCHITECTURE.md) | Agents, Certificates, lifecycle, SDK |
+| 12 | [12_DECISION_ENGINE.md](12_DECISION_ENGINE.md) | Intent → Decision, evaluation order |
+| 13 | [13_EVIDENCE_ENGINE.md](13_EVIDENCE_ENGINE.md) | Signing, chaining, key rotation, verification |
+| 14 | [14_SECURITY_MODEL.md](14_SECURITY_MODEL.md) | AuthN/AuthZ, RBAC, crypto, threat model |
+| 15 | [15_USER_JOURNEYS.md](15_USER_JOURNEYS.md) | End-to-end walkthroughs by role |
+| 16 | [16_CURRENT_LIMITATIONS.md](16_CURRENT_LIMITATIONS.md) | Known gaps, honestly stated |
+| 17 | [17_LEGACY_COMPONENTS.md](17_LEGACY_COMPONENTS.md) | What's dead, what's dormant, what's active |
+| 18 | [18_DEPENDENCY_GRAPH.md](18_DEPENDENCY_GRAPH.md) | Module/package/service dependency maps |
+| 19 | [19_REPOSITORY_WALKTHROUGH.md](19_REPOSITORY_WALKTHROUGH.md) | Every folder, file-by-file |
+| 20 | [20_ARCHITECTURAL_ASSESSMENT.md](20_ARCHITECTURAL_ASSESSMENT.md) | Candid critique: what's good, what's fragile |
+| 21 | [21_FOUNDER_LEARNING_GUIDE.md](21_FOUNDER_LEARNING_GUIDE.md) | Reading order + concepts for a non-engineer founder |
+| 22 | [22_BUILD_FROM_SCRATCH.md](22_BUILD_FROM_SCRATCH.md) | If you had to rebuild this platform in 90 days |
+| — | [GLOSSARY.md](GLOSSARY.md) | Every term of art, defined once |
+
+## Relationship to existing documents
+
+The repository root holds 63 pre-existing markdown documents (`ARCHITECTURE.md`, `PHASE_0.md` through `PHASE_6_PLATFORM.md`, `RBAC.md`, `AGENT_LIFECYCLE.md`, `SDK_*.md`, the `POLICY_STUDIO_*.md` family, and more). Those documents are **not deleted or rewritten** — they remain in place as design-time records of intent, and several (`SDK_REFERENCE.md`, `POLICY_LANGUAGE_SPEC.md`, `OPERATIONS_RUNBOOK.md`) contain reference detail (full SDK method signatures, full Rego condition-operator tables) this specification deliberately does not reproduce line-for-line.
+
+What this specification does differently:
+
+- **It is grounded in current, verified state, not design-time intent.** The clearest example: `PHASE_0.md`, `PHASE_1_AUTHORITY_MODEL.md`, and `PHASE_5_EVIDENCE.md` each still say `Status: proposed` in their own headers, but all three are implemented, migrated, deployed, and live-verified as of this specification's writing (see [16_CURRENT_LIMITATIONS.md](16_CURRENT_LIMITATIONS.md) and [17_LEGACY_COMPONENTS.md](17_LEGACY_COMPONENTS.md) for the full reconciliation). Where a phase doc's stated status conflicts with the code, this specification states the code's actual status and says so explicitly.
+- **It cross-references instead of duplicating.** Each part below cites which of the 63 documents it draws from and supersedes for that topic, so nothing is orphaned and nothing needs to be read twice to get the full picture.
+- **It is organized by subsystem end-to-end**, not by project phase. The 63 documents are organized chronologically (by when they were written — `PHASE_0` through `PHASE_6`, plus ad hoc audits). This specification is organized by what a reader needs to understand a subsystem (Runtime Policy Engine, Evidence Engine, Agent Architecture) regardless of which phase introduced which piece of it.
+- **Depth is calibrated per section**, deliberately, per the founder's own instruction: exhaustively enumerable material (all ~90 endpoints, all 33 tables, all ~75 backend files, all 20 frontend pages) is presented as structured reference tables, not restated in full prose per item; narrative/analytical material (why a decision was made, what a subsystem is for, what's fragile about it) is written in full prose. This keeps the specification usable as a genuine reference rather than a padded narrative.
+
+## What "active / deprecated / partial / dead" mean in this specification
+
+These four words recur throughout, always in this sense:
+
+| Label | Meaning |
+|---|---|
+| **Active** | Currently the only or primary code path; used by real production traffic; the thing to build on top of |
+| **Deprecated** | Still callable, but superseded — new work should not depend on it, and it is a removal candidate |
+| **Partial** | Implemented as a schema/scaffold/API surface but not yet wired into the primary decision path, or not yet exposed in the frontend |
+| **Dead** | Present in the codebase (or intentionally left as an empty table) but has zero remaining callers/writers; kept only because deleting it was assessed as unnecessary risk, not because it does anything |
+
+## A note on scale and verification
+
+This specification was produced by directly reading the repository — models, services, routers, migrations, the compiled Rego a real policy produces, and the actual Alembic migration history — rather than by re-describing the existing 63 documents' claims. Several factual corrections it makes to those documents' claims (e.g., the `rego_generator.py` field-routing bug fixed under Phase 2, described in [07_RUNTIME_POLICY_ENGINE.md](07_RUNTIME_POLICY_ENGINE.md)) were only caught because this session insisted on live end-to-end verification rather than trusting an earlier design doc's own assertion. Treat any specific claim in this specification the same way: as accurate as of this writing, and re-verifiable against the same source it was derived from.
