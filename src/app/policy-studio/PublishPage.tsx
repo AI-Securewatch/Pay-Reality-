@@ -6,6 +6,12 @@ import { CompilerDiagnosticsList } from "./components/CompilerDiagnosticsList";
 import { describeApiError, describeReason, formatStatus } from "../live/format";
 import { NextStepGuidance } from "../help/NextStepGuidance";
 import type { CompileResult, DeployResult, DryRunResult, RuntimePolicy } from "./types";
+import { Card } from "../components/ui/card";
+import { FieldLabel } from "../components/ui/label";
+import { Input, getInputStyle } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { ConfirmButton } from "../components/ui/confirm-button";
+import { Alert } from "../components/ui/alert";
 
 // Replaces the three separate Compile / Dry Run / Deployment pages
 // (PAYREALITY_UX_REVIEW.md, "getting one rule from idea to production
@@ -15,24 +21,6 @@ import type { CompileResult, DeployResult, DryRunResult, RuntimePolicy } from ".
 // three separate API calls; what changes is that they're one page and
 // one continuous read, not three destinations a user has to already
 // know to visit in order.
-
-const cardStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid var(--pr-overlay-05)",
-  borderRadius: 12,
-  padding: 20,
-  marginBottom: 16,
-};
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-hover)",
-  border: "1px solid var(--pr-overlay-10)",
-  color: "var(--pr-text-primary)",
-  borderRadius: 6,
-  padding: "6px 8px",
-  fontSize: 13,
-  width: "100%",
-};
-const labelStyle: React.CSSProperties = { fontSize: 12, color: "var(--pr-text-muted)", display: "block", marginBottom: 4 };
 
 export function PublishPage() {
   const { policyKey } = useParams();
@@ -141,22 +129,17 @@ export function PublishPage() {
       </div>
 
       {/* Step 1: check for errors */}
-      <div style={cardStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>1. Check for errors</h2>
           {isCompiled && !compileResult && (
             <span style={{ color: "var(--pr-trust-green)", fontSize: 12 }}>Already checked</span>
           )}
         </div>
-        <button
-          onClick={runCompile}
-          disabled={compiling}
-          className="px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
-        >
+        <Button onClick={runCompile} disabled={compiling}>
           {compiling ? "Checking..." : isCompiled ? "Check again" : "Check for errors"}
-        </button>
-        {compileError && <p role="alert" style={{ color: "var(--pr-critical-red)", marginTop: 8 }}>{compileError}</p>}
+        </Button>
+        {compileError && <Alert severity="error" style={{ marginTop: 8 }}>{compileError}</Alert>}
         {compileResult && (
           <div className="mt-3">
             <p style={{ color: compileResult.ok ? "var(--pr-trust-green)" : "var(--pr-critical-red)", fontWeight: 600 }}>
@@ -164,12 +147,13 @@ export function PublishPage() {
             </p>
             {!compileResult.ok && <CompilerDiagnosticsList errors={compileResult.errors} />}
             {compileResult.ok && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setShowTechnicalDetails((s) => !s)}
-                style={{ color: "var(--pr-text-muted)", fontSize: 12, marginTop: 6 }}
+                style={{ fontSize: 12, marginTop: 6 }}
               >
                 {showTechnicalDetails ? "Hide" : "Show"} technical details
-              </button>
+              </Button>
             )}
             {showTechnicalDetails && (
               <div className="mt-2 text-xs" style={{ color: "var(--pr-text-disabled)", fontFamily: "monospace" }}>
@@ -179,10 +163,10 @@ export function PublishPage() {
             )}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Step 2: preview */}
-      <div style={cardStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>2. Preview</h2>
         <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 10 }}>
           See what this rule would decide for a specific request. This never affects anything real, run it as many
@@ -190,39 +174,35 @@ export function PublishPage() {
         </p>
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <label htmlFor={`${formId}-amount`} style={labelStyle}>Amount</label>
-            <input id={`${formId}-amount`} type="number" style={inputStyle} value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <FieldLabel htmlFor={`${formId}-amount`}>Amount</FieldLabel>
+            <Input id={`${formId}-amount`} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
           <div>
-            <label htmlFor={`${formId}-currency`} style={labelStyle}>Currency</label>
-            <input id={`${formId}-currency`} style={inputStyle} value={currency} onChange={(e) => setCurrency(e.target.value)} />
+            <FieldLabel htmlFor={`${formId}-currency`}>Currency</FieldLabel>
+            <Input id={`${formId}-currency`} value={currency} onChange={(e) => setCurrency(e.target.value)} />
           </div>
         </div>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setAdvancedContext((s) => !s)}
-          style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 8 }}
+          style={{ fontSize: 12, marginBottom: 8 }}
         >
           {advancedContext ? "Hide" : "Add"} advanced details
-        </button>
+        </Button>
         {advancedContext && (
           <textarea
             aria-label="Additional details (JSON)"
-            style={{ ...inputStyle, height: 70, fontFamily: "monospace", marginBottom: 10 }}
+            style={{ ...getInputStyle(), height: 70, fontFamily: "monospace", marginBottom: 10 }}
             value={contextText}
             onChange={(e) => setContextText(e.target.value)}
           />
         )}
         <div>
-          <button
-            onClick={runPreview}
-            disabled={previewing}
-            className="px-4 py-2 rounded-lg text-sm font-medium"
-            style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
-          >
+          <Button onClick={runPreview} disabled={previewing}>
             {previewing ? "Previewing..." : "Preview outcome"}
-          </button>
+          </Button>
         </div>
-        {previewError && <p role="alert" style={{ color: "var(--pr-critical-red)", marginTop: 8 }}>{previewError}</p>}
+        {previewError && <Alert severity="error" style={{ marginTop: 8 }}>{previewError}</Alert>}
         {previewResult && (
           <div className="mt-3 text-sm" style={{ color: "var(--pr-text-primary)" }}>
             <p>Result: <strong>{formatStatus(previewResult.decision)}</strong></p>
@@ -231,10 +211,10 @@ export function PublishPage() {
             </p>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Step 3: publish */}
-      <div style={cardStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-primary)" }}>3. Publish</h2>
         {!isCompiled && (
           <p style={{ color: "var(--pr-text-muted)", fontSize: 13, marginBottom: 12 }}>
@@ -245,24 +225,33 @@ export function PublishPage() {
           Publishing replaces whatever rule is currently active for this principal and action, effective
           immediately for real decisions. This is not a preview.
         </p>
-        <button
-          onClick={runPublish}
-          disabled={publishing || !isCompiled}
-          className="px-4 py-2 rounded-lg text-sm font-medium"
-          style={{
-            backgroundColor: isCompiled ? "var(--pr-critical-red)" : "var(--pr-bg-hover)",
-            color: isCompiled ? "#fff" : "var(--pr-text-muted)",
-          }}
-        >
+        <ConfirmButton variant="danger" onConfirm={runPublish} disabled={publishing || !isCompiled} confirmLabel="Publish">
           {publishing ? "Publishing..." : "Publish"}
-        </button>
-        {publishError && <p role="alert" style={{ color: "var(--pr-critical-red)", marginTop: 8 }}>{publishError}</p>}
+        </ConfirmButton>
+        {publishError && <Alert severity="error" style={{ marginTop: 8 }}>{publishError}</Alert>}
         {publishResult && (
-          <p style={{ color: "var(--pr-trust-green)", fontWeight: 600, marginTop: 12 }}>
-            Published at {new Date(publishResult.deployed_at).toLocaleString()}.
-          </p>
+          <div style={{ marginTop: 12 }}>
+            <p style={{ color: "var(--pr-trust-green)", fontWeight: 600 }}>
+              Published at {new Date(publishResult.deployed_at).toLocaleString()}.
+            </p>
+            {publishResult.mandate_id ? (
+              <div
+                className="mt-2 p-3"
+                style={{ borderLeft: "3px solid var(--pr-authority-blue)", backgroundColor: "var(--pr-overlay-04)", borderRadius: 6 }}
+              >
+                <p style={{ color: "var(--pr-authority-blue)", fontSize: 12, fontWeight: 600, marginBottom: 2 }}>Authority-backed</p>
+                <p style={{ color: "var(--pr-text-primary)", fontSize: 13, fontFamily: "monospace" }}>
+                  Mandate {publishResult.mandate_id} (Authority {publishResult.authority_id})
+                </p>
+              </div>
+            ) : (
+              <p style={{ color: "var(--pr-text-muted)", fontSize: 13, marginTop: 4 }}>
+                No Authority resolved for this policy.
+              </p>
+            )}
+          </div>
         )}
-      </div>
+      </Card>
 
       {publishResult && (
         <NextStepGuidance

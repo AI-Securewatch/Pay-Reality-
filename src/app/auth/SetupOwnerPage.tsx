@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import { authApi } from "./authApi";
 import { ApiError } from "../live/apiClient";
 import { getOperatorKey, setOperatorKey } from "../live/operatorKey";
+import { Button } from "../components/ui/button";
 
 function describeSetupError(e: unknown): string {
   if (e instanceof ApiError) {
@@ -169,17 +170,12 @@ export function SetupOwnerPage() {
             </div>
 
             {error && (
-              <p className="text-xs" style={{ color: "var(--pr-critical-red)" }}>{error}</p>
+              <p role="alert" className="text-xs" style={{ color: "var(--pr-critical-red)" }}>{error}</p>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full text-sm font-medium py-2 rounded-lg"
-              style={{ backgroundColor: "var(--pr-authority-blue)", color: "white", opacity: submitting ? 0.6 : 1 }}
-            >
+            <Button type="submit" disabled={submitting} pending={submitting} className="w-full">
               {submitting ? "Setting up..." : "Set up account"}
-            </button>
+            </Button>
           </form>
 
           <p className="text-xs mt-4 text-center" style={{ color: "var(--pr-text-muted)" }}>

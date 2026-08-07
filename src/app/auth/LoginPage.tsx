@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "./AuthContext";
 import { ApiError } from "../live/apiClient";
+import { Button } from "../components/ui/button";
 
 function describeLoginError(e: unknown): string {
   if (e instanceof ApiError && e.status === 401) {
@@ -81,6 +82,8 @@ export function LoginPage() {
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={!!error}
+                aria-describedby={error ? `${formId}-error` : undefined}
                 className="w-full text-sm px-3 py-2 rounded-lg"
                 style={{
                   backgroundColor: "var(--pr-input-bg)",
@@ -104,6 +107,8 @@ export function LoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={!!error}
+                aria-describedby={error ? `${formId}-error` : undefined}
                 className="w-full text-sm px-3 py-2 rounded-lg"
                 style={{
                   backgroundColor: "var(--pr-input-bg)",
@@ -114,23 +119,14 @@ export function LoginPage() {
             </div>
 
             {error && (
-              <p className="text-xs" style={{ color: "var(--pr-critical-red)" }}>
+              <p id={`${formId}-error`} role="alert" className="text-xs" style={{ color: "var(--pr-critical-red)" }}>
                 {error}
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full text-sm font-medium py-2 rounded-lg"
-              style={{
-                backgroundColor: "var(--pr-authority-blue)",
-                color: "white",
-                opacity: submitting ? 0.6 : 1,
-              }}
-            >
+            <Button type="submit" disabled={submitting} pending={submitting} className="w-full">
               {submitting ? "Signing in..." : "Sign in"}
-            </button>
+            </Button>
           </form>
 
           <p className="text-xs mt-4 text-center" style={{ color: "var(--pr-text-muted)" }}>

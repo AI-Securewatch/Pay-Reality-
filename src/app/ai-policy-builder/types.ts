@@ -42,4 +42,7 @@ export interface PromoteResult {
   policy_key: string;
   version: number;
   status: string;
+  // Authority-as-a-continuous-object, Stage I.4: non-null only when
+  // promotion actually created a real Authority row for this candidate.
+  authority_id: string | null;
 }

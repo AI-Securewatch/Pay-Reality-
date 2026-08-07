@@ -12,6 +12,7 @@ import { useAuth } from "../auth/AuthContext";
 import { agentsApi } from "../agents/api";
 import { describeApiError } from "../live/format";
 import { ResolvePrincipalDialog } from "./components/ResolvePrincipalDialog";
+import { SkeletonRows } from "../components/ui/skeleton";
 import type {
   Conflict,
   Corpus,
@@ -51,17 +52,20 @@ function Section({
   title,
   count,
   emptyLabel,
+  urgent,
   children,
 }: {
   title: string;
-  count: number;
+  count: number | null;
   emptyLabel: string;
+  urgent?: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const contentId = `section-${title.toLowerCase().replace(/\s+/g, "-")}`;
+  const isUrgent = !!urgent;
   return (
-    <div style={sectionStyle}>
+    <div style={{ ...sectionStyle, borderLeft: isUrgent ? "3px solid var(--pr-warning-amber)" : undefined }}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
@@ -69,14 +73,18 @@ function Section({
         className="w-full flex items-center justify-between"
         style={{ padding: "16px 20px", textAlign: "left" }}
       >
-        <span style={{ fontSize: 14, fontWeight: 500, color: "var(--pr-text-primary)" }}>
-          {title} ({count})
+        <span style={{ fontSize: 14, fontWeight: 500, color: isUrgent ? "var(--pr-warning-amber)" : "var(--pr-text-primary)" }}>
+          {title} ({count ?? "…"})
         </span>
         <span style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>{open ? "Hide" : "Show"}</span>
       </button>
       {open && (
         <div id={contentId}>
-          {count === 0 ? (
+          {count === null ? (
+            <div style={rowStyle}>
+              <SkeletonRows count={2} height={16} />
+            </div>
+          ) : count === 0 ? (
             <p style={{ ...rowStyle, color: "var(--pr-text-muted)" }}>{emptyLabel}</p>
           ) : (
             children
@@ -225,7 +233,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         </div>
       )}
 
-      <Section title="Rules" count={policies?.length ?? 0} emptyLabel="No rules were found in this corpus.">
+      <Section title="Rules" count={policies?.length ?? null} emptyLabel="No rules were found in this corpus.">
         <div style={{ padding: 20 }}>
           {policies?.map((c) => (
             <CandidateCard key={c.candidate_id} candidate={c} onChanged={loadAll} />
@@ -233,7 +241,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         </div>
       </Section>
 
-      <Section title="Principals" count={principals?.length ?? 0} emptyLabel="No principals were found in this corpus.">
+      <Section title="Principals" count={principals?.length ?? null} emptyLabel="No principals were found in this corpus.">
         {principals?.map((p) => (
           <div key={p.id} style={rowStyle}>
             <div className="flex items-center justify-between">
@@ -270,7 +278,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Resources" count={resources?.length ?? 0} emptyLabel="No resources were found in this corpus.">
+      <Section title="Resources" count={resources?.length ?? null} emptyLabel="No resources were found in this corpus.">
         {resources?.map((r) => (
           <div key={r.id} style={rowStyle}>
             <div className="flex items-center justify-between">
@@ -284,7 +292,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Operations" count={operations?.length ?? 0} emptyLabel="No operations were found in this corpus.">
+      <Section title="Operations" count={operations?.length ?? null} emptyLabel="No operations were found in this corpus.">
         {operations?.map((o) => (
           <div key={o.id} style={rowStyle}>
             <div className="flex items-center justify-between">
@@ -298,7 +306,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Relationships" count={relationships?.length ?? 0} emptyLabel="No delegation, escalation, or inheritance links were found in this corpus.">
+      <Section title="Relationships" count={relationships?.length ?? null} emptyLabel="No delegation, escalation, or inheritance links were found in this corpus.">
         {relationshipError && (
           <p role="alert" style={{ ...rowStyle, color: "var(--pr-critical-red)" }}>{relationshipError}</p>
         )}
@@ -371,7 +379,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         })}
       </Section>
 
-      <Section title="Conflicts" count={conflicts?.length ?? 0} emptyLabel="No contradictory or duplicate authority was found in this corpus.">
+      <Section title="Conflicts" count={conflicts?.length ?? null} emptyLabel="No contradictory or duplicate authority was found in this corpus." urgent={(conflicts?.length ?? 0) > 0}>
         {conflicts?.map((c) => (
           <div key={c.id} style={rowStyle}>
             <div className="flex items-center justify-between">
@@ -383,7 +391,7 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Gaps" count={gaps?.length ?? 0} emptyLabel="No missing information was found in this corpus.">
+      <Section title="Gaps" count={gaps?.length ?? null} emptyLabel="No missing information was found in this corpus." urgent={(gaps?.length ?? 0) > 0}>
         {gaps?.map((g) => (
           <div key={g.id} style={rowStyle}>
             <div className="flex items-center justify-between">
@@ -395,7 +403,12 @@ export function AIAuthorityBuilderCorpusReviewPage() {
         ))}
       </Section>
 
-      <Section title="Questions" count={questions?.length ?? 0} emptyLabel="No clarification questions were raised for this corpus.">
+      <Section
+        title="Questions"
+        count={questions?.length ?? null}
+        emptyLabel="No clarification questions were raised for this corpus."
+        urgent={(questions?.filter((q) => !q.answered).length ?? 0) > 0}
+      >
         {questions?.map((q) => (
           <div key={q.id} style={rowStyle}>
             <p style={{ color: "var(--pr-text-primary)" }}>{q.question}</p>

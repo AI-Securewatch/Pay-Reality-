@@ -5,13 +5,8 @@ import { RequirePermission } from "../auth/RequireAuth";
 import { useAuth } from "../auth/AuthContext";
 import { describeApiError } from "../live/format";
 import { ASSIGNABLE_ROLES, ROLE_LABELS } from "../auth/types";
+import { Card } from "../components/ui/card";
 import type { OrgUser } from "./types";
-
-const cardStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid var(--pr-overlay-05)",
-  borderRadius: 12,
-};
 
 export function UsersPage() {
   const formId = useId();
@@ -23,6 +18,7 @@ export function UsersPage() {
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [confirmingDisableId, setConfirmingDisableId] = useState<string | null>(null);
 
   function load() {
     usersApi.list().then(setUsers).catch((e) => setMessage(describeApiError(e, "Load users")));
@@ -65,6 +61,8 @@ export function UsersPage() {
       load();
     } catch (e) {
       setMessage(describeApiError(e, "Change status"));
+    } finally {
+      setConfirmingDisableId(null);
     }
   }
 
@@ -82,7 +80,7 @@ export function UsersPage() {
           </p>
         </div>
 
-        <div style={{ ...cardStyle, padding: 20, marginBottom: 24 }}>
+        <Card style={{ marginBottom: 24 }}>
           <h2 className="text-sm font-medium mb-4" style={{ color: "var(--pr-text-primary)" }}>Add a user</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
@@ -143,10 +141,11 @@ export function UsersPage() {
               yet): <code>{temporaryPassword}</code>
             </div>
           )}
-          {message && <p className="text-xs mt-2" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
-        </div>
+          {message && <p role="alert" className="text-xs mt-2" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
+        </Card>
 
-        <div style={{ ...cardStyle, overflow: "hidden" }}>
+        <Card padding={0} style={{ overflow: "hidden" }}>
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--pr-overlay-05)" }}>
@@ -185,19 +184,37 @@ export function UsersPage() {
                   </td>
                   <td className="px-4 py-3">
                     {u.id !== currentUser?.id && (
-                      <button type="button" onClick={() => toggleStatus(u)} className="text-xs" style={{ color: "var(--pr-authority-blue)" }}>
-                        {u.status === "active" ? "Disable" : "Re-enable"}
-                      </button>
+                      u.status === "active" ? (
+                        confirmingDisableId === u.id ? (
+                          <span className="flex items-center gap-2">
+                            <button type="button" onClick={() => toggleStatus(u)} className="text-xs" style={{ color: "var(--pr-critical-red)" }}>
+                              Confirm disable
+                            </button>
+                            <button type="button" onClick={() => setConfirmingDisableId(null)} className="text-xs" style={{ color: "var(--pr-text-muted)" }}>
+                              Cancel
+                            </button>
+                          </span>
+                        ) : (
+                          <button type="button" onClick={() => setConfirmingDisableId(u.id)} className="text-xs" style={{ color: "var(--pr-authority-blue)" }}>
+                            Disable
+                          </button>
+                        )
+                      ) : (
+                        <button type="button" onClick={() => toggleStatus(u)} className="text-xs" style={{ color: "var(--pr-authority-blue)" }}>
+                          Re-enable
+                        </button>
+                      )
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           {users?.length === 0 && (
             <p className="text-sm px-4 py-6" style={{ color: "var(--pr-text-muted)" }}>No users yet.</p>
           )}
-        </div>
+        </Card>
       </div>
     </RequirePermission>
   );

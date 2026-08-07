@@ -38,6 +38,10 @@ export interface Constraints {
   // behind it -- delegated_by above remains the fallback in that case.
   authority_id: string | null;
   mandate_id: string | null;
+  // Phase 5, Release 2 (Enterprise System binding): client-editable --
+  // a reviewer declares which registered EnterpriseSystem this policy's
+  // allowed action reaches. Null means none configured.
+  enterprise_system_id: string | null;
 }
 
 export interface Metadata {
@@ -102,6 +106,10 @@ export interface DeployResult {
   bundle_id: string;
   bundle_hash: string;
   deployed_at: string;
+  // Authority-as-a-continuous-object, Stage I.5: additive. Null whenever
+  // this policy has no resolved Authority behind it.
+  authority_id: string | null;
+  mandate_id: string | null;
 }
 
 export interface ConditionDiffEntry {

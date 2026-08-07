@@ -6,6 +6,9 @@ export interface LivePrincipal {
   id: string;
   name: string;
   created_at: string;
+  // Authority-as-a-continuous-object, Stage I.9: additive. Already
+  // returned by GET /v1/principals (Stage B), just not read until now.
+  role?: string | null;
 }
 
 // Phase 9 (AGENT_LIFECYCLE.md): status gained 'registered' (exists, not
@@ -83,6 +86,11 @@ export interface LiveDecisionSummary {
   // additive alongside the legacy policy-key list above. Empty whenever
   // none of the matched policies have a Stage-G-created Mandate yet.
   evaluated_mandate_ids: string[];
+  // Phase 5, Release 2 (Enterprise System binding): both null whenever
+  // no matched policy configured, or still references, a real
+  // EnterpriseSystem row -- never fabricated.
+  enterprise_system_id: string | null;
+  enterprise_system_name: string | null;
   reason: string | null;
 }
 
@@ -111,6 +119,8 @@ export interface LiveDecision {
   currency: string;
   evaluated_mandates: string[];
   evaluated_mandate_ids: string[];
+  enterprise_system_id: string | null;
+  enterprise_system_name: string | null;
   resolution: LiveResolution | null;
 }
 
@@ -136,6 +146,19 @@ export interface DelegationEdge {
   operation: string | null;
 }
 
+// GET /v1/principals/{id}/authority-context (Stage I.9): the same
+// resolution AuthorityContext above carries, exposed standalone and
+// identity-only -- no risk_level, since that's an Intent-time concept,
+// not a Principal identity one.
+export interface PrincipalAuthorityContext {
+  organization: string | null;
+  business_unit: string | null;
+  department: string | null;
+  team: string | null;
+  role: string | null;
+  delegations: DelegationEdge[];
+}
+
 // Evidence.payload's signed JSON shape (intent_service._build_evidence_payload).
 // Every field from principal_id onward is optional/additive (Stage C/H):
 // absent on records predating that work, or whenever the acting
@@ -159,6 +182,11 @@ export interface EvidencePayload {
   delegation_chain?: DelegationEdge[];
   evaluated_mandate_ids?: string[];
   authority_ids?: string[];
+  // Phase 5, Release 2 (Enterprise System binding): present only when
+  // resolve_enterprise_system found a matched policy configured with,
+  // and still referencing, a real EnterpriseSystem row.
+  enterprise_system_id?: string;
+  enterprise_system_name?: string;
 }
 
 export interface LiveEvidence {

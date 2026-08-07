@@ -3,6 +3,7 @@ import { RouterProvider } from "react-router";
 import { router } from "./routes";
 import { AuthProvider } from "./auth/AuthContext";
 import { HelpProvider } from "./help/HelpContext";
+import { ToastProvider } from "./components/ui/toast";
 import { initAnalytics } from "./services/analytics";
 
 export default function App() {
@@ -13,7 +14,9 @@ export default function App() {
   return (
     <AuthProvider>
       <HelpProvider>
-        <RouterProvider router={router} />
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
       </HelpProvider>
     </AuthProvider>
   );

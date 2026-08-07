@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { ChevronDown, ExternalLink, Search } from "lucide-react";
+import { Card } from "../components/ui/card";
 import { Sheet, SheetContent, SheetTitle } from "../components/ui/sheet";
 import { useHelp, type HelpTab } from "./HelpContext";
 import {
@@ -53,7 +54,7 @@ function GettingStartedTab({ onNavigate }: { onNavigate: (path: string) => void 
         {GETTING_STARTED_STEPS.map((step) => {
           const done = doneSteps.has(step.id);
           return (
-            <div key={step.id} style={{ ...cardStyle, padding: 12 }} className="flex items-start gap-3">
+            <Card key={step.id} radius={10} padding={12} className="flex items-start gap-3">
               <input
                 type="checkbox"
                 checked={done}
@@ -78,7 +79,7 @@ function GettingStartedTab({ onNavigate }: { onNavigate: (path: string) => void 
                 </button>
                 <p className="text-xs mt-0.5" style={{ color: "var(--pr-text-muted)" }}>{step.description}</p>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
@@ -190,7 +191,7 @@ function TroubleshootingTab({ onNavigate }: { onNavigate: (path: string) => void
       {TROUBLESHOOTING_GUIDES.map((guide) => {
         const expanded = expandedId === guide.id;
         return (
-          <div key={guide.id} style={cardStyle}>
+          <Card key={guide.id} radius={10}>
             <button
               type="button"
               onClick={() => setExpandedId(expanded ? null : guide.id)}
@@ -225,7 +226,7 @@ function TroubleshootingTab({ onNavigate }: { onNavigate: (path: string) => void
                 )}
               </div>
             )}
-          </div>
+          </Card>
         );
       })}
     </div>

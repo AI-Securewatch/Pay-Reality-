@@ -1,5 +1,5 @@
 import { apiClient } from "../live/apiClient";
-import type { LiveAgent, LivePrincipal } from "../live/types";
+import type { LiveAgent, LivePrincipal, PrincipalAuthorityContext } from "../live/types";
 import type {
   AgentDetail,
   AgentListPage,
@@ -33,6 +33,8 @@ export const agentsApi = {
   list: (filters: AgentFilters = {}) => apiClient.get<AgentListPage>(`${BASE}${query(filters)}`),
   listPrincipals: () => apiClient.get<LivePrincipal[]>("/v1/principals"),
   createPrincipal: (name: string) => apiClient.post<LivePrincipal>("/v1/principals", { name }),
+  getPrincipalAuthorityContext: (principalId: string) =>
+    apiClient.get<PrincipalAuthorityContext>(`/v1/principals/${principalId}/authority-context`),
   register: (body: { name: string; acting_for_principal_id: string; public_key: string; owner?: string; description?: string }) =>
     apiClient.post<LiveAgent>(BASE, body),
   getDetail: (agentId: string) => apiClient.get<AgentDetail>(`${BASE}/${agentId}`),

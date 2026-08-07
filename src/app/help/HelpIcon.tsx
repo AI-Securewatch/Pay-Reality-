@@ -42,7 +42,7 @@ export function HelpIcon({ articleId }: { articleId: string }) {
         aria-label={`What is ${article.term}?`}
         aria-expanded={open}
         className="inline-flex items-center justify-center rounded-full"
-        style={{ color: "var(--pr-text-disabled)", width: 16, height: 16 }}
+        style={{ color: "var(--pr-text-disabled)", width: 28, height: 28, margin: -6 }}
       >
         <HelpCircle className="w-4 h-4" />
       </button>

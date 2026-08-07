@@ -6,6 +6,8 @@ import { describeApiError, formatStatus } from "../live/format";
 import { AiComingSoonBanner } from "../components/AiComingSoonBanner";
 import { NextStepGuidance } from "../help/NextStepGuidance";
 import { track, trackError } from "../services/analytics";
+import { FieldLabel } from "../components/ui/label";
+import { Button } from "../components/ui/button";
 
 const STATUS_COLOR: Record<string, string> = {
   uploaded: "var(--pr-text-muted)",
@@ -103,9 +105,9 @@ export function AIAuthorityBuilderUploadPage() {
           marginBottom: 24,
         }}
       >
-        <label htmlFor={`${formId}-name`} style={{ fontSize: 12, color: "var(--pr-text-muted)", display: "block", marginBottom: 4 }}>
+        <FieldLabel htmlFor={`${formId}-name`}>
           Corpus name
-        </label>
+        </FieldLabel>
         <input
           id={`${formId}-name`}
           value={name}
@@ -156,14 +158,9 @@ export function AIAuthorityBuilderUploadPage() {
           </div>
         )}
 
-        <button
-          onClick={handleSubmit}
-          disabled={uploading}
-          className="px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
-        >
+        <Button variant="primary" onClick={handleSubmit} disabled={uploading}>
           {uploading ? "Uploading and analyzing corpus..." : `Analyze corpus (${files.length} file(s))`}
-        </button>
+        </Button>
 
         {message && <p role="alert" style={{ color: "var(--pr-warning-amber)", marginTop: 12 }}>{message}</p>}
       </div>

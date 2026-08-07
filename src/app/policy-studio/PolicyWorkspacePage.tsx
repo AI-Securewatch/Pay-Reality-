@@ -1,6 +1,8 @@
 import { useEffect, useId, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { policyStudioApi } from "./api";
+import { organizationApi } from "../organization/api";
+import type { EnterpriseSystem } from "../organization/types";
 import type { Condition, Constraints, Effect, Metadata, RuntimePolicy, RuntimePolicyRequest, Scope } from "./types";
 import { PolicyStatusBadge } from "./components/PolicyStatusBadge";
 import { ConditionRow } from "./components/ConditionRow";
@@ -8,25 +10,11 @@ import { ScopeFields } from "./components/ScopeFields";
 import { describeApiError } from "../live/format";
 import { describePolicy, EFFECT_LABEL } from "./describePolicy";
 import { track, trackError } from "../services/analytics";
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-hover)",
-  border: "1px solid var(--pr-overlay-10)",
-  color: "var(--pr-text-primary)",
-  borderRadius: 6,
-  padding: "6px 8px",
-  fontSize: 13,
-  width: "100%",
-};
-
-const labelStyle: React.CSSProperties = { fontSize: 12, color: "var(--pr-text-muted)", display: "block", marginBottom: 4 };
-const sectionStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid var(--pr-overlay-05)",
-  borderRadius: 12,
-  padding: 20,
-  marginBottom: 16,
-};
+import { Card } from "../components/ui/card";
+import { FieldLabel } from "../components/ui/label";
+import { Input, getInputStyle } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { ConfirmButton } from "../components/ui/confirm-button";
 
 const EMPTY: RuntimePolicyRequest = {
   name: "",
@@ -34,7 +22,10 @@ const EMPTY: RuntimePolicyRequest = {
   scope: { principal: "", action: "", agent: null, resource: null },
   conditions: [],
   effect: "require_human_review",
-  constraints: { delegated_by: null, expires: null, evidence_required: true, risk_level: null, authority_id: null, mandate_id: null },
+  constraints: {
+    delegated_by: null, expires: null, evidence_required: true, risk_level: null,
+    authority_id: null, mandate_id: null, enterprise_system_id: null,
+  },
   metadata: { owner: null, created_by: null, tags: [] },
 };
 
@@ -49,6 +40,16 @@ export function PolicyWorkspacePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
+  // Phase 5, Release 2 (Enterprise System binding): the configuration
+  // surface for which registered system this policy's allowed action
+  // reaches -- lives here, alongside delegated_by/risk_level, not in
+  // Organisation Settings' Enterprise Systems tab (which only needs to
+  // list/create systems, unchanged by this release).
+  const [enterpriseSystems, setEnterpriseSystems] = useState<EnterpriseSystem[]>([]);
+
+  useEffect(() => {
+    organizationApi.listEnterpriseSystems().then(setEnterpriseSystems).catch(() => setEnterpriseSystems([]));
+  }, []);
 
   useEffect(() => {
     if (isNew) return;
@@ -143,14 +144,9 @@ export function PolicyWorkspacePage() {
         <Link to="/governance" style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
           &lt; Back to Governance
         </Link>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
-        >
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save draft"}
-        </button>
+        </Button>
       </div>
 
       <div className="mb-6 flex items-center gap-3">
@@ -173,9 +169,15 @@ export function PolicyWorkspacePage() {
             History
           </Link>
           {existing.status === "draft" && (
-            <button onClick={handleSubmitForReview} disabled={saving} style={{ color: "var(--pr-authority-blue)" }}>
+            <ConfirmButton
+              variant="ghost"
+              onConfirm={handleSubmitForReview}
+              disabled={saving}
+              confirmLabel="Submit"
+              style={{ color: "var(--pr-authority-blue)" }}
+            >
               Submit for review
-            </button>
+            </ConfirmButton>
           )}
           {(existing.status === "approved" || existing.status === "compiled" || existing.status === "active") && (
             <Link to={`/governance/${policyKey}/publish`} style={{ color: "var(--pr-authority-blue)" }}>
@@ -185,35 +187,34 @@ export function PolicyWorkspacePage() {
         </div>
       )}
 
-      <div style={{ ...sectionStyle, borderColor: "rgba(77,124,254,0.25)" }}>
+      <Card borderColor="rgba(77,124,254,0.25)" style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-muted)" }}>In plain English</h2>
         <p style={{ color: "var(--pr-text-primary)", fontSize: 15 }}>{describePolicy(form)}</p>
-      </div>
+      </Card>
 
-      <div style={sectionStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Identity</h2>
-        <label htmlFor={`${formId}-name`} style={labelStyle}>Name</label>
-        <input
+        <FieldLabel htmlFor={`${formId}-name`}>Name</FieldLabel>
+        <Input
           id={`${formId}-name`}
-          style={{ ...inputStyle, marginBottom: 10 }}
+          style={{ marginBottom: 10 }}
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
         />
-        <label htmlFor={`${formId}-description`} style={labelStyle}>Description</label>
-        <input
+        <FieldLabel htmlFor={`${formId}-description`}>Description</FieldLabel>
+        <Input
           id={`${formId}-description`}
-          style={inputStyle}
           value={form.description ?? ""}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
         />
-      </div>
+      </Card>
 
-      <div style={sectionStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Who, what, and when</h2>
         <ScopeFields scope={form.scope} onChange={updateScope} />
-      </div>
+      </Card>
 
-      <div style={sectionStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>
             Conditions (all must hold)
@@ -228,16 +229,15 @@ export function PolicyWorkspacePage() {
         {form.conditions.length === 0 && (
           <p style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>No conditions yet: this policy matches on scope alone.</p>
         )}
-      </div>
+      </Card>
 
-      <div style={sectionStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Constraints</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor={`${formId}-delegated-by`} style={labelStyle}>Delegated by</label>
-            <input
+            <FieldLabel htmlFor={`${formId}-delegated-by`}>Delegated by</FieldLabel>
+            <Input
               id={`${formId}-delegated-by`}
-              style={inputStyle}
               placeholder="Role or person"
               value={form.constraints.delegated_by ?? ""}
               onChange={(e) => updateConstraints({ ...form.constraints, delegated_by: e.target.value || null })}
@@ -247,10 +247,10 @@ export function PolicyWorkspacePage() {
             </p>
           </div>
           <div>
-            <label htmlFor={`${formId}-risk-level`} style={labelStyle}>Risk level</label>
+            <FieldLabel htmlFor={`${formId}-risk-level`}>Risk level</FieldLabel>
             <select
               id={`${formId}-risk-level`}
-              style={inputStyle}
+              style={getInputStyle()}
               value={form.constraints.risk_level ?? ""}
               onChange={(e) => updateConstraints({ ...form.constraints, risk_level: e.target.value || null })}
             >
@@ -270,11 +270,32 @@ export function PolicyWorkspacePage() {
           />
           Evidence required
         </label>
+        <div className="mt-3">
+          <FieldLabel htmlFor={`${formId}-enterprise-system`}>Enterprise System (optional)</FieldLabel>
+          <select
+            id={`${formId}-enterprise-system`}
+            style={getInputStyle()}
+            value={form.constraints.enterprise_system_id ?? ""}
+            onChange={(e) => updateConstraints({ ...form.constraints, enterprise_system_id: e.target.value || null })}
+          >
+            <option value="">(none)</option>
+            {enterpriseSystems.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          <p style={{ fontSize: 11, color: "var(--pr-text-muted)", marginTop: 3 }}>
+            Which downstream system this rule's allowed action ultimately reaches, if any. Recorded
+            on every Decision this rule produces.
+          </p>
+        </div>
         {(form.constraints.authority_id || form.constraints.mandate_id) && (
-          <div className="grid grid-cols-2 gap-4 mt-4 pt-3" style={{ borderTop: "1px solid var(--pr-overlay-05)" }}>
+          <div
+            className="grid grid-cols-2 gap-4 mt-4 p-3"
+            style={{ borderLeft: "3px solid var(--pr-authority-blue)", backgroundColor: "var(--pr-overlay-04)", borderRadius: 6 }}
+          >
             {form.constraints.authority_id && (
               <div>
-                <p style={labelStyle}>Authority</p>
+                <p style={{ fontSize: 12, color: "var(--pr-authority-blue)", fontWeight: 600, display: "block", marginBottom: 4 }}>Authority</p>
                 <p style={{ fontSize: 13, color: "var(--pr-text-primary)", fontFamily: "monospace" }}>
                   {form.constraints.authority_id}
                 </p>
@@ -282,7 +303,7 @@ export function PolicyWorkspacePage() {
             )}
             {form.constraints.mandate_id && (
               <div>
-                <p style={labelStyle}>Mandate</p>
+                <p style={{ fontSize: 12, color: "var(--pr-authority-blue)", fontWeight: 600, display: "block", marginBottom: 4 }}>Mandate</p>
                 <p style={{ fontSize: 13, color: "var(--pr-text-primary)", fontFamily: "monospace" }}>
                   {form.constraints.mandate_id}
                 </p>
@@ -290,9 +311,9 @@ export function PolicyWorkspacePage() {
             )}
           </div>
         )}
-      </div>
+      </Card>
 
-      <div style={sectionStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>What should happen</h2>
         <div className="flex gap-4">
           {(["allow", "deny", "require_human_review"] as Effect[]).map((eff) => (
@@ -302,24 +323,24 @@ export function PolicyWorkspacePage() {
             </label>
           ))}
         </div>
-      </div>
+      </Card>
 
-      <div style={sectionStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Metadata</h2>
-        <label htmlFor={`${formId}-owner`} style={labelStyle}>Owner</label>
-        <input
+        <FieldLabel htmlFor={`${formId}-owner`}>Owner</FieldLabel>
+        <Input
           id={`${formId}-owner`}
-          style={{ ...inputStyle, marginBottom: 3 }}
+          style={{ marginBottom: 3 }}
           value={form.metadata.owner ?? ""}
           onChange={(e) => updateMetadata({ ...form.metadata, owner: e.target.value || null })}
         />
         <p style={{ fontSize: 11, color: "var(--pr-text-muted)", marginTop: 0, marginBottom: 10 }}>
           Who maintains this rule day to day, distinct from "Delegated by" above.
         </p>
-        <label htmlFor={`${formId}-tag-input`} style={labelStyle}>Tags</label>
+        <FieldLabel htmlFor={`${formId}-tag-input`}>Tags</FieldLabel>
         <div className="flex gap-2 flex-wrap mb-2">
           {form.metadata.tags.map((t) => (
-            <span key={t} style={{ ...inputStyle, width: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span key={t} style={getInputStyle("hover", { width: "auto", display: "inline-flex", alignItems: "center", gap: 6 })}>
               {t}
               <button
                 onClick={() => removeTag(t)}
@@ -332,9 +353,8 @@ export function PolicyWorkspacePage() {
           ))}
         </div>
         <div className="flex gap-2">
-          <input
+          <Input
             id={`${formId}-tag-input`}
-            style={inputStyle}
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             placeholder="New tag"
@@ -343,10 +363,10 @@ export function PolicyWorkspacePage() {
             + Add tag
           </button>
         </div>
-      </div>
+      </Card>
 
       {existing?.audit && (
-        <div style={sectionStyle}>
+        <Card style={{ marginBottom: 16 }}>
           <h2 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-primary)" }}>Audit</h2>
           <p style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>
             {Object.entries(existing.audit)
@@ -354,7 +374,7 @@ export function PolicyWorkspacePage() {
               .map(([k, v]) => `${k}: ${v}`)
               .join(", ")}
           </p>
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Building2, Bot, ShieldCheck, ShieldAlert, ShieldX, FileCheck } from "lucide-react";
 import { apiClient } from "../apiClient";
+import { Card } from "../../components/ui/card";
+import { Alert } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
+import { Skeleton } from "../../components/ui/skeleton";
 import type { LivePolicy, LiveEvidence } from "../types";
 
 interface EvidencePayload {
@@ -14,8 +18,10 @@ export function LiveAssurance() {
   const [policies, setPolicies] = useState<LivePolicy[]>([]);
   const [evidence, setEvidence] = useState<LiveEvidence[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
+  function load() {
+    setError(null);
     // Two separate totals, not a client-side filter over one page: at
     // Phase 9 scale (AGENT_DIRECTORY.md, "10,000+ agents") a single page
     // of /v1/agents no longer represents every agent, so this rollup
@@ -31,9 +37,12 @@ export function LiveAssurance() {
         setActiveAgentTotal(activeAgentPage.total);
         setPolicies(p);
         setEvidence(e);
+        setLoaded(true);
       })
       .catch(() => setError("We couldn't reach the service. Check your connection and try again."));
-  }, []);
+  }
+
+  useEffect(load, []);
 
   const activePolicy = policies.find((p) => p.status === "active");
   const activeAgents = activeAgentTotal;
@@ -79,20 +88,33 @@ export function LiveAssurance() {
       </div>
 
       {error && (
-        <p role="alert" className="text-sm mb-6" style={{ color: "var(--pr-warning-amber)" }}>
-          {error}
-        </p>
+        <Alert severity="warning" className="text-sm mb-6">
+          <div className="flex items-center gap-3">
+            <span>{error}</span>
+            <Button variant="ghost" size="sm" onClick={load}>Retry</Button>
+          </div>
+        </Alert>
       )}
 
+      {!loaded && !error && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Card key={i} padding={20} borderColor="var(--pr-overlay-06)">
+              <Skeleton height={36} width={36} radius={8} style={{ marginBottom: 12 }} />
+              <Skeleton height={24} width="60%" style={{ marginBottom: 6 }} />
+              <Skeleton height={12} width="80%" />
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {loaded && (
+      <>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <div
-              key={c.label}
-              className="p-5 rounded-xl border"
-              style={{ borderColor: "var(--pr-overlay-06)", backgroundColor: "var(--pr-bg-card)" }}
-            >
+            <Card key={c.label} padding={20} borderColor="var(--pr-overlay-06)">
               <div
                 className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
                 style={{ backgroundColor: `${c.color}1A` }}
@@ -109,15 +131,12 @@ export function LiveAssurance() {
                 )}
               </div>
               <div className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{c.label}</div>
-            </div>
+            </Card>
           );
         })}
       </div>
 
-      <div
-        className="p-5 rounded-xl border flex items-center gap-3"
-        style={{ borderColor: "var(--pr-overlay-06)", backgroundColor: "var(--pr-bg-card)" }}
-      >
+      <Card padding={20} borderColor="var(--pr-overlay-06)" className="flex items-center gap-3">
         <ShieldCheck className="w-4 h-4 flex-shrink-0" style={{ color: "var(--pr-verification-purple)" }} />
         <p className="text-sm" style={{ color: "var(--pr-text-secondary)" }}>
           <strong style={{ color: "var(--pr-text-primary)" }}>{verifiedCount}</strong> of{" "}
@@ -125,7 +144,9 @@ export function LiveAssurance() {
           records currently carry cryptographic verified status. Verify any individual record on
           the Evidence page.
         </p>
-      </div>
+      </Card>
+      </>
+      )}
     </div>
   );
 }

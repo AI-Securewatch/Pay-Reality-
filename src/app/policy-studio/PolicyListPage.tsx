@@ -4,8 +4,32 @@ import { policyStudioApi } from "./api";
 import type { RuntimePolicy } from "./types";
 import { PolicyStatusBadge } from "./components/PolicyStatusBadge";
 import { HelpIcon } from "../help/HelpIcon";
+import { Alert } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Skeleton } from "../components/ui/skeleton";
 
 type SortKey = "name" | "version" | "status" | "created_at" | "owner";
+type SortDir = "asc" | "desc";
+
+const COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Name" },
+  { key: "version", label: "Version" },
+  { key: "status", label: "Status" },
+  { key: "created_at", label: "Last Modified" },
+  { key: "owner", label: "Owner" },
+];
+
+// Each key's natural starting direction, matching what the "Sort by"
+// dropdown always did before headers became clickable (name/status/owner
+// A-Z, version/created_at highest-or-newest first) -- so picking a column
+// from either control lands on the same order.
+const DEFAULT_DIR: Record<SortKey, SortDir> = {
+  name: "asc",
+  version: "desc",
+  status: "asc",
+  created_at: "desc",
+  owner: "asc",
+};
 
 export function PolicyListPage() {
   const [policies, setPolicies] = useState<RuntimePolicy[] | null>(null);
@@ -13,13 +37,30 @@ export function PolicyListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>(DEFAULT_DIR.created_at);
 
-  useEffect(() => {
+  function load() {
+    setError(false);
     policyStudioApi
       .list()
       .then(setPolicies)
       .catch(() => setError(true));
-  }, []);
+  }
+
+  useEffect(load, []);
+
+  function selectSort(key: SortKey) {
+    setSortKey(key);
+    setSortDir(DEFAULT_DIR[key]);
+  }
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      selectSort(key);
+    }
+  }
 
   const visible = useMemo(() => {
     if (!policies) return [];
@@ -29,14 +70,15 @@ export function PolicyListPage() {
       const q = search.trim().toLowerCase();
       rows = rows.filter((p) => p.name.toLowerCase().includes(q));
     }
-    return [...rows].sort((a, b) => {
+    const sorted = [...rows].sort((a, b) => {
       if (sortKey === "name") return a.name.localeCompare(b.name);
-      if (sortKey === "version") return b.version - a.version;
+      if (sortKey === "version") return a.version - b.version;
       if (sortKey === "status") return a.status.localeCompare(b.status);
       if (sortKey === "owner") return (a.metadata.owner ?? "").localeCompare(b.metadata.owner ?? "");
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
-  }, [policies, search, statusFilter, sortKey]);
+    return sortDir === "asc" ? sorted : sorted.reverse();
+  }, [policies, search, statusFilter, sortKey, sortDir]);
 
   return (
     <div className="p-8" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
@@ -107,7 +149,7 @@ export function PolicyListPage() {
         <select
           aria-label="Sort by"
           value={sortKey}
-          onChange={(e) => setSortKey(e.target.value as SortKey)}
+          onChange={(e) => selectSort(e.target.value as SortKey)}
           style={{
             backgroundColor: "var(--pr-bg-hover)",
             border: "1px solid var(--pr-overlay-10)",
@@ -126,18 +168,40 @@ export function PolicyListPage() {
       </div>
 
       {error && (
-        <p role="alert" style={{ color: "var(--pr-warning-amber)" }}>Could not reach the Policy Studio backend.</p>
+        <Alert severity="warning" style={{ marginBottom: 16 }}>
+          <div className="flex items-center gap-3">
+            <span>Could not reach the Policy Studio backend.</span>
+            <Button variant="ghost" size="sm" onClick={load}>Retry</Button>
+          </div>
+        </Alert>
+      )}
+
+      {!policies && !error && (
+        <div className="space-y-3">
+          <Skeleton height={32} />
+          <Skeleton height={32} />
+          <Skeleton height={32} />
+          <Skeleton height={32} />
+        </div>
       )}
 
       {policies && (
         <table className="w-full text-sm" style={{ color: "var(--pr-text-primary)" }}>
           <thead>
             <tr style={{ color: "var(--pr-text-muted)", textAlign: "left", fontSize: 12 }}>
-              <th className="pb-2">Name</th>
-              <th className="pb-2">Version</th>
-              <th className="pb-2">Status</th>
-              <th className="pb-2">Last Modified</th>
-              <th className="pb-2">Owner</th>
+              {COLUMNS.map((col) => (
+                <th key={col.key} className="pb-2">
+                  <button
+                    onClick={() => toggleSort(col.key)}
+                    className="flex items-center gap-1"
+                    style={{ color: "inherit", fontSize: 12, fontWeight: sortKey === col.key ? 600 : 400 }}
+                    aria-label={`Sort by ${col.label}`}
+                  >
+                    {col.label}
+                    {sortKey === col.key && <span aria-hidden="true">{sortDir === "asc" ? "↑" : "↓"}</span>}
+                  </button>
+                </th>
+              ))}
               <th className="pb-2" title="Whether this policy enforces a resolved Authority Builder Authority, or free-text delegation only">Authority</th>
             </tr>
           </thead>

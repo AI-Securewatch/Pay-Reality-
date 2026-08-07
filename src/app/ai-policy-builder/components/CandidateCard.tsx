@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { aiPolicyBuilderApi } from "../api";
-import type { Candidate, ValidationErrorItem } from "../types";
+import type { Candidate, PromoteResult, ValidationErrorItem } from "../types";
 import type { RuntimePolicyRequest } from "../../policy-studio/types";
 import { ScopeFields } from "../../policy-studio/components/ScopeFields";
 import { ConditionRow } from "../../policy-studio/components/ConditionRow";
@@ -9,17 +9,9 @@ import { ConfidenceBadge } from "./ConfidenceBadge";
 import { ApiError } from "../../live/apiClient";
 import { describeApiError, formatStatus } from "../../live/format";
 import { track, trackError } from "../../services/analytics";
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-hover)",
-  border: "1px solid var(--pr-overlay-10)",
-  color: "var(--pr-text-primary)",
-  borderRadius: 6,
-  padding: "6px 8px",
-  fontSize: 13,
-  width: "100%",
-};
-const labelStyle: React.CSSProperties = { fontSize: 12, color: "var(--pr-text-muted)", display: "block", marginBottom: 4 };
+import { Input, getInputStyle } from "../../components/ui/input";
+import { FieldLabel } from "../../components/ui/label";
+import { Button } from "../../components/ui/button";
 
 // Shared between the single-document AI Policy Builder review page and
 // the multi-document AI Authority Builder's corpus review page: a
@@ -32,6 +24,12 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
   const [message, setMessage] = useState<string | null>(null);
   const [errors, setErrors] = useState<ValidationErrorItem[]>([]);
   const [tagInput, setTagInput] = useState("");
+  // Authority-as-a-continuous-object, Stage I.4: only known for the
+  // promotion that just happened in this session -- a promoted
+  // candidate reloaded from a fresh page load has no authority_id to
+  // show here (that durable view is Policy Studio's Workspace/List,
+  // Stage I.5a), so this stays undefined rather than fabricating one.
+  const [promoteResult, setPromoteResult] = useState<PromoteResult | null>(null);
   const formId = useId();
 
   const readOnly = candidate.status !== "pending_review";
@@ -74,7 +72,12 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
         source: "ai_candidate",
         runtime_policy_generation_ms: Date.now() - startedAt,
       });
-      setMessage(`Promoted to Policy Studio as a draft (v${result.version}).`);
+      setPromoteResult(result);
+      setMessage(
+        result.authority_id
+          ? `Promoted to Policy Studio as a draft (v${result.version}). Linked to Authority ${result.authority_id}.`
+          : `Promoted to Policy Studio as a draft (v${result.version}). No resolved authority -- delegated_by kept as free text.`
+      );
       onChanged();
     } catch (e) {
       if (e instanceof ApiError && e.body && typeof e.body === "object" && "errors" in (e.body as object)) {
@@ -126,9 +129,9 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
       }}
     >
       <div className="flex items-center justify-between mb-2">
-        <input
+        <Input
           aria-label="Policy name"
-          style={{ ...inputStyle, fontSize: 15, fontWeight: 500, maxWidth: 400 }}
+          style={{ fontSize: 15, fontWeight: 500, maxWidth: 400 }}
           value={content.name}
           readOnly={readOnly}
           onChange={(e) => setContent((c) => ({ ...c, name: e.target.value }))}
@@ -177,7 +180,7 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
         <ScopeFields scope={content.scope} onChange={(scope) => setContent((c) => ({ ...c, scope }))} />
       </div>
 
-      <label style={labelStyle}>Conditions</label>
+      <FieldLabel>Conditions</FieldLabel>
       {content.conditions.map((cond, i) => (
         <ConditionRow
           key={i}
@@ -195,10 +198,10 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-3 mt-2">
         <div>
-          <label htmlFor={`${formId}-effect`} style={labelStyle}>Effect</label>
+          <FieldLabel htmlFor={`${formId}-effect`}>Effect</FieldLabel>
           <select
             id={`${formId}-effect`}
-            style={inputStyle}
+            style={getInputStyle()}
             value={content.effect}
             disabled={readOnly}
             onChange={(e) => setContent((c) => ({ ...c, effect: e.target.value }))}
@@ -209,10 +212,10 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           </select>
         </div>
         <div>
-          <label htmlFor={`${formId}-risk`} style={labelStyle}>Risk level</label>
+          <FieldLabel htmlFor={`${formId}-risk`}>Risk level</FieldLabel>
           <select
             id={`${formId}-risk`}
-            style={inputStyle}
+            style={getInputStyle()}
             value={content.constraints.risk_level ?? ""}
             disabled={readOnly}
             onChange={(e) =>
@@ -229,10 +232,9 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           </select>
         </div>
         <div>
-          <label htmlFor={`${formId}-delegated-by`} style={labelStyle}>Delegated by</label>
-          <input
+          <FieldLabel htmlFor={`${formId}-delegated-by`}>Delegated by</FieldLabel>
+          <Input
             id={`${formId}-delegated-by`}
-            style={inputStyle}
             placeholder="Role or person"
             value={content.constraints.delegated_by ?? ""}
             readOnly={readOnly}
@@ -248,10 +250,9 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           </p>
         </div>
         <div>
-          <label htmlFor={`${formId}-owner`} style={labelStyle}>Owner</label>
-          <input
+          <FieldLabel htmlFor={`${formId}-owner`}>Owner</FieldLabel>
+          <Input
             id={`${formId}-owner`}
-            style={inputStyle}
             value={content.metadata.owner ?? ""}
             readOnly={readOnly}
             onChange={(e) => setContent((c) => ({ ...c, metadata: { ...c.metadata, owner: e.target.value || null } }))}
@@ -297,9 +298,9 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
         ))}
         {!readOnly && (
           <>
-            <input
+            <Input
               aria-label="New tag"
-              style={{ ...inputStyle, width: 120 }}
+              style={{ width: 120 }}
               placeholder="Add tag"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
@@ -344,19 +345,30 @@ export function CandidateCard({ candidate, onChanged }: { candidate: Candidate; 
           >
             Dismiss
           </button>
-          <button
-            onClick={promote}
-            disabled={saving}
-            className="px-4 py-2 rounded-lg text-sm font-medium"
-            style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
-          >
+          <Button variant="primary" onClick={promote} disabled={saving}>
             Promote to Policy Studio
-          </button>
+          </Button>
         </div>
       ) : candidate.status === "promoted" && candidate.promoted_policy_key ? (
-        <Link to={`/governance/${candidate.promoted_policy_key}`} style={{ color: "var(--pr-trust-green)", fontSize: 13 }}>
-          View in Policy Studio
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link to={`/governance/${candidate.promoted_policy_key}`} style={{ color: "var(--pr-trust-green)", fontSize: 13 }}>
+            View in Policy Studio
+          </Link>
+          {promoteResult?.authority_id && (
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: "monospace",
+                color: "var(--pr-authority-blue)",
+                backgroundColor: "var(--pr-bg-hover)",
+                borderRadius: 999,
+                padding: "2px 8px",
+              }}
+            >
+              Linked to Authority {promoteResult.authority_id}
+            </span>
+          )}
+        </div>
       ) : (
         <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>Dismissed.</p>
       )}

@@ -11,6 +11,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { apiClient } from "../live/apiClient";
+import { Card } from "../components/ui/card";
+import { Alert } from "../components/ui/alert";
 import type { LiveAgent, LivePolicy } from "../live/types";
 
 const WORKFLOW = [
@@ -119,15 +121,11 @@ export function PlatformOverview() {
       </div>
 
       {/* Live status strip */}
-      <div
-        className="mb-14 p-5 rounded-xl border flex flex-wrap items-center gap-6"
-        style={{ borderColor: "var(--pr-overlay-06)", backgroundColor: "var(--pr-bg-card)" }}
-      >
+      <Card padding={20} borderColor="var(--pr-overlay-06)" className="mb-14 flex flex-wrap items-center gap-6">
         {reachable === false ? (
-          <div role="alert" className="flex items-center gap-2 text-sm" style={{ color: "var(--pr-warning-amber)" }}>
-            <ShieldCheck className="w-4 h-4" />
+          <Alert severity="warning" icon={<ShieldCheck className="w-4 h-4" />}>
             We couldn't reach the service. Please check your connection and try again.
-          </div>
+          </Alert>
         ) : (
           <>
             <div>
@@ -152,7 +150,7 @@ export function PlatformOverview() {
             </div>
           </>
         )}
-      </div>
+      </Card>
 
       {/* The workflow */}
       <div className="mb-8">

@@ -9,22 +9,18 @@ import { generateKeyPair } from "../live/crypto";
 import { saveAgentKeyPair } from "../live/agentKeyStore";
 import { HelpIcon } from "../help/HelpIcon";
 import type { AgentDetail } from "./types";
+import type { PrincipalAuthorityContext } from "../live/types";
+import { Card } from "../components/ui/card";
+import { FieldLabel } from "../components/ui/label";
+import { Alert } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
 
-const cardStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid var(--pr-overlay-05)",
-  borderRadius: 12,
-  padding: 20,
-  marginBottom: 16,
-};
-
-const labelStyle: React.CSSProperties = { fontSize: 11, color: "var(--pr-text-muted)", marginBottom: 2 };
 const valueStyle: React.CSSProperties = { fontSize: 13, color: "var(--pr-text-primary)" };
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div>
-      <div style={labelStyle}>{label}</div>
+      <FieldLabel size={11}>{label}</FieldLabel>
       <div style={valueStyle}>{value || "-"}</div>
     </div>
   );
@@ -37,6 +33,12 @@ export function AgentDetailPage() {
   const [verifyResults, setVerifyResults] = useState<Record<string, boolean>>({});
   const [newOwner, setNewOwner] = useState("");
   const [newBusinessUnit, setNewBusinessUnit] = useState("");
+  // Authority-as-a-continuous-object, Stage I.9: the Principal's real
+  // organisational placement and active delegations, resolved via the
+  // same authority-context lookup every Intent already uses. null until
+  // loaded, and stays null (rather than throwing) if the principal has
+  // nothing resolved yet.
+  const [authorityContext, setAuthorityContext] = useState<PrincipalAuthorityContext | null>(null);
 
   function load() {
     if (!agentId) return;
@@ -44,6 +46,14 @@ export function AgentDetailPage() {
   }
 
   useEffect(load, [agentId]);
+
+  useEffect(() => {
+    if (!detail) return;
+    agentsApi
+      .getPrincipalAuthorityContext(detail.agent.acting_for_principal_id)
+      .then(setAuthorityContext)
+      .catch(() => setAuthorityContext(null));
+  }, [detail?.agent.acting_for_principal_id]);
 
   async function runAction(fn: () => Promise<unknown>, label: string) {
     setMessage(null);
@@ -86,11 +96,11 @@ export function AgentDetailPage() {
         <span style={{ fontSize: 12, color: "var(--pr-text-disabled)", fontFamily: "monospace" }}>{agent.id}</span>
       </div>
 
-      {message && <p role="alert" className="text-sm mb-4" style={{ color: "var(--pr-critical-red)" }}>{message}</p>}
+      {message && <Alert severity="error" className="text-sm mb-4">{message}</Alert>}
 
       <div className="flex flex-wrap gap-2 mb-6">
         {(agent.status === "registered" || agent.status === "suspended") && (
-          <button onClick={() => runAction(() => agentsApi.activate(agentId!), "Activate")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(34,197,94,0.1)", color: "var(--pr-trust-green)" }}>Activate</button>
+          <Button variant="tint-success" size="sm" onClick={() => runAction(() => agentsApi.activate(agentId!), "Activate")}>Activate</Button>
         )}
         {agent.status === "active" && (
           <button onClick={() => runAction(() => agentsApi.suspend(agentId!), "Suspend")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(245,158,11,0.1)", color: "var(--pr-warning-amber)" }}>Suspend</button>
@@ -101,17 +111,31 @@ export function AgentDetailPage() {
         {(agent.status === "registered" || agent.status === "active" || agent.status === "suspended") && (
           <>
             <button onClick={() => runAction(() => agentsApi.retire(agentId!), "Retire")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}>Retire</button>
-            <button onClick={() => runAction(() => agentsApi.revoke(agentId!), "Revoke")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "var(--pr-critical-red)" }}>Revoke</button>
+            <Button variant="tint-danger" size="sm" onClick={() => runAction(() => agentsApi.revoke(agentId!), "Revoke")}>Revoke</Button>
           </>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div style={cardStyle}>
+        <Card style={{ marginBottom: 16 }}>
           <h2 className="text-sm font-medium mb-1" style={{ color: "var(--pr-text-primary)" }}>Identity</h2>
           <p className="mb-3" style={{ fontSize: 12, color: "var(--pr-text-muted)" }}>
             Acting under {detail.principal_name ? <strong style={{ color: "var(--pr-text-secondary)" }}>{detail.principal_name}</strong> : "its principal"}'s delegated authority, the same way a human employee's actions are governed by the role they hold, not by the employee personally.
           </p>
+          {authorityContext && (() => {
+            const segments = [
+              authorityContext.role,
+              authorityContext.team,
+              authorityContext.department,
+              authorityContext.business_unit,
+              authorityContext.organization,
+            ].filter((s): s is string => !!s);
+            return segments.length > 0 ? (
+              <p className="mb-3" style={{ fontSize: 13, color: "var(--pr-text-primary)" }}>
+                {segments.join(" · ")}
+              </p>
+            ) : null;
+          })()}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Principal" value={detail.principal_name} />
             <Field label="Owner" value={agent.owner} />
@@ -126,7 +150,7 @@ export function AgentDetailPage() {
           </div>
           {agent.tags.length > 0 && (
             <div className="mt-3">
-              <div style={labelStyle}>Tags</div>
+              <FieldLabel size={11}>Tags</FieldLabel>
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {agent.tags.map((t) => (
                   <span key={t} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}>{t}</span>
@@ -134,9 +158,9 @@ export function AgentDetailPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
-        <div style={cardStyle}>
+        <Card style={{ marginBottom: 16 }}>
           <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>SDK &amp; heartbeat</h2>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <Field label="SDK version" value={agent.sdk_version} />
@@ -175,10 +199,28 @@ export function AgentDetailPage() {
               Transfer
             </button>
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div style={cardStyle}>
+      <Card style={{ marginBottom: 16 }}>
+        <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Active delegations</h2>
+        {authorityContext && authorityContext.delegations.length > 0 ? (
+          authorityContext.delegations.map((d) => (
+            <div key={d.id} className="py-1.5" style={{ borderTop: "1px solid var(--pr-overlay-05)", fontSize: 13 }}>
+              <span style={{ color: "var(--pr-text-primary)" }}>{d.operation ?? "Delegation"}</span>
+              {d.from_principal_id && (
+                <span style={{ color: "var(--pr-text-muted)", fontSize: 12 }}> &middot; from principal {d.from_principal_id}</span>
+              )}
+            </div>
+          ))
+        ) : (
+          <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>
+            No active delegations resolved for this principal.
+          </p>
+        )}
+      </Card>
+
+      <Card style={{ marginBottom: 16 }}>
         <div className="flex items-center gap-1.5 mb-3">
           <h2 className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>Certificates</h2>
           <HelpIcon articleId="agent_certificate" />
@@ -207,9 +249,9 @@ export function AgentDetailPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
 
-      <div style={cardStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Rules</h2>
         {detail.policies.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No rules target this agent's principal yet.</p>}
         {detail.policies.map((p) => (
@@ -218,10 +260,10 @@ export function AgentDetailPage() {
             <span style={{ color: "var(--pr-text-muted)" }}>v{p.version} &middot; {formatStatus(p.status)}</span>
           </div>
         ))}
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div style={cardStyle}>
+        <Card style={{ marginBottom: 16 }}>
           <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Decision history</h2>
           {detail.recent_decisions.length === 0 && <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>No decisions yet.</p>}
           {detail.recent_decisions.map((d) => (
@@ -234,9 +276,9 @@ export function AgentDetailPage() {
             </div>
           ))}
           <Link to="/decisions" style={{ color: "var(--pr-authority-blue)", fontSize: 12, display: "inline-block", marginTop: 8 }}>Submit a new decision &rarr;</Link>
-        </div>
+        </Card>
 
-        <div style={cardStyle}>
+        <Card style={{ marginBottom: 16 }}>
           <div className="flex items-center gap-1.5 mb-3">
             <h2 className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>Evidence</h2>
             <HelpIcon articleId="evidence" />
@@ -249,10 +291,10 @@ export function AgentDetailPage() {
             </div>
           ))}
           <Link to="/evidence" style={{ color: "var(--pr-authority-blue)", fontSize: 12, display: "inline-block", marginTop: 8 }}>View all Evidence &rarr;</Link>
-        </div>
+        </Card>
       </div>
 
-      <div style={cardStyle}>
+      <Card style={{ marginBottom: 16 }}>
         <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Lifecycle timeline &amp; audit</h2>
         <LifecycleTimeline events={detail.recent_audit_events} />
         {detail.recent_audit_events.length > 0 && (
@@ -277,7 +319,7 @@ export function AgentDetailPage() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

@@ -1,25 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { aiAuthorityBuilderApi } from "../api";
 import { describeApiError } from "../../live/format";
 import { ApiError } from "../../live/apiClient";
 import type { Principal, PrincipalCandidate } from "../types";
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-hover)",
-  border: "1px solid var(--pr-overlay-10)",
-  color: "var(--pr-text-primary)",
-  borderRadius: 6,
-  padding: "6px 8px",
-  fontSize: 13,
-  width: "100%",
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: "var(--pr-text-muted)",
-  display: "block",
-  marginBottom: 4,
-};
+import { Input } from "../../components/ui/input";
+import { FieldLabel } from "../../components/ui/label";
+import { Button } from "../../components/ui/button";
+import { Alert } from "../../components/ui/alert";
 
 interface ResolvePrincipalDialogProps {
   authorityPrincipalId: string;
@@ -48,6 +35,48 @@ export function ResolvePrincipalDialog({
   const [createRole, setCreateRole] = useState(discoveryRole ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap + Escape-to-close: this is a plain custom modal (no
+  // Radix/native <dialog>), so both had to be hand-rolled. Moves focus
+  // into the dialog on open and back to whatever triggered it on close,
+  // per WAI-ARIA APG's modal dialog pattern.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    const getFocusable = () =>
+      Array.from(
+        dialog?.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      ).filter((el) => !el.hasAttribute("disabled"));
+    getFocusable()[0]?.focus();
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = getFocusable();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
 
   useEffect(() => {
     aiAuthorityBuilderApi
@@ -98,9 +127,6 @@ export function ResolvePrincipalDialog({
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Resolve principal: ${discoveryName}`}
       style={{
         position: "fixed",
         inset: 0,
@@ -113,6 +139,11 @@ export function ResolvePrincipalDialog({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Resolve principal: ${discoveryName}`}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: "var(--pr-bg-card)",
@@ -137,7 +168,7 @@ export function ResolvePrincipalDialog({
 
         {candidates !== null && candidates.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <p style={labelStyle}>Match an existing principal</p>
+            <FieldLabel>Match an existing principal</FieldLabel>
             {candidates.map((c) => (
               <label
                 key={c.id}
@@ -181,17 +212,16 @@ export function ResolvePrincipalDialog({
           </label>
           {mode === "create" && (
             <div style={{ paddingLeft: 22 }}>
-              <label htmlFor="resolve-create-name" style={labelStyle}>Name</label>
-              <input
+              <FieldLabel htmlFor="resolve-create-name">Name</FieldLabel>
+              <Input
                 id="resolve-create-name"
-                style={{ ...inputStyle, marginBottom: 10 }}
+                style={{ marginBottom: 10 }}
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
               />
-              <label htmlFor="resolve-create-role" style={labelStyle}>Role</label>
-              <input
+              <FieldLabel htmlFor="resolve-create-role">Role</FieldLabel>
+              <Input
                 id="resolve-create-role"
-                style={inputStyle}
                 value={createRole}
                 onChange={(e) => setCreateRole(e.target.value)}
               />
@@ -200,27 +230,29 @@ export function ResolvePrincipalDialog({
         </div>
 
         {error && (
-          <p role="alert" style={{ color: "var(--pr-critical-red)", fontSize: 13, marginBottom: 12 }}>
+          <Alert severity="error" style={{ fontSize: 13, marginBottom: 12 }}>
             {error}
-          </p>
+          </Alert>
         )}
 
         <div className="flex gap-2 justify-end">
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
             disabled={submitting}
-            style={{ color: "var(--pr-text-muted)", fontSize: 13, padding: "6px 12px" }}
+            style={{ fontSize: 13, padding: "6px 12px" }}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleResolve}
             disabled={submitting}
             className="rounded-lg"
-            style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff", fontSize: 13, padding: "6px 14px" }}
+            style={{ fontSize: 13, padding: "6px 14px" }}
           >
             {submitting ? "Resolving..." : "Resolve"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

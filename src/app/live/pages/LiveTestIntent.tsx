@@ -10,7 +10,13 @@ import { track, trackError } from "../../services/analytics";
 import { HelpIcon } from "../../help/HelpIcon";
 import { NextStepGuidance } from "../../help/NextStepGuidance";
 import { useAuth } from "../../auth/AuthContext";
+import { Card } from "../../components/ui/card";
+import { Alert } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
 import type { LiveAgent, LiveDecision, SubmitIntentResult } from "../types";
+
+const POLL_MAX_ATTEMPTS = 60;
+const POLL_INTERVAL_MS = 2000;
 
 const OUTCOME_STYLE: Record<string, { bg: string; fg: string; icon: typeof CheckCircle2 }> = {
   ALLOW: { bg: "rgba(34,197,94,0.1)", fg: "var(--pr-trust-green)", icon: CheckCircle2 },
@@ -21,6 +27,7 @@ const OUTCOME_STYLE: Record<string, { bg: string; fg: string; icon: typeof Check
 export function LiveTestIntent() {
   const { user } = useAuth();
   const [agents, setAgents] = useState<LiveAgent[] | null>(null);
+  const [agentsError, setAgentsError] = useState(false);
   const [actions, setActions] = useState<string[]>([]);
   const [agentId, setAgentId] = useState("");
   const [action, setAction] = useState("");
@@ -29,13 +36,20 @@ export function LiveTestIntent() {
   const [result, setResult] = useState<SubmitIntentResult | null>(null);
   const [decision, setDecision] = useState<LiveDecision | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [pollTimedOut, setPollTimedOut] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [resolverName, setResolverName] = useState("");
   const [resolveError, setResolveError] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
+  function loadAgents() {
+    setAgentsError(false);
+    apiClient.get<{ agents: LiveAgent[] }>("/v1/agents").then((r) => setAgents(r.agents)).catch(() => setAgentsError(true));
+  }
+
   useEffect(() => {
-    apiClient.get<{ agents: LiveAgent[] }>("/v1/agents").then((r) => setAgents(r.agents));
+    loadAgents();
     // The same live vocabulary endpoint ScopeFields.tsx already uses,
     // never a second hardcoded copy of the known actions (the exact
     // drift bug DOMAIN_REFACTOR_PLAN.md's item 5 already named).
@@ -68,22 +82,28 @@ export function LiveTestIntent() {
       attempts += 1;
       const latest = await apiClient.get<LiveDecision>(`/v1/decisions/${decisionId}`);
       setDecision(latest);
-      if (latest.status === "RESOLVED" || attempts > 60) {
+      if (latest.status === "RESOLVED") {
         if (pollRef.current) window.clearInterval(pollRef.current);
+      } else if (attempts >= POLL_MAX_ATTEMPTS) {
+        if (pollRef.current) window.clearInterval(pollRef.current);
+        setPollTimedOut(true);
       }
-    }, 2000);
+    }, POLL_INTERVAL_MS);
   };
 
   const handleSubmit = async () => {
     setError(null);
     setResult(null);
     setDecision(null);
+    setPollTimedOut(false);
+    setSubmitting(true);
     if (pollRef.current) window.clearInterval(pollRef.current);
 
     const agent = agents?.find((a) => a.id === agentId);
     const privateKey = agentId ? getAgentPrivateKey(agentId) : null;
     if (!agent || !privateKey || !agent.certificate_id) {
       setError("Select an agent that was registered in this browser (Live Agents page).");
+      setSubmitting(false);
       return;
     }
 
@@ -122,6 +142,7 @@ export function LiveTestIntent() {
         component: "live_test_intent",
         duration_ms: Date.now() - submittedAt,
       });
+      setSubmitting(false);
       return;
     }
 
@@ -151,6 +172,8 @@ export function LiveTestIntent() {
         component: "decision_fetch",
         duration_ms: Date.now() - submittedAt,
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -195,10 +218,7 @@ export function LiveTestIntent() {
         </p>
       </div>
 
-      <div
-        className="p-6 rounded-xl border mb-6"
-        style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "var(--pr-overlay-05)" }}
-      >
+      <Card padding={24} className="mb-6">
         {agents !== null && signableAgents.length === 0 && (
           <p className="text-sm mb-4" style={{ color: "var(--pr-warning-amber)" }}>
             No agents with a signing key in this browser yet. Register one on the{" "}
@@ -258,27 +278,31 @@ export function LiveTestIntent() {
           </div>
         </div>
 
+        {agentsError && (
+          <Alert severity="warning" className="text-sm mb-4">
+            <div className="flex items-center gap-3">
+              <span>Could not load agents.</span>
+              <Button variant="ghost" size="sm" onClick={loadAgents}>Retry</Button>
+            </div>
+          </Alert>
+        )}
+
         <button
           onClick={handleSubmit}
-          disabled={!agentId || !action}
+          disabled={!agentId || !action || submitting}
           className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-40"
           style={{ backgroundColor: "var(--pr-authority-blue)", color: "#fff" }}
         >
-          <Send className="w-4 h-4" /> Submit signed intent
+          <Send className="w-4 h-4" /> {submitting ? "Submitting..." : "Submit signed intent"}
         </button>
 
         {error && (
-          <p role="alert" className="text-sm mt-4" style={{ color: "var(--pr-critical-red)" }}>{error}</p>
+          <Alert severity="error" className="text-sm mt-4">{error}</Alert>
         )}
-      </div>
+      </Card>
 
       {decision && style && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="p-6 rounded-xl border"
-          style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "var(--pr-overlay-05)" }}
-        >
+        <Card padding={24} role="status" aria-live="polite">
           <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: "var(--pr-text-muted)" }}>
             Decision
           </p>
@@ -293,18 +317,46 @@ export function LiveTestIntent() {
           </div>
 
           {decision.evaluated_mandate_ids.length > 0 && (
-            <p className="text-xs font-mono mb-4" style={{ color: "var(--pr-text-muted)" }}>
+            <p className="text-xs font-mono mb-2" style={{ color: "var(--pr-text-muted)" }}>
               Authorized under Mandate{decision.evaluated_mandate_ids.length > 1 ? "s" : ""}: {decision.evaluated_mandate_ids.join(", ")}
             </p>
           )}
 
-          {decision.status === "PENDING" && (
+          {decision.enterprise_system_name && (
+            <div className="mb-4">
+              <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>Enterprise System</p>
+              <p className="text-sm" style={{ color: "var(--pr-text-primary)" }}>{decision.enterprise_system_name}</p>
+            </div>
+          )}
+
+          {decision.status === "PENDING" && !pollTimedOut && (
             <div className="flex items-center gap-2 mb-4 p-3 rounded-lg" style={{ backgroundColor: "rgba(245,158,11,0.06)" }}>
               <Clock className="w-4 h-4 animate-pulse" style={{ color: "var(--pr-warning-amber)" }} />
               <span className="text-sm" style={{ color: "var(--pr-text-secondary)" }}>
                 Awaiting human review (checking every 2 seconds)...
               </span>
             </div>
+          )}
+
+          {decision.status === "PENDING" && pollTimedOut && (
+            <Alert severity="warning" className="mb-4">
+              <div className="flex items-center gap-3">
+                <span>
+                  Still awaiting human review after {Math.round((POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS) / 60000)} minutes.
+                  Stopped checking automatically; refresh to check again.
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPollTimedOut(false);
+                    startPolling(decision.id);
+                  }}
+                >
+                  Resume checking
+                </Button>
+              </div>
+            </Alert>
           )}
 
           {decision.outcome === "HUMAN_REVIEW" && decision.status === "PENDING" && (
@@ -344,7 +396,7 @@ export function LiveTestIntent() {
                 </button>
               </div>
               {resolveError && (
-                <p role="alert" className="text-sm mt-3" style={{ color: "var(--pr-critical-red)" }}>{resolveError}</p>
+                <Alert severity="error" className="text-sm mt-3">{resolveError}</Alert>
               )}
             </div>
           )}
@@ -360,7 +412,7 @@ export function LiveTestIntent() {
               evidence_id: {result.evidence_id}
             </p>
           )}
-        </div>
+        </Card>
       )}
 
       {result && decision && decision.status !== "PENDING" && (

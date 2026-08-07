@@ -86,7 +86,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                   aria-current={active ? "page" : undefined}
                   className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-100 group relative"
                   style={{
-                    backgroundColor: active ? "rgba(77,124,254,0.12)" : "transparent",
+                    backgroundColor: active ? "color-mix(in srgb, var(--pr-authority-blue) 12%, transparent)" : "transparent",
                     color: active ? "var(--pr-text-primary)" : "var(--pr-text-muted)",
                   }}
                   onMouseEnter={(e) => {

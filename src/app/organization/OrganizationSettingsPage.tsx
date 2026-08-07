@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { organizationApi } from "./api";
+import { organizationApi, organizationStructureApi } from "./api";
 import { RequirePermission } from "../auth/RequireAuth";
 import { describeApiError } from "../live/format";
 import { getTheme, setTheme, type Theme } from "../lib/theme";
-import type { HealthState, HealthStatus, IntegrationsStatus, IntegrationStatus, OrganizationSettings } from "./types";
+import type {
+  BusinessUnit,
+  Department,
+  EnterpriseSystem,
+  EnterpriseSystemStatus,
+  EnterpriseSystemType,
+  HealthState,
+  HealthStatus,
+  IntegrationsStatus,
+  IntegrationStatus,
+  OrganizationSettings,
+  Team,
+} from "./types";
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-card)",
@@ -14,9 +26,11 @@ const cardStyle: React.CSSProperties = {
 
 const TABS = [
   "General",
+  "Organisation Structure",
   "Security",
   "Runtime Authority",
   "Integrations",
+  "Enterprise Systems",
   "Notifications",
   "Audit",
   "Organisation Health",
@@ -66,6 +80,15 @@ const INTEGRATION_COLORS: Record<IntegrationStatus, string> = {
   configuration_required: "var(--pr-warning-amber)",
   disconnected: "var(--pr-critical-red)",
 };
+
+const ENTERPRISE_SYSTEM_STATUS_COLORS: Record<EnterpriseSystemStatus, string> = {
+  connected: "var(--pr-trust-green)",
+  configuration_required: "var(--pr-warning-amber)",
+};
+
+const ENTERPRISE_SYSTEM_TYPES: EnterpriseSystemType[] = [
+  "erp", "crm", "finance", "hr", "procurement", "legal", "manufacturing", "other",
+];
 
 function Pill({ label, color }: { label: string; color: string }) {
   return (
@@ -135,7 +158,7 @@ function GeneralTab({ settings, onSaved }: { settings: OrganizationSettings; onS
         <input style={inputStyle()} value={language} onChange={(e) => setLanguage(e.target.value)} />
       </div>
       <SaveButton onClick={save} saving={saving} />
-      {message && <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
+      {message && <p role="alert" className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
 
       <AppearanceSection />
     </div>
@@ -174,6 +197,248 @@ function AppearanceSection() {
             {option}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function EditableRow({
+  name,
+  onRename,
+  onDelete,
+  deleteTitle,
+}: {
+  name: string;
+  onRename: (name: string) => Promise<void>;
+  onDelete: () => Promise<void>;
+  deleteTitle?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  const [busy, setBusy] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  async function save() {
+    if (!draft.trim() || draft.trim() === name) {
+      setEditing(false);
+      setDraft(name);
+      return;
+    }
+    setBusy(true);
+    try {
+      await onRename(draft.trim());
+    } finally {
+      setBusy(false);
+      setEditing(false);
+    }
+  }
+
+  async function confirmDelete() {
+    setBusy(true);
+    try {
+      await onDelete();
+    } finally {
+      setBusy(false);
+      setConfirmingDelete(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {editing ? (
+        <>
+          <input
+            style={{ ...inputStyle(), width: 200 }}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && save()}
+            autoFocus
+          />
+          <button type="button" onClick={save} disabled={busy} style={{ color: "var(--pr-authority-blue)", fontSize: 12 }}>
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => { setEditing(false); setDraft(name); }}
+            style={{ color: "var(--pr-text-muted)", fontSize: 12 }}
+          >
+            Cancel
+          </button>
+        </>
+      ) : (
+        <>
+          <span className="text-sm" style={{ color: "var(--pr-text-primary)" }}>{name}</span>
+          <button type="button" onClick={() => setEditing(true)} style={{ color: "var(--pr-text-muted)", fontSize: 11 }}>
+            Rename
+          </button>
+          {confirmingDelete ? (
+            <>
+              <button type="button" onClick={confirmDelete} disabled={busy} style={{ color: "var(--pr-critical-red)", fontSize: 11 }}>
+                {busy ? "Deleting..." : "Confirm delete"}
+              </button>
+              <button type="button" onClick={() => setConfirmingDelete(false)} disabled={busy} style={{ color: "var(--pr-text-muted)", fontSize: 11 }}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              title={deleteTitle}
+              style={{ color: "var(--pr-critical-red)", fontSize: 11 }}
+            >
+              Delete
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function OrganisationStructureTab({ settings }: { settings: OrganizationSettings }) {
+  const [units, setUnits] = useState<BusinessUnit[] | null>(null);
+  const [departments, setDepartments] = useState<Department[] | null>(null);
+  const [teams, setTeams] = useState<Team[] | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [newUnitName, setNewUnitName] = useState("");
+  const [newDeptName, setNewDeptName] = useState<Record<string, string>>({});
+  const [newTeamName, setNewTeamName] = useState<Record<string, string>>({});
+
+  function load() {
+    organizationStructureApi.listBusinessUnits().then(setUnits).catch(() => setUnits([]));
+    organizationStructureApi.listDepartments().then(setDepartments).catch(() => setDepartments([]));
+    organizationStructureApi.listTeams().then(setTeams).catch(() => setTeams([]));
+  }
+  useEffect(load, []);
+
+  async function withReload(fn: () => Promise<unknown>, action: string) {
+    setMessage(null);
+    try {
+      await fn();
+      load();
+    } catch (e) {
+      setMessage(describeApiError(e, action));
+    }
+  }
+
+  async function addUnit() {
+    if (!newUnitName.trim()) return;
+    await withReload(() => organizationStructureApi.createBusinessUnit(newUnitName.trim()), "Create business unit");
+    setNewUnitName("");
+  }
+
+  async function addDepartment(businessUnitId: string) {
+    const name = newDeptName[businessUnitId];
+    if (!name?.trim()) return;
+    await withReload(
+      () => organizationStructureApi.createDepartment(businessUnitId, name.trim()),
+      "Create department"
+    );
+    setNewDeptName((prev) => ({ ...prev, [businessUnitId]: "" }));
+  }
+
+  async function addTeam(departmentId: string) {
+    const name = newTeamName[departmentId];
+    if (!name?.trim()) return;
+    await withReload(() => organizationStructureApi.createTeam(departmentId, name.trim()), "Create team");
+    setNewTeamName((prev) => ({ ...prev, [departmentId]: "" }));
+  }
+
+  return (
+    <div style={{ ...cardStyle, padding: 16, maxWidth: 640 }}>
+      <p className="text-xs mb-1" style={{ color: "var(--pr-text-muted)" }}>
+        The organisational hierarchy Principals and Agents are placed into -- visible on Agent
+        Detail and used by Runtime Authority Context resolution. Renaming is supported; moving a
+        unit under a different parent is not, create a new one under the right parent instead.
+      </p>
+      <p className="text-sm font-medium mb-4" style={{ color: "var(--pr-text-primary)" }}>{settings.name}</p>
+
+      {message && <p role="alert" className="text-xs mb-3" style={{ color: "var(--pr-critical-red)" }}>{message}</p>}
+
+      <div className="space-y-4 mb-4">
+        {(units ?? []).map((unit) => {
+          const unitDepartments = (departments ?? []).filter((d) => d.business_unit_id === unit.id);
+          return (
+            <div key={unit.id} className="pl-3" style={{ borderLeft: "2px solid var(--pr-authority-blue)" }}>
+              <EditableRow
+                name={unit.name}
+                onRename={(name) => withReload(() => organizationStructureApi.updateBusinessUnit(unit.id, name), "Rename business unit")}
+                onDelete={() => withReload(() => organizationStructureApi.deleteBusinessUnit(unit.id), "Delete business unit")}
+                deleteTitle="Remove its Departments and any Principal assigned to it first"
+              />
+              <div className="pl-4 mt-2 space-y-3">
+                {unitDepartments.map((dept) => {
+                  const deptTeams = (teams ?? []).filter((t) => t.department_id === dept.id);
+                  return (
+                    <div key={dept.id} className="pl-3" style={{ borderLeft: "2px solid var(--pr-overlay-10)" }}>
+                      <EditableRow
+                        name={dept.name}
+                        onRename={(name) => withReload(() => organizationStructureApi.updateDepartment(dept.id, name), "Rename department")}
+                        onDelete={() => withReload(() => organizationStructureApi.deleteDepartment(dept.id), "Delete department")}
+                        deleteTitle="Remove its Teams and any Principal assigned to it first"
+                      />
+                      <div className="pl-4 mt-1 space-y-1">
+                        {deptTeams.map((team) => (
+                          <EditableRow
+                            key={team.id}
+                            name={team.name}
+                            onRename={(name) => withReload(() => organizationStructureApi.updateTeam(team.id, name), "Rename team")}
+                            onDelete={() => withReload(() => organizationStructureApi.deleteTeam(team.id), "Delete team")}
+                            deleteTitle="Remove any Principal assigned to it first"
+                          />
+                        ))}
+                        <div className="flex gap-2 mt-1">
+                          <input
+                            style={{ ...inputStyle(), width: 160 }}
+                            placeholder="New team"
+                            value={newTeamName[dept.id] ?? ""}
+                            onChange={(e) => setNewTeamName((prev) => ({ ...prev, [dept.id]: e.target.value }))}
+                            onKeyDown={(e) => e.key === "Enter" && addTeam(dept.id)}
+                          />
+                          <button type="button" onClick={() => addTeam(dept.id)} style={{ color: "var(--pr-authority-blue)", fontSize: 12 }}>
+                            + Add team
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex gap-2">
+                  <input
+                    style={{ ...inputStyle(), width: 180 }}
+                    placeholder="New department"
+                    value={newDeptName[unit.id] ?? ""}
+                    onChange={(e) => setNewDeptName((prev) => ({ ...prev, [unit.id]: e.target.value }))}
+                    onKeyDown={(e) => e.key === "Enter" && addDepartment(unit.id)}
+                  />
+                  <button type="button" onClick={() => addDepartment(unit.id)} style={{ color: "var(--pr-authority-blue)", fontSize: 12 }}>
+                    + Add department
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {units?.length === 0 && <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>No business units yet.</p>}
+      </div>
+
+      <div className="flex gap-2 pt-3" style={{ borderTop: "1px solid var(--pr-overlay-05)" }}>
+        <input
+          style={{ ...inputStyle(), width: 220 }}
+          placeholder="New business unit"
+          value={newUnitName}
+          onChange={(e) => setNewUnitName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addUnit()}
+        />
+        <button
+          type="button"
+          onClick={addUnit}
+          className="text-sm font-medium px-4 py-2 rounded-lg"
+          style={{ backgroundColor: "var(--pr-authority-blue)", color: "white" }}
+        >
+          + Add business unit
+        </button>
       </div>
     </div>
   );
@@ -244,7 +509,7 @@ function SecurityTab({ settings, onSaved }: { settings: OrganizationSettings; on
           RBAC.md's disclosed scope.
         </p>
         <SaveButton onClick={save} saving={saving} />
-        {message && <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
+        {message && <p role="alert" className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
       </div>
 
       <ApiKeysSection />
@@ -258,6 +523,7 @@ function ApiKeysSection() {
   const [role, setRole] = useState("auditor");
   const [rawKey, setRawKey] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmingRevokeId, setConfirmingRevokeId] = useState<string | null>(null);
 
   function load() {
     organizationApi.listApiKeys().then(setKeys).catch(() => setKeys([]));
@@ -282,6 +548,8 @@ function ApiKeysSection() {
       load();
     } catch (e) {
       setMessage(describeApiError(e, "Revoke"));
+    } finally {
+      setConfirmingRevokeId(null);
     }
   }
 
@@ -322,7 +590,7 @@ function ApiKeysSection() {
           Copy this now -- it won't be shown again: <code className="break-all">{rawKey}</code>
         </div>
       )}
-      {message && <p className="text-xs mb-2" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
+      {message && <p role="alert" className="text-xs mb-2" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
 
       <div className="space-y-1.5">
         {(keys ?? []).map((k) => (
@@ -332,8 +600,17 @@ function ApiKeysSection() {
             </span>
             {k.revoked_at ? (
               <span style={{ color: "var(--pr-text-disabled)" }}>Revoked</span>
+            ) : confirmingRevokeId === k.id ? (
+              <span className="flex items-center gap-2">
+                <button type="button" onClick={() => revoke(k.id)} style={{ color: "var(--pr-critical-red)" }}>
+                  Confirm revoke
+                </button>
+                <button type="button" onClick={() => setConfirmingRevokeId(null)} style={{ color: "var(--pr-text-muted)" }}>
+                  Cancel
+                </button>
+              </span>
             ) : (
-              <button type="button" onClick={() => revoke(k.id)} style={{ color: "var(--pr-critical-red)" }}>
+              <button type="button" onClick={() => setConfirmingRevokeId(k.id)} style={{ color: "var(--pr-critical-red)" }}>
                 Revoke
               </button>
             )}
@@ -407,7 +684,7 @@ function RuntimeAuthorityTab({ settings, onSaved }: { settings: OrganizationSett
         Decision logging enabled
       </label>
       <SaveButton onClick={save} saving={saving} />
-      {message && <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
+      {message && <p role="alert" className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
     </div>
   );
 }
@@ -431,7 +708,7 @@ function IntegrationsTab() {
       <p className="text-xs mb-4" style={{ color: "var(--pr-text-muted)" }}>
         These are the components Runtime Authority itself runs on. The enterprise systems it
         protects, the ERP, CRM, procurement, and finance systems an agent's action ultimately
-        reaches, connect separately and are not yet listed here.
+        reaches, are registered separately under the Enterprise Systems tab.
       </p>
       <div className="space-y-3">
         {rows.map((row) => (
@@ -449,6 +726,86 @@ function IntegrationsTab() {
         Azure OpenAI and AWS Bedrock have no integration built yet -- shown honestly as
         "Configuration Required," never fabricated as Connected.
       </p>
+    </div>
+  );
+}
+
+function EnterpriseSystemsTab() {
+  const [systems, setSystems] = useState<EnterpriseSystem[] | null>(null);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<EnterpriseSystemType>("erp");
+  const [creating, setCreating] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function load() {
+    organizationApi.listEnterpriseSystems().then(setSystems).catch(() => setSystems([]));
+  }
+  useEffect(load, []);
+
+  async function create() {
+    if (!name.trim()) return;
+    setCreating(true);
+    setMessage(null);
+    try {
+      await organizationApi.createEnterpriseSystem(name.trim(), type);
+      setName("");
+      load();
+    } catch (e) {
+      setMessage(describeApiError(e, "Register"));
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div style={{ ...cardStyle, padding: 16, maxWidth: 520 }}>
+      <p className="text-xs mb-4" style={{ color: "var(--pr-text-muted)" }}>
+        The downstream systems (ERP, CRM, Finance, HR, Procurement, ...) an agent's allowed action
+        ultimately reaches. Registering one here only records that it exists -- it does not connect
+        it. No connector exists for any system yet, so status always shows honestly as
+        "Configuration Required," never fabricated as Connected.
+      </p>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <input
+          style={{ ...inputStyle(), width: 220 }}
+          placeholder="System name (e.g. SAP S/4HANA)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <select
+          style={{ ...inputStyle(), width: 160 }}
+          value={type}
+          onChange={(e) => setType(e.target.value as EnterpriseSystemType)}
+        >
+          {ENTERPRISE_SYSTEM_TYPES.map((t) => (
+            <option key={t} value={t}>{humanize(t)}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={create}
+          disabled={creating || !name.trim()}
+          className="text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50"
+          style={{ backgroundColor: "var(--pr-authority-blue)", color: "white" }}
+        >
+          {creating ? "Registering..." : "Register system"}
+        </button>
+      </div>
+      {message && <p role="alert" className="text-xs mb-3" style={{ color: "var(--pr-critical-red)" }}>{message}</p>}
+
+      <div className="space-y-1.5">
+        {(systems ?? []).map((s) => (
+          <div key={s.id} className="flex items-center justify-between text-sm py-1.5" style={{ color: "var(--pr-text-secondary)" }}>
+            <span>
+              {s.name} <span style={{ color: "var(--pr-text-muted)", fontSize: 12 }}>({humanize(s.type)})</span>
+            </span>
+            <Pill label={humanize(s.status)} color={ENTERPRISE_SYSTEM_STATUS_COLORS[s.status]} />
+          </div>
+        ))}
+        {systems?.length === 0 && (
+          <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>No enterprise systems registered yet.</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -498,7 +855,7 @@ function NotificationsTab({ settings, onSaved }: { settings: OrganizationSetting
         <input style={inputStyle()} value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://..." />
       </div>
       <SaveButton onClick={save} saving={saving} />
-      {message && <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
+      {message && <p role="alert" className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
     </div>
   );
 }
@@ -551,7 +908,7 @@ function AuditTab({ settings, onSaved }: { settings: OrganizationSettings; onSav
         <input type="number" min={1} style={inputStyle()} value={retentionDays} onChange={(e) => setRetentionDays(e.target.value)} />
       </div>
       <SaveButton onClick={save} saving={saving} />
-      {message && <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
+      {message && <p role="alert" className="text-xs" style={{ color: "var(--pr-text-muted)" }}>{message}</p>}
 
       <div className="pt-2">
         <p className="text-xs mb-2" style={{ color: "var(--pr-text-muted)" }}>
@@ -667,12 +1024,31 @@ export function OrganizationSettingsPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-1 mb-6 border-b pb-0" style={{ borderColor: "var(--pr-overlay-05)" }}>
+        <div
+          role="tablist"
+          aria-label="Organisation settings sections"
+          className="flex flex-wrap gap-1 mb-6 border-b pb-0"
+          style={{ borderColor: "var(--pr-overlay-05)" }}
+        >
           {TABS.map((t) => (
             <button
               key={t}
               type="button"
+              role="tab"
+              id={`org-tab-${t}`}
+              aria-selected={tab === t}
+              aria-controls={`org-tabpanel-${t}`}
+              tabIndex={tab === t ? 0 : -1}
               onClick={() => setTab(t)}
+              onKeyDown={(e) => {
+                if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                e.preventDefault();
+                const idx = TABS.indexOf(t);
+                const nextIdx = e.key === "ArrowRight" ? (idx + 1) % TABS.length : (idx - 1 + TABS.length) % TABS.length;
+                const next = TABS[nextIdx];
+                setTab(next);
+                document.getElementById(`org-tab-${next}`)?.focus();
+              }}
               className="text-sm px-3 py-2 rounded-t-lg"
               style={{
                 color: tab === t ? "var(--pr-text-primary)" : "var(--pr-text-muted)",
@@ -684,21 +1060,23 @@ export function OrganizationSettingsPage() {
           ))}
         </div>
 
-        {error && <p className="text-xs mb-4" style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
+        {error && <p role="alert" className="text-xs mb-4" style={{ color: "var(--pr-critical-red)" }}>{error}</p>}
 
         {!settings ? (
           <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>Loading...</p>
         ) : (
-          <>
+          <div role="tabpanel" id={`org-tabpanel-${tab}`} aria-labelledby={`org-tab-${tab}`}>
             {tab === "General" && <GeneralTab settings={settings} onSaved={setSettings} />}
+            {tab === "Organisation Structure" && <OrganisationStructureTab settings={settings} />}
             {tab === "Security" && <SecurityTab settings={settings} onSaved={setSettings} />}
             {tab === "Runtime Authority" && <RuntimeAuthorityTab settings={settings} onSaved={setSettings} />}
             {tab === "Integrations" && <IntegrationsTab />}
+            {tab === "Enterprise Systems" && <EnterpriseSystemsTab />}
             {tab === "Notifications" && <NotificationsTab settings={settings} onSaved={setSettings} />}
             {tab === "Audit" && <AuditTab settings={settings} onSaved={setSettings} />}
             {tab === "Organisation Health" && <OrganisationHealthTab />}
             {tab === "About" && <AboutTab />}
-          </>
+          </div>
         )}
       </div>
     </RequirePermission>

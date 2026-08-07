@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { policyStudioApi } from "./api";
+import { Card } from "../components/ui/card";
+import { Alert } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Skeleton } from "../components/ui/skeleton";
 import type { RuntimePolicy } from "./types";
 import { describeApiError } from "../live/format";
 import { describePolicy } from "./describePolicy";
@@ -21,6 +25,8 @@ export function ReviewQueuePage() {
   const [approver, setApprover] = useState("");
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<{ policyKey: string; action: "approve" | "reject" } | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   // Only disable when we positively know the signed-in user lacks the
   // permission -- with no session (Operator Key bypass still active),
@@ -28,7 +34,8 @@ export function ReviewQueuePage() {
   const lacksPermission = !!user && !hasPermission("authority.review");
 
   function load() {
-    policyStudioApi.list("pending_review").then(setPending);
+    setLoadError(false);
+    policyStudioApi.list("pending_review").then(setPending).catch(() => setLoadError(true));
   }
 
   useEffect(load, []);
@@ -107,48 +114,90 @@ export function ReviewQueuePage() {
         <p role="alert" style={{ color: "var(--pr-warning-amber)", marginBottom: 12 }}>{message}</p>
       )}
 
+      {loadError && (
+        <Alert severity="warning" style={{ marginBottom: 12 }}>
+          <div className="flex items-center gap-3">
+            <span>Could not load the review queue.</span>
+            <Button variant="ghost" size="sm" onClick={load}>Retry</Button>
+          </div>
+        </Alert>
+      )}
+
+      {!pending && !loadError && (
+        <div className="space-y-3">
+          <Skeleton height={80} radius={12} />
+          <Skeleton height={80} radius={12} />
+        </div>
+      )}
+
       {pending?.length === 0 && <p style={{ color: "var(--pr-text-muted)" }}>Nothing pending review.</p>}
 
       {pending?.map((p) => (
-        <div
-          key={p.policy_key}
-          style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 16, marginBottom: 12 }}
-        >
+        <Card key={p.policy_key} padding={16} style={{ marginBottom: 12 }}>
           <div className="flex items-center justify-between mb-2">
             <Link to={`/governance/${p.policy_key}`} style={{ color: "var(--pr-authority-blue)" }}>
               {p.name} (v{p.version})
             </Link>
             <div className="flex gap-2">
-              <button
-                onClick={() => handleApprove(p.policy_key)}
-                disabled={lacksPermission}
-                title={lacksPermission ? `Requires ${APPROVAL_ROLE_LABEL}` : undefined}
-                className="rounded-lg border"
-                style={{
-                  color: lacksPermission ? "var(--pr-text-disabled)" : "var(--pr-trust-green)",
-                  fontSize: 13,
-                  padding: "6px 12px",
-                  borderColor: lacksPermission ? "var(--pr-overlay-10)" : "rgba(34,197,94,0.3)",
-                  opacity: lacksPermission ? 0.6 : 1,
-                }}
-              >
-                Approve
-              </button>
-              <button
-                onClick={() => handleReject(p.policy_key)}
-                disabled={lacksPermission}
-                title={lacksPermission ? `Requires ${APPROVAL_ROLE_LABEL}` : undefined}
-                className="rounded-lg border"
-                style={{
-                  color: lacksPermission ? "var(--pr-text-disabled)" : "var(--pr-critical-red)",
-                  fontSize: 13,
-                  padding: "6px 12px",
-                  borderColor: lacksPermission ? "var(--pr-overlay-10)" : "rgba(239,68,68,0.3)",
-                  opacity: lacksPermission ? 0.6 : 1,
-                }}
-              >
-                Reject
-              </button>
+              {confirming?.policyKey === p.policy_key ? (
+                <>
+                  <button
+                    onClick={() => {
+                      if (confirming.action === "approve") handleApprove(p.policy_key);
+                      else handleReject(p.policy_key);
+                      setConfirming(null);
+                    }}
+                    className="rounded-lg border"
+                    style={{
+                      color: confirming.action === "approve" ? "var(--pr-trust-green)" : "var(--pr-critical-red)",
+                      fontSize: 13,
+                      padding: "6px 12px",
+                      borderColor: confirming.action === "approve" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)",
+                    }}
+                  >
+                    Confirm {confirming.action}
+                  </button>
+                  <button
+                    onClick={() => setConfirming(null)}
+                    style={{ color: "var(--pr-text-muted)", fontSize: 13, padding: "6px 12px" }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setConfirming({ policyKey: p.policy_key, action: "approve" })}
+                    disabled={lacksPermission}
+                    title={lacksPermission ? `Requires ${APPROVAL_ROLE_LABEL}` : undefined}
+                    className="rounded-lg border"
+                    style={{
+                      color: lacksPermission ? "var(--pr-text-disabled)" : "var(--pr-trust-green)",
+                      fontSize: 13,
+                      padding: "6px 12px",
+                      borderColor: lacksPermission ? "var(--pr-overlay-10)" : "rgba(34,197,94,0.3)",
+                      opacity: lacksPermission ? 0.6 : 1,
+                    }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => setConfirming({ policyKey: p.policy_key, action: "reject" })}
+                    disabled={lacksPermission}
+                    title={lacksPermission ? `Requires ${APPROVAL_ROLE_LABEL}` : undefined}
+                    className="rounded-lg border"
+                    style={{
+                      color: lacksPermission ? "var(--pr-text-disabled)" : "var(--pr-critical-red)",
+                      fontSize: 13,
+                      padding: "6px 12px",
+                      borderColor: lacksPermission ? "var(--pr-overlay-10)" : "rgba(239,68,68,0.3)",
+                      opacity: lacksPermission ? 0.6 : 1,
+                    }}
+                  >
+                    Reject
+                  </button>
+                </>
+              )}
             </div>
           </div>
           <p style={{ color: "var(--pr-text-secondary)", fontSize: 13, marginBottom: 10 }}>
@@ -173,7 +222,7 @@ export function ReviewQueuePage() {
               width: "100%",
             }}
           />
-        </div>
+        </Card>
       ))}
     </div>
   );

@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Database, ShieldCheck, ShieldX } from "lucide-react";
 import { apiClient } from "../apiClient";
-import { formatStatus } from "../format";
+import { describeApiError, formatStatus } from "../format";
 import { HelpIcon } from "../../help/HelpIcon";
 import { trackError } from "../../services/analytics";
+import { Card } from "../../components/ui/card";
+import { Alert } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
+import { SkeletonRows } from "../../components/ui/skeleton";
 import type { EvidencePayload, LiveEvidence as LiveEvidenceType } from "../types";
 
 const FIELD_LABEL: Record<string, string> = {
@@ -14,13 +18,17 @@ const FIELD_LABEL: Record<string, string> = {
 };
 
 const SUMMARY_FIELDS: (keyof EvidencePayload)[] = ["action", "amount", "authority_outcome", "risk_classification"];
+const PAGE_SIZE = 10;
 
 export function LiveEvidence() {
   const [records, setRecords] = useState<LiveEvidenceType[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [verifyResults, setVerifyResults] = useState<Record<string, boolean>>({});
   const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  useEffect(() => {
+  function load() {
+    setLoadError(null);
     // Evidence generation itself has no separate client-triggered step to
     // instrument (it's an automatic server-side side effect of decision
     // evaluation) -- a failure to load the Evidence list here is the
@@ -28,12 +36,15 @@ export function LiveEvidence() {
     // frontend, so that's what a failure on this fetch is attributed to.
     // This request had no .catch() at all before this change.
     apiClient.get<LiveEvidenceType[]>("/v1/evidence").then(setRecords).catch((e) => {
+      setLoadError(describeApiError(e, "Evidence"));
       trackError("Evidence Generation Failed", {
         error_type: e instanceof Error ? e.name : "unknown_error",
         component: "evidence_list_fetch",
       });
     });
-  }, []);
+  }
+
+  useEffect(load, []);
 
   const verify = async (id: string) => {
     const result = await apiClient.post<{ valid: boolean }>(`/v1/evidence/${id}/verify`);
@@ -60,20 +71,27 @@ export function LiveEvidence() {
         </p>
       </div>
 
+      {loadError && (
+        <Alert severity="warning" style={{ marginBottom: 16 }}>
+          <div className="flex items-center gap-3">
+            <span>{loadError}</span>
+            <Button variant="ghost" size="sm" onClick={load}>Retry</Button>
+          </div>
+        </Alert>
+      )}
+
+      {!records && !loadError && <SkeletonRows count={4} height={90} />}
+
       <div className="space-y-3">
         {records?.length === 0 && (
           <p className="text-sm" style={{ color: "var(--pr-text-muted)" }}>
             No evidence yet. Go to Decisions and test one.
           </p>
         )}
-        {records?.map((e) => {
+        {records?.slice(0, visibleCount).map((e) => {
           const verified = verifyResults[e.evidence_id];
           return (
-            <div
-              key={e.evidence_id}
-              className="p-5 rounded-xl border"
-              style={{ backgroundColor: "var(--pr-bg-card)", borderColor: "var(--pr-overlay-05)" }}
-            >
+            <Card key={e.evidence_id} padding={20}>
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-sm font-mono" style={{ color: "var(--pr-authority-blue)" }}>{e.evidence_id}</p>
@@ -101,9 +119,12 @@ export function LiveEvidence() {
                 ))}
               </div>
 
-              {(e.payload.principal_id || e.payload.authority_context) && (
-                <div className="mb-4 p-3 rounded-lg text-xs" style={{ backgroundColor: "var(--pr-bg-hover)" }}>
-                  <p className="font-medium mb-1.5" style={{ color: "var(--pr-text-secondary)" }}>
+              {(e.payload.principal_id || e.payload.authority_context || e.payload.enterprise_system_name) && (
+                <div
+                  className="mb-4 p-3 text-xs"
+                  style={{ borderLeft: "3px solid var(--pr-authority-blue)", backgroundColor: "var(--pr-overlay-04)", borderRadius: 6 }}
+                >
+                  <p className="font-medium mb-1.5" style={{ color: "var(--pr-authority-blue)" }}>
                     Authorization
                   </p>
                   {e.payload.principal_id && (
@@ -141,12 +162,18 @@ export function LiveEvidence() {
                     </p>
                   )}
                   {(!!e.payload.authority_ids?.length || !!e.payload.evaluated_mandate_ids?.length) && (
-                    <p className="font-mono" style={{ color: "var(--pr-text-disabled)" }}>
+                    <p className="mb-1 font-mono" style={{ color: "var(--pr-text-disabled)" }}>
                       {e.payload.authority_ids?.length ? `Authority: ${e.payload.authority_ids.join(", ")}` : null}
                       {e.payload.authority_ids?.length && e.payload.evaluated_mandate_ids?.length ? " · " : null}
                       {e.payload.evaluated_mandate_ids?.length
                         ? `Mandate: ${e.payload.evaluated_mandate_ids.join(", ")}`
                         : null}
+                    </p>
+                  )}
+                  {e.payload.enterprise_system_name && (
+                    <p style={{ color: "var(--pr-text-muted)" }}>
+                      Enterprise System:{" "}
+                      <span style={{ color: "var(--pr-text-primary)" }}>{e.payload.enterprise_system_name}</span>
                     </p>
                   )}
                 </div>
@@ -190,10 +217,18 @@ export function LiveEvidence() {
                   Signing key: {e.key_id}
                 </p>
               )}
-            </div>
+            </Card>
           );
         })}
       </div>
+
+      {records && visibleCount < records.length && (
+        <div className="flex justify-center mt-4">
+          <Button variant="ghost" onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}>
+            Show more ({records.length - visibleCount} remaining)
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

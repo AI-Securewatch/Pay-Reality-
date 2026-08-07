@@ -46,44 +46,19 @@
   --pr-input-bg: rgba(0,0,0,0.2);
   --pr-backdrop: rgba(0,0,0,0.4);
 
-  /* Original theme variables */
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
+  /* Phase 6, Release 1: this used to be a full shadcn/ui default palette
+     (oklch --primary/--secondary/--muted/--sidebar/--chart-* etc, plus a
+     parallel `.dark` block below). Confirmed by grep across the whole
+     src/app tree that none of it was ever consumed by a real
+     className (the one consumer, components/ui/sheet.tsx, now
+     references --pr-* tokens directly) -- removed rather than kept as
+     unreachable dead weight. --radius and the two --font-weight-*
+     variables below are genuinely load-bearing (27 files use
+     rounded-sm/md/lg/xl; theme.css's own base layer below uses the
+     font-weight tokens), so those are all that's kept from this block. */
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
 /* Light theme, toggled via <html data-theme="light">. Brand/semantic
@@ -117,97 +92,56 @@
   --pr-backdrop: rgba(15,26,46,0.4);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
-}
-
+/* Phase 6, Release 1: the shadcn-default `.dark` block (a full parallel
+   oklch palette) lived here. Confirmed unreachable by grep: nothing in
+   this codebase ever adds a `.dark` class to any element -- theming is
+   done exclusively via `data-theme` on `<html>` (see [data-theme="light"]
+   above; dark is simply the unset/default case). Removed along with the
+   @theme inline mappings that only existed to expose the deleted `:root`
+   variables as Tailwind color utilities (bg-primary, text-sidebar-*, etc)
+   -- confirmed by grep those utilities were never used as a real
+   className anywhere in src/app. --radius-sm/md/lg/xl are kept: 27 files
+   use rounded-sm/md/lg/xl and those utilities are real. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-input-background: var(--input-background);
-  --color-switch-background: var(--switch-background);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
+  /* Phase 6, Release 1: previously `@apply border-border outline-ring/50`
+     and `@apply bg-background text-foreground` -- the last two calls
+     into the dead shadcn palette this file used to carry. Rewritten
+     directly against the app's own --pr-* tokens instead, which also
+     fixes a latent correctness gap: `body`'s background/text never
+     actually matched the app's real dark/light theme before (every
+     page's own root div painted over it), so this removes both the
+     unused dependency and a theoretical flash-of-wrong-theme on load. */
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--pr-overlay-10);
+    outline-color: var(--pr-authority-blue);
   }
 
   body {
-    @apply bg-background text-foreground;
+    background: var(--pr-bg-primary);
+    color: var(--pr-text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
   /**
   * Default typography styles for HTML elements (h1-h4, p, label, button, input).
   * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  *
+  * Phase 6, Release 1: this h1 rule is the shared page-title style for every
+  * "regular" page in the app (17 of them) -- a real, consistent type scale,
+  * not an unstyled fallback. Three pages deliberately override it with a
+  * Tailwind utility class rather than relying on this base rule, and are not
+  * inconsistencies: PlatformOverview.tsx uses text-4xl font-bold for a hero
+  * treatment; LoginPage.tsx and SetupOwnerPage.tsx use text-base
+  * font-semibold for a compact auth-card treatment. Layout.tsx's two h1
+  * elements are wordmark/logo text, not page titles, and are unrelated to
+  * this scale entirely.
   */
 
   html {
@@ -312,7 +246,64 @@
   top: 8px;
 }
 
+.pr-skeleton {
+  background-color: var(--pr-overlay-06);
+  animation: pr-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pr-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pr-skeleton {
+    animation: none;
+  }
+}
+
 /* Scrollbar styling lives in globals.css, not here: it loads after this
    file (see index.css's import order) and declares the exact same
    selectors, so a copy here would just be dead code shadowed by that
    later, identical-selector, !important rule. */
+
+/* Print: every page's background/text/border already reads through the
+   --pr-* tokens (inline style or class, doesn't matter), so redefining
+   the tokens themselves is enough to relight the whole app for paper --
+   no per-component overrides needed. Nav chrome and buttons are hidden
+   since they're navigation/action affordances, not record content. */
+@media print {
+  :root {
+    --pr-bg-primary: #ffffff;
+    --pr-bg-secondary: #ffffff;
+    --pr-bg-card: #ffffff;
+    --pr-bg-hover: #f3f4f6;
+    --pr-text-primary: #000000;
+    --pr-text-secondary: #1f2937;
+    --pr-text-muted: #4b5563;
+    --pr-text-disabled: #9ca3af;
+    --pr-overlay-03: rgba(0,0,0,0.04);
+    --pr-overlay-04: rgba(0,0,0,0.05);
+    --pr-overlay-05: rgba(0,0,0,0.08);
+    --pr-overlay-06: rgba(0,0,0,0.08);
+    --pr-overlay-08: rgba(0,0,0,0.1);
+    --pr-overlay-10: rgba(0,0,0,0.15);
+    --pr-overlay-12: rgba(0,0,0,0.18);
+  }
+
+  .pr-skip-link,
+  aside,
+  header,
+  nav,
+  button {
+    display: none !important;
+  }
+
+  html,
+  body,
+  main,
+  .h-screen {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

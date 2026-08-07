@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from "react";
 import { policyStudioApi } from "../api";
 import type { LivePrincipal } from "../../live/types";
 import type { Scope } from "../types";
+import { FieldLabel } from "../../components/ui/label";
 
 const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--pr-bg-hover)",
@@ -11,13 +12,6 @@ const inputStyle: React.CSSProperties = {
   padding: "6px 8px",
   fontSize: 13,
   width: "100%",
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: "var(--pr-text-muted)",
-  display: "block",
-  marginBottom: 4,
 };
 
 // Action is a dropdown fetched from the live vocabulary endpoint, never
@@ -43,7 +37,7 @@ export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <label htmlFor={`${formId}-principal`} style={labelStyle}>Who this applies to</label>
+        <FieldLabel htmlFor={`${formId}-principal`}>Who this applies to</FieldLabel>
         <select
           id={`${formId}-principal`}
           style={inputStyle}
@@ -60,7 +54,7 @@ export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next
         </select>
       </div>
       <div>
-        <label htmlFor={`${formId}-action`} style={labelStyle}>Action</label>
+        <FieldLabel htmlFor={`${formId}-action`}>Action</FieldLabel>
         <select
           id={`${formId}-action`}
           style={inputStyle}
@@ -76,7 +70,7 @@ export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next
         </select>
       </div>
       <div>
-        <label htmlFor={`${formId}-agent`} style={labelStyle}>Agent (optional)</label>
+        <FieldLabel htmlFor={`${formId}-agent`}>Agent (optional)</FieldLabel>
         <input
           id={`${formId}-agent`}
           style={inputStyle}
@@ -86,7 +80,7 @@ export function ScopeFields({ scope, onChange }: { scope: Scope; onChange: (next
         />
       </div>
       <div>
-        <label htmlFor={`${formId}-resource`} style={labelStyle}>Resource (optional)</label>
+        <FieldLabel htmlFor={`${formId}-resource`}>Resource (optional)</FieldLabel>
         <input
           id={`${formId}-resource`}
           style={inputStyle}

@@ -4,6 +4,10 @@ import { policyStudioApi } from "./api";
 import { PolicyStatusBadge } from "./components/PolicyStatusBadge";
 import { formatStatus } from "../live/format";
 import { OPERATOR_LABEL } from "./describePolicy";
+import { Card } from "../components/ui/card";
+import { Alert } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Skeleton, SkeletonRows } from "../components/ui/skeleton";
 import type { PolicyDiff, RuntimePolicy } from "./types";
 
 // Replaces the separate Version History and Diff pages
@@ -28,19 +32,30 @@ const RISK_COLOR: Record<string, string> = {
 export function VersionsPage() {
   const { policyKey } = useParams();
   const [versions, setVersions] = useState<RuntimePolicy[] | null>(null);
+  const [versionsError, setVersionsError] = useState(false);
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [diff, setDiff] = useState<PolicyDiff | null>(null);
+  const [diffError, setDiffError] = useState(false);
 
-  useEffect(() => {
-    policyStudioApi.getVersions(policyKey!).then(setVersions);
-  }, [policyKey]);
+  function loadVersions() {
+    setVersionsError(false);
+    policyStudioApi.getVersions(policyKey!).then(setVersions).catch(() => setVersionsError(true));
+  }
+
+  useEffect(loadVersions, [policyKey]);
+
+  function loadDiff() {
+    if (!selected || selected[0] === selected[1]) return;
+    setDiff(null);
+    setDiffError(false);
+    const [from, to] = [Math.min(...selected), Math.max(...selected)];
+    policyStudioApi.diff(policyKey!, from, to).then(setDiff).catch(() => setDiffError(true));
+  }
 
   useEffect(() => {
     setDiff(null);
-    if (selected && selected[0] !== selected[1]) {
-      const [from, to] = [Math.min(...selected), Math.max(...selected)];
-      policyStudioApi.diff(policyKey!, from, to).then(setDiff);
-    }
+    setDiffError(false);
+    loadDiff();
   }, [policyKey, selected]);
 
   return (
@@ -52,6 +67,17 @@ export function VersionsPage() {
       <p style={{ color: "var(--pr-text-muted)", fontSize: 12, marginBottom: 16 }}>
         Select any two versions to compare what changed between them.
       </p>
+
+      {versionsError && (
+        <Alert severity="warning" style={{ marginBottom: 12 }}>
+          <div className="flex items-center gap-3">
+            <span>Could not load version history.</span>
+            <Button variant="ghost" size="sm" onClick={loadVersions}>Retry</Button>
+          </div>
+        </Alert>
+      )}
+
+      {!versions && !versionsError && <SkeletonRows count={3} height={20} />}
 
       {versions?.map((v) => (
         <div
@@ -91,11 +117,25 @@ export function VersionsPage() {
             Comparing v{Math.min(...selected)} &rarr; v{Math.max(...selected)}
           </h2>
 
-          {!diff && <p style={{ color: "var(--pr-text-muted)", fontSize: 13 }}>Loading comparison...</p>}
+          {diffError && (
+            <Alert severity="warning" style={{ marginBottom: 12 }}>
+              <div className="flex items-center gap-3">
+                <span>Could not load the comparison.</span>
+                <Button variant="ghost" size="sm" onClick={loadDiff}>Retry</Button>
+              </div>
+            </Alert>
+          )}
+
+          {!diff && !diffError && (
+            <div className="space-y-3 mb-4">
+              <Skeleton height={100} radius={12} />
+              <Skeleton height={100} radius={12} />
+            </div>
+          )}
 
           {diff && (
             <>
-              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <Card style={{ marginBottom: 16 }}>
                 <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>Conditions</h3>
                 {diff.conditions.map((c, i) => (
                   <div key={i} style={{ fontSize: 13, marginBottom: 4 }}>
@@ -119,9 +159,9 @@ export function VersionsPage() {
                   <p>Outcome {diff.effect_changed ? "changed" : "unchanged"}</p>
                   <p>Constraints {diff.constraints_changed ? "changed" : "unchanged"}</p>
                 </div>
-              </div>
+              </Card>
 
-              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <Card style={{ marginBottom: 16 }}>
                 <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>
                   Affected agents ({diff.affected_agents.length})
                 </h3>
@@ -133,9 +173,9 @@ export function VersionsPage() {
                 {diff.affected_agents.length === 0 && (
                   <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>None found for this rule's principal.</p>
                 )}
-              </div>
+              </Card>
 
-              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <Card style={{ marginBottom: 16 }}>
                 <h3 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>
                   Other affected rules ({diff.affected_policies.length})
                 </h3>
@@ -148,9 +188,9 @@ export function VersionsPage() {
                 {diff.affected_policies.length === 0 && (
                   <p style={{ fontSize: 13, color: "var(--pr-text-muted)" }}>None share this rule's principal.</p>
                 )}
-              </div>
+              </Card>
 
-              <div style={{ backgroundColor: "var(--pr-bg-card)", border: "1px solid var(--pr-overlay-05)", borderRadius: 12, padding: 20 }}>
+              <Card>
                 <h3 className="text-sm font-medium mb-2" style={{ color: "var(--pr-text-primary)" }}>
                   Estimated risk impact:{" "}
                   <span style={{ color: RISK_COLOR[diff.risk_impact], textTransform: "uppercase" }}>{diff.risk_impact}</span>
@@ -159,7 +199,7 @@ export function VersionsPage() {
                   {diff.risk_reason} Based on the rules and agents this change affects, not a
                   judgement on the change itself.
                 </p>
-              </div>
+              </Card>
             </>
           )}
         </div>

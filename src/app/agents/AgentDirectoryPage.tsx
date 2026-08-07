@@ -9,17 +9,24 @@ import { saveAgentKeyPair } from "../live/agentKeyStore";
 import { describeApiError } from "../live/format";
 import { NextStepGuidance } from "../help/NextStepGuidance";
 import type { LiveAgent, LivePrincipal } from "../live/types";
+import { Card } from "../components/ui/card";
+import { Alert } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import { SkeletonRows } from "../components/ui/skeleton";
+import { useToast } from "../components/ui/toast";
+
+const BULK_ACTION_LABEL: Record<"suspend" | "activate" | "retire" | "rotate", string> = {
+  suspend: "suspend",
+  activate: "activate",
+  retire: "retire",
+  rotate: "request rotation for",
+};
 
 const PAGE_SIZE = 25;
 
-const cardStyle: React.CSSProperties = {
-  backgroundColor: "var(--pr-bg-card)",
-  border: "1px solid var(--pr-overlay-05)",
-  borderRadius: 12,
-};
-
 export function AgentDirectoryPage() {
   const formId = useId();
+  const { notify } = useToast();
   const [agents, setAgents] = useState<LiveAgent[] | null>(null);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -31,7 +38,7 @@ export function AgentDirectoryPage() {
   const [environmentFilter, setEnvironmentFilter] = useState("");
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  const [confirmingBulkAction, setConfirmingBulkAction] = useState<"suspend" | "activate" | "retire" | "rotate" | null>(null);
 
   const [name, setName] = useState("");
   const [principalId, setPrincipalId] = useState("");
@@ -114,26 +121,37 @@ export function AgentDirectoryPage() {
       if (action === "retire") await agentsApi.retire(agentId);
       loadAgents();
     } catch (e) {
-      setBulkMessage(describeApiError(e, "Action"));
+      notify(describeApiError(e, "Action"), "error");
     }
   }
 
   async function runBulkAction(action: "suspend" | "activate" | "retire" | "rotate") {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    setBulkMessage(null);
     try {
       const result =
         action === "suspend" ? await agentsApi.bulkSuspend(ids)
         : action === "activate" ? await agentsApi.bulkActivate(ids)
         : action === "retire" ? await agentsApi.bulkRetire(ids)
         : await agentsApi.bulkRequestRotation(ids);
-      setBulkMessage(`${result.succeeded} succeeded, ${result.failed} failed.`);
+      notify(
+        `${result.succeeded} succeeded, ${result.failed} failed.`,
+        result.failed > 0 ? "warning" : "success"
+      );
       setSelected(new Set());
       loadAgents();
     } catch (e) {
-      setBulkMessage(describeApiError(e, "Bulk action"));
+      notify(describeApiError(e, "Bulk action"), "error");
+    } finally {
+      setConfirmingBulkAction(null);
     }
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      if (agents && agents.every((a) => prev.has(a.id))) return new Set();
+      return new Set(agents?.map((a) => a.id) ?? []);
+    });
   }
 
   const rowActionFor = (agent: LiveAgent): { label: string; action: "activate" | "suspend" | "retire" } | null => {
@@ -153,7 +171,7 @@ export function AgentDirectoryPage() {
         </p>
       </div>
 
-      <div style={{ ...cardStyle, padding: 20, marginBottom: 24 }}>
+      <Card style={{ marginBottom: 24 }}>
         <h2 className="text-sm font-medium mb-4" style={{ color: "var(--pr-text-primary)" }}>Register a new agent</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
@@ -221,9 +239,9 @@ export function AgentDirectoryPage() {
         </button>
 
         {registerMessage && (
-          <p role="alert" className="text-sm mt-4" style={{ color: "var(--pr-text-secondary)" }}>{registerMessage}</p>
+          <Alert severity="neutral" className="text-sm mt-4">{registerMessage}</Alert>
         )}
-      </div>
+      </Card>
 
       {justActivatedName && (
         <NextStepGuidance
@@ -268,21 +286,40 @@ export function AgentDirectoryPage() {
         {selected.size > 0 && (
           <div className="flex items-center gap-2 ml-auto">
             <span style={{ fontSize: 12, color: "var(--pr-text-muted)" }}>{selected.size} selected</span>
-            <button onClick={() => runBulkAction("activate")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(34,197,94,0.1)", color: "var(--pr-trust-green)" }}>Activate many</button>
-            <button onClick={() => runBulkAction("suspend")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(245,158,11,0.1)", color: "var(--pr-warning-amber)" }}>Suspend many</button>
-            <button onClick={() => runBulkAction("retire")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}>Retire many</button>
-            <button onClick={() => runBulkAction("rotate")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(77,124,254,0.1)", color: "var(--pr-authority-blue)" }}>Request rotation</button>
+            {confirmingBulkAction ? (
+              <span className="flex items-center gap-2">
+                <span style={{ fontSize: 12, color: "var(--pr-warning-amber)" }}>
+                  {BULK_ACTION_LABEL[confirmingBulkAction]} {selected.size} agent{selected.size === 1 ? "" : "s"}?
+                </span>
+                <Button variant="danger" size="sm" onClick={() => runBulkAction(confirmingBulkAction)}>Confirm</Button>
+                <Button variant="ghost" size="sm" onClick={() => setConfirmingBulkAction(null)}>Cancel</Button>
+              </span>
+            ) : (
+              <>
+                <Button variant="tint-success" size="sm" onClick={() => setConfirmingBulkAction("activate")}>Activate many</Button>
+                <button onClick={() => setConfirmingBulkAction("suspend")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(245,158,11,0.1)", color: "var(--pr-warning-amber)" }}>Suspend many</button>
+                <button onClick={() => setConfirmingBulkAction("retire")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "var(--pr-overlay-06)", color: "var(--pr-text-secondary)" }}>Retire many</button>
+                <button onClick={() => setConfirmingBulkAction("rotate")} className="px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "rgba(77,124,254,0.1)", color: "var(--pr-authority-blue)" }}>Request rotation</button>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {bulkMessage && <p role="status" className="text-sm mb-3" style={{ color: "var(--pr-text-secondary)" }}>{bulkMessage}</p>}
-
-      <div style={{ ...cardStyle, overflow: "hidden" }}>
+      <Card padding={0} style={{ overflow: "hidden" }}>
         <table className="w-full text-sm" style={{ color: "var(--pr-text-primary)" }}>
           <thead>
             <tr style={{ color: "var(--pr-text-muted)", textAlign: "left", fontSize: 12, borderBottom: "1px solid var(--pr-overlay-05)" }}>
-              <th className="p-3" style={{ width: 32 }}></th>
+              <th className="p-3" style={{ width: 32 }}>
+                {agents && agents.length > 0 && (
+                  <input
+                    type="checkbox"
+                    checked={agents.every((a) => selected.has(a.id))}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all agents on this page"
+                  />
+                )}
+              </th>
               <th className="p-3">Name</th>
               <th className="p-3">Principal</th>
               <th className="p-3">Owner</th>
@@ -294,6 +331,13 @@ export function AgentDirectoryPage() {
             </tr>
           </thead>
           <tbody>
+            {!agents && (
+              <tr>
+                <td colSpan={9} className="p-3">
+                  <SkeletonRows count={5} height={20} />
+                </td>
+              </tr>
+            )}
             {agents?.map((a) => {
               const rowAction = rowActionFor(a);
               return (
@@ -344,7 +388,7 @@ export function AgentDirectoryPage() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       <div className="flex items-center justify-between mt-3" style={{ fontSize: 12, color: "var(--pr-text-muted)" }}>
         <span>{total} agent{total === 1 ? "" : "s"} total</span>
