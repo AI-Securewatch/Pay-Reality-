@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import { NotFound } from "./pages/NotFound";
 import { RouteErrorBoundary } from "./pages/RouteErrorBoundary";
 import { RequireAuth } from "./auth/RequireAuth";
+import { DEMO_MODE } from "./demo/config";
 
 // Compile/Dry Run/Deploy and Diff were merged into Publish and Versions
 // respectively (PAYREALITY_UX_REVIEW.md); these keep the old URLs from
@@ -70,7 +71,20 @@ export const router = createBrowserRouter([
       {
         Component: ProtectedLayout,
         children: [
-          { index: true, lazy: () => import("./pages/PlatformOverview").then((m) => ({ Component: m.PlatformOverview })) },
+          // The public demo's index route is a dedicated front-door
+          // (hero + guided-tour entry point), not the real dashboard --
+          // production's "/" is completely untouched. "overview" is a
+          // second, always-present route to the real PlatformOverview so
+          // the demo landing's "Explore Platform" CTA (and production)
+          // both have a stable target.
+          {
+            index: true,
+            lazy: () =>
+              DEMO_MODE
+                ? import("./demo/DemoLanding").then((m) => ({ Component: m.DemoLanding }))
+                : import("./pages/PlatformOverview").then((m) => ({ Component: m.PlatformOverview })),
+          },
+          { path: "overview", lazy: () => import("./pages/PlatformOverview").then((m) => ({ Component: m.PlatformOverview })) },
           // Phase 9 (AGENT_LIFECYCLE.md): the Agent Directory + Detail pages
           // replaced the earlier flat Live Agents list/register-only page.
           { path: "agents", lazy: () => import("./agents/AgentDirectoryPage").then((m) => ({ Component: m.AgentDirectoryPage })) },

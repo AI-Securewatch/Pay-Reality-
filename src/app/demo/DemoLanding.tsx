@@ -1,0 +1,106 @@
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { ShieldCheck, Lock, FileCheck, Building2, ArrowRight, ChevronDown } from "lucide-react";
+import { useTour } from "./tour/TourProvider";
+import { Card } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { ORG_NAME } from "./fixtures/organization";
+
+const VALUE_BULLETS = [
+  { icon: ShieldCheck, label: "Prevented unauthorized payments" },
+  { icon: Lock, label: "Verified delegated authority" },
+  { icon: Building2, label: "Independent Runtime Authority" },
+  { icon: FileCheck, label: "Cryptographic Evidence" },
+  { icon: Building2, label: "Enterprise Governance" },
+];
+
+const EXPLAINERS = [
+  {
+    key: "architecture",
+    title: "Platform Architecture",
+    body: "Runtime Authority sits between every AI agent and the systems it acts on -- ERPs, procurement platforms, identity systems. No agent action reaches production until Runtime Authority has verified it. It is not a logging layer bolted on after the fact; it is the enforcement point itself.",
+  },
+  {
+    key: "runtime-authority",
+    title: "Runtime Authority Explained",
+    body: "Most AI governance today checks a role name. Runtime Authority checks a continuous chain: who delegated what, to whom, under which conditions, and whether this specific action still falls within it -- at the moment the action is attempted, not in a quarterly audit.",
+  },
+  {
+    key: "enterprise-ai",
+    title: "Enterprise AI Architecture",
+    body: `At ${ORG_NAME}, nine AI agents act across Finance, Procurement, and IT -- each operating under a named human's delegated authority, each action checked against active policy, each outcome evidenced. This is what "AI workforce" looks like with real governance underneath it.`,
+  },
+];
+
+export function DemoLanding() {
+  const navigate = useNavigate();
+  const { start } = useTour();
+  const [openExplainer, setOpenExplainer] = useState<string | null>(null);
+
+  return (
+    <div className="p-8 max-w-3xl mx-auto" style={{ backgroundColor: "var(--pr-bg-primary)", minHeight: "100vh" }}>
+      <div className="mb-10 mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--pr-authority-blue)" }}>
+            {ORG_NAME} &middot; Runtime Authority Platform
+          </span>
+        </div>
+        <h1 className="mb-4" style={{ color: "var(--pr-text-primary)", fontSize: 32, fontWeight: 600, lineHeight: 1.25 }}>
+          AI agents act inside your enterprise every day. Something has to verify they're allowed to.
+        </h1>
+        <p style={{ color: "var(--pr-text-muted)", fontSize: 15, maxWidth: 560 }}>
+          PayReality is the Runtime Authority layer that checks every AI-initiated action against real delegated
+          authority and enterprise policy, before it executes -- then proves it happened correctly.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-10">
+        {VALUE_BULLETS.map((v) => {
+          const Icon = v.icon;
+          return (
+            <div key={v.label} className="flex items-center gap-2">
+              <Icon className="w-4 h-4 flex-shrink-0" style={{ color: "var(--pr-trust-green)" }} />
+              <span className="text-xs" style={{ color: "var(--pr-text-secondary)" }}>{v.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap gap-3 mb-12">
+        <Button variant="primary" onClick={start}>
+          Start Guided Demo <span aria-hidden="true" className="ml-1">(~3 min)</span>
+        </Button>
+        <Button variant="ghost" onClick={() => navigate("/overview")} className="border" style={{ borderColor: "var(--pr-overlay-10)" }}>
+          Explore Platform <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        {EXPLAINERS.map((e) => {
+          const open = openExplainer === e.key;
+          return (
+            <Card key={e.key} padding={0} style={{ overflow: "hidden" }}>
+              <button
+                type="button"
+                onClick={() => setOpenExplainer(open ? null : e.key)}
+                aria-expanded={open}
+                className="w-full flex items-center justify-between px-5 py-4 text-left"
+              >
+                <span className="text-sm font-medium" style={{ color: "var(--pr-text-primary)" }}>{e.title}</span>
+                <ChevronDown
+                  className="w-4 h-4 flex-shrink-0"
+                  style={{ color: "var(--pr-text-muted)", transform: open ? "rotate(180deg)" : undefined, transition: "transform 150ms ease" }}
+                />
+              </button>
+              {open && (
+                <p className="px-5 pb-4 text-sm" style={{ color: "var(--pr-text-secondary)", lineHeight: 1.6 }}>
+                  {e.body}
+                </p>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

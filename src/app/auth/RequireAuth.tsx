@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 import { useAuth } from "./AuthContext";
+import { DEMO_MODE } from "../demo/config";
 
 // Gates the entire app: every route except /login and /setup-owner
 // (see routes.tsx's ProtectedLayout) renders only for a signed-in human.
@@ -25,18 +26,16 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     );
   }
 
-  // TEMPORARY (revert before the Azure migration / Demo Workspace work):
-  // login wall disabled for public demonstrations. Nothing else about
-  // auth changed -- a real login still works exactly as before, and
-  // require_permission on the backend is completely untouched, so a
-  // visitor with no session and no Operator Key still can't mutate
-  // anything that requires a permission; they just aren't redirected to
-  // /login to view pages that are already open to reads. Restore by
-  // deleting this comment block and uncommenting the block below it.
-  //
-  // if (!user) {
-  //   return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  // }
+  // The public demo build (VITE_PUBLIC_DEMO_MODE) is the one place this
+  // gate is intentionally bypassed -- AuthContext supplies a canned demo
+  // identity in that build, so `user` below is never null there. Every
+  // other deployment (including production) enforces the real session
+  // check underneath, same as always.
+  if (DEMO_MODE) return <>{children}</>;
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
 
   return <>{children}</>;
 }

@@ -20,6 +20,9 @@ import { ROLE_LABELS } from "../auth/types";
 import { HelpButton } from "../help/HelpButton";
 import { HelpPanel } from "../help/HelpPanel";
 import { page as trackPage } from "../services/analytics";
+import { DEMO_MODE } from "../demo/config";
+import { DemoBanner } from "./DemoBanner";
+import { TourProvider } from "../demo/tour/TourProvider";
 
 // One workflow, in order: Agents -> Governance -> Decisions -> Evidence
 // -> Assurance. No department-shaped groups, no duplicate "real" vs
@@ -28,7 +31,10 @@ import { page as trackPage } from "../services/analytics";
 // review (PAYREALITY_UX_REVIEW.md): "Authority" collided with three other
 // unrelated uses of the same word elsewhere in the product.
 const navItems = [
-  { path: "/", label: "Overview", icon: Compass },
+  // In the public demo, "/" is the dedicated landing page (DemoLanding),
+  // not the real dashboard -- Overview points at the always-present
+  // /overview alias instead so the sidebar still reaches it.
+  { path: DEMO_MODE ? "/overview" : "/", label: "Overview", icon: Compass },
   { path: "/agents", label: "Agents", icon: Bot },
   { path: "/governance", label: "Governance", icon: ScrollText },
   { path: "/decisions", label: "Decisions", icon: FlaskConical },
@@ -202,11 +208,10 @@ function LayoutInner() {
     trackPage(location.pathname);
   }, [location.pathname]);
 
-  return (
-    <div
-      className="flex h-screen"
-      style={{ backgroundColor: "var(--pr-bg-primary)" }}
-    >
+  const content = (
+    <div className="flex flex-col h-screen">
+      {DEMO_MODE && <DemoBanner />}
+      <div className="flex flex-1 min-h-0" style={{ backgroundColor: "var(--pr-bg-primary)" }}>
       <a href="#pr-main-content" className="pr-skip-link">
         Skip to main content
       </a>
@@ -285,8 +290,11 @@ function LayoutInner() {
         </main>
       </div>
       <HelpPanel />
+      </div>
     </div>
   );
+
+  return DEMO_MODE ? <TourProvider>{content}</TourProvider> : content;
 }
 
 export function Layout() {

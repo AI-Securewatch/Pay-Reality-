@@ -218,7 +218,7 @@ export function LiveTestIntent() {
         </p>
       </div>
 
-      <Card padding={24} className="mb-6">
+      <Card padding={24} className="mb-6" data-tour="intent-form">
         {agents !== null && signableAgents.length === 0 && (
           <p className="text-sm mb-4" style={{ color: "var(--pr-warning-amber)" }}>
             No agents with a signing key in this browser yet. Register one on the{" "}
@@ -302,7 +302,7 @@ export function LiveTestIntent() {
       </Card>
 
       {decision && style && (
-        <Card padding={24} role="status" aria-live="polite">
+        <Card padding={24} role="status" aria-live="polite" data-tour="decision-outcome">
           <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: "var(--pr-text-muted)" }}>
             Decision
           </p>
@@ -317,9 +317,15 @@ export function LiveTestIntent() {
           </div>
 
           {decision.evaluated_mandate_ids.length > 0 && (
-            <p className="text-xs font-mono mb-2" style={{ color: "var(--pr-text-muted)" }}>
-              Authorized under Mandate{decision.evaluated_mandate_ids.length > 1 ? "s" : ""}: {decision.evaluated_mandate_ids.join(", ")}
-            </p>
+            <div
+              className="p-3 mb-2"
+              style={{ borderLeft: "3px solid var(--pr-authority-blue)", backgroundColor: "var(--pr-overlay-04)", borderRadius: 6 }}
+            >
+              <p className="text-xs font-medium mb-1" style={{ color: "var(--pr-authority-blue)" }}>Authority verified</p>
+              <p className="text-xs font-mono" style={{ color: "var(--pr-text-secondary)" }}>
+                Authorized under Mandate{decision.evaluated_mandate_ids.length > 1 ? "s" : ""}: {decision.evaluated_mandate_ids.join(", ")}
+              </p>
+            </div>
           )}
 
           {decision.enterprise_system_name && (

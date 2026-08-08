@@ -291,6 +291,7 @@ export function PolicyWorkspacePage() {
         {(form.constraints.authority_id || form.constraints.mandate_id) && (
           <div
             className="grid grid-cols-2 gap-4 mt-4 p-3"
+            data-tour="policy-authority-block"
             style={{ borderLeft: "3px solid var(--pr-authority-blue)", backgroundColor: "var(--pr-overlay-04)", borderRadius: 6 }}
           >
             {form.constraints.authority_id && (

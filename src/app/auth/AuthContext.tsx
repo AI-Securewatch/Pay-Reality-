@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { authApi } from "./authApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "../live/sessionToken";
 import { identify, reset as resetAnalytics } from "../services/analytics";
+import { DEMO_MODE } from "../demo/config";
+import { demoCurrentUser } from "../demo/fixtures/users";
 import type { CurrentUser } from "./types";
 
 interface AuthContextValue {
@@ -18,10 +20,14 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // The public demo build never has a real session -- it signs every
+  // visitor in as the same canned identity immediately, skipping the
+  // token check and /v1/auth/me round-trip below entirely.
+  const [user, setUser] = useState<CurrentUser | null>(DEMO_MODE ? demoCurrentUser : null);
+  const [loading, setLoading] = useState(!DEMO_MODE);
 
   useEffect(() => {
+    if (DEMO_MODE) return;
     if (!getSessionToken()) {
       setLoading(false);
       return;

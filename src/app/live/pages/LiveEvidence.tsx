@@ -8,6 +8,8 @@ import { Card } from "../../components/ui/card";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { SkeletonRows } from "../../components/ui/skeleton";
+import { DEMO_MODE } from "../../demo/config";
+import { useNow, formatRelativeTime } from "../../demo/liveClock";
 import type { EvidencePayload, LiveEvidence as LiveEvidenceType } from "../types";
 
 const FIELD_LABEL: Record<string, string> = {
@@ -21,6 +23,7 @@ const SUMMARY_FIELDS: (keyof EvidencePayload)[] = ["action", "amount", "authorit
 const PAGE_SIZE = 10;
 
 export function LiveEvidence() {
+  const now = useNow();
   const [records, setRecords] = useState<LiveEvidenceType[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [verifyResults, setVerifyResults] = useState<Record<string, boolean>>({});
@@ -91,12 +94,12 @@ export function LiveEvidence() {
         {records?.slice(0, visibleCount).map((e) => {
           const verified = verifyResults[e.evidence_id];
           return (
-            <Card key={e.evidence_id} padding={20}>
+            <Card key={e.evidence_id} padding={20} data-tour={e === records?.[0] ? "evidence-record" : undefined}>
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-sm font-mono" style={{ color: "var(--pr-authority-blue)" }}>{e.evidence_id}</p>
                   <p className="text-xs" style={{ color: "var(--pr-text-muted)" }}>
-                    {new Date(e.created_at).toLocaleString()}
+                    {DEMO_MODE ? formatRelativeTime(e.created_at, now) : new Date(e.created_at).toLocaleString()}
                   </p>
                 </div>
                 <span
@@ -182,6 +185,7 @@ export function LiveEvidence() {
               <div className="flex items-center gap-3 mb-2">
                 <button
                   onClick={() => verify(e.evidence_id)}
+                  data-tour={e === records?.[0] ? "verify-signature" : undefined}
                   className="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 border transition-all"
                   style={{ borderColor: "var(--pr-overlay-10)", color: "var(--pr-text-secondary)" }}
                 >

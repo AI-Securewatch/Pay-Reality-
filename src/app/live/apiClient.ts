@@ -1,5 +1,7 @@
 import { getOperatorKey } from "./operatorKey";
 import { getSessionToken } from "./sessionToken";
+import { DEMO_MODE } from "../demo/config";
+import { resolveMockResponse } from "../demo/mockRouter";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -10,6 +12,13 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  // Every requirement of the public demo (mock data, no real backend
+  // reachable, disabled destructive actions) lives entirely behind this
+  // one branch -- production's path below it is completely untouched.
+  if (DEMO_MODE) {
+    return resolveMockResponse<T>(init.method ?? "GET", path, init.body);
+  }
+
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type") && init.body && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");

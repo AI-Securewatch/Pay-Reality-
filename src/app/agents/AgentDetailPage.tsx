@@ -14,6 +14,8 @@ import { Card } from "../components/ui/card";
 import { FieldLabel } from "../components/ui/label";
 import { Alert } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
+import { DEMO_MODE } from "../demo/config";
+import { useNow, formatRelativeTime } from "../demo/liveClock";
 
 const valueStyle: React.CSSProperties = { fontSize: 13, color: "var(--pr-text-primary)" };
 
@@ -28,6 +30,7 @@ function Field({ label, value }: { label: string; value: string | null | undefin
 
 export function AgentDetailPage() {
   const { agentId } = useParams();
+  const now = useNow();
   const [detail, setDetail] = useState<AgentDetail | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [verifyResults, setVerifyResults] = useState<Record<string, boolean>>({});
@@ -164,7 +167,16 @@ export function AgentDetailPage() {
           <h2 className="text-sm font-medium mb-3" style={{ color: "var(--pr-text-primary)" }}>SDK &amp; heartbeat</h2>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <Field label="SDK version" value={agent.sdk_version} />
-            <Field label="Last seen" value={agent.last_seen_at ? new Date(agent.last_seen_at).toLocaleString() : null} />
+            <Field
+              label="Last seen"
+              value={
+                agent.last_seen_at
+                  ? DEMO_MODE
+                    ? formatRelativeTime(agent.last_seen_at, now)
+                    : new Date(agent.last_seen_at).toLocaleString()
+                  : null
+              }
+            />
           </div>
           <p style={{ fontSize: 12, color: "var(--pr-text-muted)" }}>
             Reported by <code style={{ fontFamily: "monospace" }}>agent.heartbeat()</code> in the Python SDK

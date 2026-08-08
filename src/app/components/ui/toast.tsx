@@ -23,6 +23,15 @@ const SEVERITY_COLOR: Record<ToastSeverity, string> = {
 
 const DISMISS_MS = 5000;
 
+// Lets non-component code (the demo mock API layer) fire a toast without
+// being inside the React tree -- set once from ToastProvider's mount
+// effect below, read by the module-level notifyGlobal() export.
+let globalNotify: ((message: string, severity?: ToastSeverity) => void) | null = null;
+
+export function notifyGlobal(message: string, severity: ToastSeverity = "neutral") {
+  globalNotify?.(message, severity);
+}
+
 /** App-wide toast host. Mount once near the root (see App.tsx); call useToast() anywhere below it. */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -40,6 +49,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     },
     [dismiss]
   );
+
+  globalNotify = notify;
 
   return (
     <ToastContext.Provider value={{ notify }}>
