@@ -5,6 +5,7 @@ import { useTour } from "./tour/TourProvider";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ORG_NAME } from "./fixtures/organization";
+import { track } from "../services/analytics";
 
 const VALUE_BULLETS = [
   { icon: ShieldCheck, label: "Prevented unauthorized payments" },
@@ -70,7 +71,15 @@ export function DemoLanding() {
         <Button variant="primary" onClick={start}>
           Start Guided Demo <span aria-hidden="true" className="ml-1">(~3 min)</span>
         </Button>
-        <Button variant="ghost" onClick={() => navigate("/overview")} className="border" style={{ borderColor: "var(--pr-overlay-10)" }}>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            track("Demo Landing Explore Platform Clicked");
+            navigate("/overview");
+          }}
+          className="border"
+          style={{ borderColor: "var(--pr-overlay-10)" }}
+        >
           Explore Platform <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
         </Button>
       </div>
@@ -82,7 +91,10 @@ export function DemoLanding() {
             <Card key={e.key} padding={0} style={{ overflow: "hidden" }}>
               <button
                 type="button"
-                onClick={() => setOpenExplainer(open ? null : e.key)}
+                onClick={() => {
+                  if (!open) track("Demo Landing Explainer Opened", { explainer: e.key });
+                  setOpenExplainer(open ? null : e.key);
+                }}
                 aria-expanded={open}
                 className="w-full flex items-center justify-between px-5 py-4 text-left"
               >
